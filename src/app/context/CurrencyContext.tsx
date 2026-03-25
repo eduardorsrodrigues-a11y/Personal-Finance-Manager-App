@@ -1,4 +1,5 @@
-import { createContext, useContext, useState, ReactNode } from 'react';
+import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
+import { useAuth } from './AuthContext';
 
 interface Currency {
   code: string;
@@ -30,6 +31,7 @@ interface CurrencyContextType {
 const CurrencyContext = createContext<CurrencyContextType | undefined>(undefined);
 
 export function CurrencyProvider({ children }: { children: ReactNode }) {
+  const { user } = useAuth();
   const [currency, setCurrency] = useState<Currency>(currencies[1]); // Default to EUR
 
   const formatAmount = (amount: number) => {
@@ -39,8 +41,43 @@ export function CurrencyProvider({ children }: { children: ReactNode }) {
     })}`;
   };
 
+  // Load user's saved currency preference after login
+  useEffect(() => {
+    let cancelled = false;
+    async function loadUserCurrency() {
+      if (!user?.id) return;
+      try {
+        const res = await fetch('/api/user-settings', { credentials: 'include' });
+        if (!res.ok) return;
+        const json = (await res.json()) as { defaultCurrency?: string };
+        const code = (json.defaultCurrency ?? '').toUpperCase();
+        const found = currencies.find((c) => c.code === code);
+        if (!cancelled && found) setCurrency(found);
+      } catch {
+        // keep EUR default
+      }
+    }
+    void loadUserCurrency();
+    return () => {
+      cancelled = true;
+    };
+  }, [user?.id]);
+
+  const setCurrencyPersisted = (nextCurrency: Currency) => {
+    setCurrency(nextCurrency);
+    // Fire-and-forget persistence. UI shouldn't block on network.
+    void fetch('/api/user-settings', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({ defaultCurrency: nextCurrency.code }),
+    }).catch(() => {
+      // ignore persistence errors for now
+    });
+  };
+
   return (
-    <CurrencyContext.Provider value={{ currency, setCurrency, formatAmount }}>
+    <CurrencyContext.Provider value={{ currency, setCurrency: setCurrencyPersisted, formatAmount }}>
       {children}
     </CurrencyContext.Provider>
   );

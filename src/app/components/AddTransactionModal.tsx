@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { X } from 'lucide-react';
 import { useTransactions } from '../context/TransactionContext';
+import { useCurrency } from '../context/CurrencyContext';
 
 interface AddTransactionModalProps {
   isOpen: boolean;
@@ -12,6 +13,7 @@ const incomeCategories = ['Salary', 'Freelance', 'Investment', 'Business', 'Othe
 
 export function AddTransactionModal({ isOpen, onClose }: AddTransactionModalProps) {
   const { addTransaction } = useTransactions();
+  const { currency } = useCurrency();
   const [type, setType] = useState<'expense' | 'income'>('expense');
   const [amount, setAmount] = useState('');
   const [description, setDescription] = useState('');
@@ -20,11 +22,11 @@ export function AddTransactionModal({ isOpen, onClose }: AddTransactionModalProp
 
   const categories = type === 'expense' ? expenseCategories : incomeCategories;
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!amount || !description || !category) return;
 
-    addTransaction({
+    await addTransaction({
       type,
       amount: parseFloat(amount),
       description,
@@ -95,7 +97,7 @@ export function AddTransactionModal({ isOpen, onClose }: AddTransactionModalProp
             <label className="block text-sm mb-2 text-muted-foreground">Amount</label>
             <div className="relative">
               <span className="absolute left-4 top-1/2 -translate-y-1/2 text-2xl text-muted-foreground">
-                $
+                {currency.symbol}
               </span>
               <input
                 type="number"

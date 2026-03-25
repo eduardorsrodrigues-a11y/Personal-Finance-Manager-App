@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { Plus, Search, Trash2, ShoppingCart, Home, Utensils, Car, Film, Heart, Zap, DollarSign } from 'lucide-react';
 import { useSearchParams } from 'react-router';
 import { useTransactions } from '../context/TransactionContext';
@@ -35,6 +35,17 @@ export function TransactionHistory() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedMonth, setSelectedMonth] = useState<string>(initialMonthParam || 'all');
   const [selectedCategory, setSelectedCategory] = useState<string>(initialCategoryParam || 'all');
+
+  // Keep state in sync with URL query params (for Dashboard drilldown).
+  useEffect(() => {
+    setSelectedMonth(initialMonthParam || 'all');
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialMonthParam]);
+
+  useEffect(() => {
+    setSelectedCategory(initialCategoryParam || 'all');
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialCategoryParam]);
 
   // Get available months and categories
   const availableMonths = useMemo(() => getAvailableMonths(transactions), [transactions]);
@@ -175,7 +186,9 @@ export function TransactionHistory() {
                             </p>
                           </div>
                           <button
-                            onClick={() => deleteTransaction(transaction.id)}
+                            onClick={() => {
+                              void deleteTransaction(transaction.id);
+                            }}
                             className="opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-destructive p-2"
                           >
                             <Trash2 className="w-4 h-4" />

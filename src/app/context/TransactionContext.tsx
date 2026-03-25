@@ -1,4 +1,5 @@
-import React, { createContext, useContext, useState, ReactNode } from 'react';
+import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
+import { useAuth } from './AuthContext';
 
 export interface Transaction {
   id: string;
@@ -11,93 +12,54 @@ export interface Transaction {
 
 interface TransactionContextType {
   transactions: Transaction[];
-  addTransaction: (transaction: Omit<Transaction, 'id'>) => void;
-  deleteTransaction: (id: string) => void;
+  addTransaction: (transaction: Omit<Transaction, 'id'>) => Promise<void>;
+  deleteTransaction: (id: string) => Promise<void>;
 }
 
 const TransactionContext = createContext<TransactionContextType | undefined>(undefined);
 
-// Mock initial data
-const initialTransactions: Transaction[] = [
-  {
-    id: '1',
-    type: 'income',
-    amount: 5000,
-    description: 'Monthly Salary',
-    date: '2026-03-01',
-    category: 'Salary',
-  },
-  {
-    id: '2',
-    type: 'expense',
-    amount: 1200,
-    description: 'Rent Payment',
-    date: '2026-03-02',
-    category: 'Housing',
-  },
-  {
-    id: '3',
-    type: 'expense',
-    amount: 350,
-    description: 'Grocery Shopping',
-    date: '2026-03-05',
-    category: 'Food',
-  },
-  {
-    id: '4',
-    type: 'expense',
-    amount: 80,
-    description: 'Internet Bill',
-    date: '2026-03-08',
-    category: 'Utilities',
-  },
-  {
-    id: '5',
-    type: 'income',
-    amount: 500,
-    description: 'Freelance Project',
-    date: '2026-03-10',
-    category: 'Freelance',
-  },
-  {
-    id: '6',
-    type: 'expense',
-    amount: 150,
-    description: 'Gym Membership',
-    date: '2026-03-12',
-    category: 'Health',
-  },
-  {
-    id: '7',
-    type: 'expense',
-    amount: 45,
-    description: 'Coffee & Snacks',
-    date: '2026-03-15',
-    category: 'Food',
-  },
-  {
-    id: '8',
-    type: 'expense',
-    amount: 200,
-    description: 'Clothing',
-    date: '2026-03-18',
-    category: 'Shopping',
-  },
-];
-
 export function TransactionProvider({ children }: { children: ReactNode }) {
-  const [transactions, setTransactions] = useState<Transaction[]>(initialTransactions);
+  const { user } = useAuth();
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
 
-  const addTransaction = (transaction: Omit<Transaction, 'id'>) => {
-    const newTransaction: Transaction = {
-      ...transaction,
-      id: Date.now().toString(),
-    };
-    setTransactions((prev) => [newTransaction, ...prev]);
+  const refresh = async () => {
+    if (!user?.id) {
+      setTransactions([]);
+      return;
+    }
+
+    const res = await fetch('/api/transactions', { credentials: 'include' });
+    if (!res.ok) {
+      setTransactions([]);
+      return;
+    }
+    const json = await res.json();
+    setTransactions((json.transactions ?? []) as Transaction[]);
   };
 
-  const deleteTransaction = (id: string) => {
-    setTransactions((prev) => prev.filter((t) => t.id !== id));
+  useEffect(() => {
+    void refresh();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id]);
+
+  const addTransaction = async (transaction: Omit<Transaction, 'id'>) => {
+    const res = await fetch('/api/transactions', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify(transaction),
+    });
+    if (!res.ok) return;
+    await refresh();
+  };
+
+  const deleteTransaction = async (id: string) => {
+    const res = await fetch(`/api/transactions?id=${encodeURIComponent(id)}`, {
+      method: 'DELETE',
+      credentials: 'include',
+    });
+    if (!res.ok) return;
+    await refresh();
   };
 
   return (
