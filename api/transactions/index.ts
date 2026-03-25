@@ -1,5 +1,5 @@
-import { getAuthenticatedUserId } from '../lib/session';
-import { createTransaction, deleteTransaction, listTransactions } from '../lib/db';
+import { getAuthenticatedUserId } from '../lib/session.js';
+import { createTransaction, deleteTransaction, listTransactions } from '../lib/db.js';
 
 async function readJsonBody(req: any): Promise<any> {
   return new Promise((resolve, reject) => {

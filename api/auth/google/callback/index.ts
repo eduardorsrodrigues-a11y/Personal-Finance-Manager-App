@@ -1,6 +1,6 @@
-import { getCookieValue } from '../../../lib/cookies';
-import { createSessionToken } from '../../../lib/session';
-import { upsertUserByGoogle } from '../../../lib/db';
+import { getCookieValue } from '../../../lib/cookies.js';
+import { createSessionToken } from '../../../lib/session.js';
+import { upsertUserByGoogle } from '../../../lib/db.js';
 
 function getBaseUrl(req: any) {
   const host = req.headers?.host as string | undefined;

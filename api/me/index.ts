@@ -1,5 +1,5 @@
-import { getAuthenticatedUserId } from '../lib/session';
-import { getUserById } from '../lib/db';
+import { getAuthenticatedUserId } from '../lib/session.js';
+import { getUserById } from '../lib/db.js';
 
 export default async function handler(req: any, res: any) {
   const userId = await getAuthenticatedUserId(req);

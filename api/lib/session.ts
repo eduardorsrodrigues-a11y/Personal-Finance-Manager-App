@@ -1,5 +1,5 @@
 import { jwtVerify, SignJWT } from 'jose';
-import { getCookieValue, serializeCookie } from './cookies';
+import { getCookieValue, serializeCookie } from './cookies.js';
 
 type SessionPayload = {
   sub: string; // user id
