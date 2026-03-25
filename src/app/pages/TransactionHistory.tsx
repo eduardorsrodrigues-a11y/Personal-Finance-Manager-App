@@ -1,5 +1,6 @@
 import { useState, useMemo } from 'react';
 import { Plus, Search, Trash2, ShoppingCart, Home, Utensils, Car, Film, Heart, Zap, DollarSign } from 'lucide-react';
+import { useSearchParams } from 'react-router';
 import { useTransactions } from '../context/TransactionContext';
 import { AddTransactionModal } from '../components/AddTransactionModal';
 import { TransactionFilters } from '../components/TransactionFilters';
@@ -26,11 +27,14 @@ const categoryIcons: Record<string, any> = {
 export function TransactionHistory() {
   const { transactions, deleteTransaction } = useTransactions();
   const { formatAmount } = useCurrency();
+  const [searchParams] = useSearchParams();
+  const initialMonthParam = searchParams.get('month');
+  const initialCategoryParam = searchParams.get('category');
   const [filter, setFilter] = useState<FilterType>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [selectedMonth, setSelectedMonth] = useState<string>('all');
-  const [selectedCategory, setSelectedCategory] = useState<string>('all');
+  const [selectedMonth, setSelectedMonth] = useState<string>(initialMonthParam || 'all');
+  const [selectedCategory, setSelectedCategory] = useState<string>(initialCategoryParam || 'all');
 
   // Get available months and categories
   const availableMonths = useMemo(() => getAvailableMonths(transactions), [transactions]);

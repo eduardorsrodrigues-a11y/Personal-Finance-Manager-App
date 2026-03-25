@@ -30,7 +30,7 @@ interface CurrencyContextType {
 const CurrencyContext = createContext<CurrencyContextType | undefined>(undefined);
 
 export function CurrencyProvider({ children }: { children: ReactNode }) {
-  const [currency, setCurrency] = useState<Currency>(currencies[0]); // Default to USD
+  const [currency, setCurrency] = useState<Currency>(currencies[1]); // Default to EUR
 
   const formatAmount = (amount: number) => {
     return `${currency.symbol}${amount.toLocaleString('en-US', {

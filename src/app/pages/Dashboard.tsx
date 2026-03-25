@@ -1,13 +1,12 @@
 import { useState, useMemo } from 'react';
 import { TrendingUp, TrendingDown, Wallet, Plus, ShoppingCart, Home, Utensils, Car, Film, Heart, Zap, DollarSign } from 'lucide-react';
-import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from 'recharts';
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
+import { useNavigate } from 'react-router';
 import { useTransactions } from '../context/TransactionContext';
 import { AddTransactionModal } from '../components/AddTransactionModal';
 import { TransactionFilters } from '../components/TransactionFilters';
 import { getAvailableMonths, filterTransactionsByMonth } from '../utils/dateUtils';
 import { useCurrency } from '../context/CurrencyContext';
-
-type FilterType = 'all' | 'income' | 'expense';
 
 const categoryIcons: Record<string, any> = {
   Food: Utensils,
@@ -29,47 +28,32 @@ const COLORS = ['#ef4444', '#f97316', '#f59e0b', '#eab308', '#84cc16', '#22c55e'
 export function Dashboard() {
   const { transactions } = useTransactions();
   const { formatAmount } = useCurrency();
+  const navigate = useNavigate();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedMonth, setSelectedMonth] = useState<string>('all');
-  const [filterType, setFilterType] = useState<FilterType>('all');
-  const [selectedCategory, setSelectedCategory] = useState<string>('all');
 
-  // Get available months and categories for filters
+  // Get available months for filters
   const availableMonths = useMemo(() => getAvailableMonths(transactions), [transactions]);
-  
-  const availableCategories = useMemo(() => {
-    const categories = new Set(transactions.map(t => t.category));
-    return Array.from(categories).sort();
-  }, [transactions]);
 
-  // Filter transactions by selected month, type, and category
-  const filteredTransactions = useMemo(() => {
-    let filtered = filterTransactionsByMonth(transactions, selectedMonth);
-    
-    if (filterType !== 'all') {
-      filtered = filtered.filter(t => t.type === filterType);
-    }
-    
-    if (selectedCategory !== 'all') {
-      filtered = filtered.filter(t => t.category === selectedCategory);
-    }
-    
-    return filtered;
-  }, [transactions, selectedMonth, filterType, selectedCategory]);
+  // Filter transactions by selected month only
+  const monthFilteredTransactions = useMemo(
+    () => filterTransactionsByMonth(transactions, selectedMonth),
+    [transactions, selectedMonth],
+  );
 
-  // Calculate totals from filtered transactions
-  const totalIncome = filteredTransactions
+  // Calculate totals from month-filtered transactions
+  const totalIncome = monthFilteredTransactions
     .filter((t) => t.type === 'income')
     .reduce((sum, t) => sum + t.amount, 0);
 
-  const totalExpenses = filteredTransactions
+  const totalExpenses = monthFilteredTransactions
     .filter((t) => t.type === 'expense')
     .reduce((sum, t) => sum + t.amount, 0);
 
   const balance = totalIncome - totalExpenses;
 
-  // Calculate expenses by category from filtered transactions
-  const expensesByCategory = filteredTransactions
+  // Calculate expenses by category from month-filtered transactions
+  const expensesByCategory = monthFilteredTransactions
     .filter((t) => t.type === 'expense')
     .reduce((acc, t) => {
       acc[t.category] = (acc[t.category] || 0) + t.amount;
@@ -81,8 +65,28 @@ export function Dashboard() {
     value,
   }));
 
-  // Recent transactions (last 5) from filtered transactions
-  const recentTransactions = filteredTransactions.slice(0, 5);
+  const categoryTotals = useMemo(
+    () =>
+      Object.entries(
+        monthFilteredTransactions.reduce((acc, transaction) => {
+          acc[transaction.category] = (acc[transaction.category] || 0) + transaction.amount;
+          return acc;
+        }, {} as Record<string, number>),
+      )
+        .map(([category, total]) => ({ category, total }))
+        .sort((a, b) => b.total - a.total),
+    [monthFilteredTransactions],
+  );
+
+  // Recent transactions (last 5) from month-filtered transactions
+  const recentTransactions = monthFilteredTransactions.slice(0, 5);
+
+  const handleCategoryDrilldown = (category: string) => {
+    const params = new URLSearchParams();
+    params.set('category', category);
+    params.set('month', selectedMonth);
+    navigate(`/transactions?${params.toString()}`);
+  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -107,14 +111,16 @@ export function Dashboard() {
           
           {/* Filters */}
           <TransactionFilters
-            selectedType={filterType}
-            onTypeChange={setFilterType}
-            selectedCategory={selectedCategory}
-            onCategoryChange={setSelectedCategory}
+            selectedType="all"
+            onTypeChange={() => {}}
+            selectedCategory="all"
+            onCategoryChange={() => {}}
             selectedMonth={selectedMonth}
             onMonthChange={setSelectedMonth}
             availableMonths={availableMonths}
-            availableCategories={availableCategories}
+            availableCategories={[]}
+            showTypeFilter={false}
+            showCategoryFilter={false}
           />
         </div>
       </header>
@@ -193,7 +199,7 @@ export function Dashboard() {
                     ))}
                   </Pie>
                   <Tooltip
-                    formatter={(value: number) => `$${value.toFixed(2)}`}
+                    formatter={(value: number) => formatAmount(value)}
                     contentStyle={{
                       backgroundColor: 'var(--card)',
                       border: '1px solid var(--border)',
@@ -207,6 +213,26 @@ export function Dashboard() {
                 No expense data available
               </div>
             )}
+
+            <div className="mt-6 pt-6 border-t border-border">
+              <h3 className="text-sm font-semibold mb-3">Total by Category</h3>
+              {categoryTotals.length > 0 ? (
+                <div className="space-y-2">
+                  {categoryTotals.map(({ category, total }) => (
+                    <button
+                      key={category}
+                      onClick={() => handleCategoryDrilldown(category)}
+                      className="w-full flex items-center justify-between rounded-lg px-3 py-2 hover:bg-muted transition-colors text-left"
+                    >
+                      <span className="text-sm">{category}</span>
+                      <span className="text-sm font-medium">{formatAmount(total)}</span>
+                    </button>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-sm text-muted-foreground">No category totals for this time period.</p>
+              )}
+            </div>
           </div>
 
           {/* Recent Transactions */}
