@@ -80,7 +80,8 @@ export function AddTransactionModal({
 
   return (
     <>
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+    <div className="fixed inset-0 bg-black/50 z-50 overflow-y-auto">
+      <div className="flex min-h-full items-center justify-center p-4">
       <div className="bg-card rounded-xl shadow-lg w-full max-w-md">
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-border">
@@ -131,6 +132,7 @@ export function AddTransactionModal({
               </span>
               <input
                 type="number"
+                inputMode="decimal"
                 value={amount}
                 onChange={(e) => setAmount(e.target.value)}
                 placeholder="0.00"
@@ -157,13 +159,16 @@ export function AddTransactionModal({
           {/* Date */}
           <div>
             <label className="block text-sm mb-2 text-muted-foreground">{t('modal.date')}</label>
-            <input
-              type="date"
-              value={date}
-              onChange={(e) => setDate(e.target.value)}
-              className="w-full px-4 py-3 bg-input-background rounded-lg border border-border focus:outline-none focus:ring-2 focus:ring-ring"
-              required
-            />
+            <div className="overflow-hidden rounded-lg">
+              <input
+                type="date"
+                value={date}
+                onChange={(e) => setDate(e.target.value)}
+                className="w-full px-4 py-3 bg-input-background rounded-lg border border-border focus:outline-none focus:ring-2 focus:ring-ring"
+                style={{ WebkitAppearance: 'none', maxWidth: '100%', boxSizing: 'border-box' }}
+                required
+              />
+            </div>
           </div>
 
           {/* Category */}
@@ -192,6 +197,7 @@ export function AddTransactionModal({
             {mode === 'edit' ? t('modal.confirm') : t('modal.addTransaction')}
           </button>
         </form>
+      </div>
       </div>
     </div>
 
