@@ -22,6 +22,8 @@ export const currencies: Currency[] = [
   { code: 'ZAR', symbol: 'R', name: 'South African Rand' },
 ];
 
+const GUEST_CURRENCY_KEY = 'expense_manager_guest_currency';
+
 interface CurrencyContextType {
   currency: Currency;
   setCurrency: (currency: Currency) => void;
@@ -31,7 +33,7 @@ interface CurrencyContextType {
 const CurrencyContext = createContext<CurrencyContextType | undefined>(undefined);
 
 export function CurrencyProvider({ children }: { children: ReactNode }) {
-  const { user } = useAuth();
+  const { user, isGuest } = useAuth();
   const [currency, setCurrency] = useState<Currency>(currencies[1]); // Default to EUR
 
   const formatAmount = (amount: number) => {
@@ -41,9 +43,19 @@ export function CurrencyProvider({ children }: { children: ReactNode }) {
     })}`;
   };
 
-  // Load user's saved currency preference after login
+  // Load currency preference — localStorage for guests, API for authenticated users
   useEffect(() => {
     let cancelled = false;
+
+    if (isGuest) {
+      const saved = localStorage.getItem(GUEST_CURRENCY_KEY);
+      if (saved) {
+        const found = currencies.find((c) => c.code === saved.toUpperCase());
+        if (found) setCurrency(found);
+      }
+      return;
+    }
+
     async function loadUserCurrency() {
       if (!user?.id) return;
       try {
@@ -61,18 +73,24 @@ export function CurrencyProvider({ children }: { children: ReactNode }) {
     return () => {
       cancelled = true;
     };
-  }, [user?.id]);
+  }, [user?.id, isGuest]);
 
   const setCurrencyPersisted = (nextCurrency: Currency) => {
     setCurrency(nextCurrency);
-    // Fire-and-forget persistence. UI shouldn't block on network.
+
+    if (isGuest) {
+      localStorage.setItem(GUEST_CURRENCY_KEY, nextCurrency.code);
+      return;
+    }
+
+    // Fire-and-forget persistence for authenticated users
     void fetch('/api/user-settings', {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       credentials: 'include',
       body: JSON.stringify({ defaultCurrency: nextCurrency.code }),
     }).catch(() => {
-      // ignore persistence errors for now
+      // ignore persistence errors
     });
   };
 

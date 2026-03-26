@@ -6,7 +6,7 @@ import { AddTransactionModal } from './AddTransactionModal';
 
 export function MobileNav() {
   const location = useLocation();
-  const { user } = useAuth();
+  const { user, isGuest } = useAuth();
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
 
   return (
@@ -28,9 +28,9 @@ export function MobileNav() {
           {/* Add — visually distinct, disabled when not logged in */}
           <div className="flex flex-col items-center justify-center flex-1 -mt-5">
             <button
-              onClick={() => user && setIsAddModalOpen(true)}
-              disabled={!user}
-              className={`flex flex-col items-center justify-center ${!user ? 'opacity-40 cursor-not-allowed' : ''}`}
+              onClick={() => (user || isGuest) && setIsAddModalOpen(true)}
+              disabled={!user && !isGuest}
+              className={`flex flex-col items-center justify-center ${!user && !isGuest ? 'opacity-40 cursor-not-allowed' : ''}`}
             >
               <div className="bg-emerald-500 rounded-full p-3 shadow-lg">
                 <Plus className="w-6 h-6 text-white" />

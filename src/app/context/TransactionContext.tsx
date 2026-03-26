@@ -17,10 +17,25 @@ interface TransactionContextType {
   updateTransaction: (id: string, transaction: Omit<Transaction, 'id'>) => Promise<void>;
 }
 
+const GUEST_TRANSACTIONS_KEY = 'expense_manager_guest_transactions';
+
 const TransactionContext = createContext<TransactionContextType | undefined>(undefined);
 
+function loadGuestTransactions(): Transaction[] {
+  try {
+    const raw = localStorage.getItem(GUEST_TRANSACTIONS_KEY);
+    return raw ? (JSON.parse(raw) as Transaction[]) : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveGuestTransactions(transactions: Transaction[]): void {
+  localStorage.setItem(GUEST_TRANSACTIONS_KEY, JSON.stringify(transactions));
+}
+
 export function TransactionProvider({ children }: { children: ReactNode }) {
-  const { user } = useAuth();
+  const { user, isGuest } = useAuth();
   const [transactions, setTransactions] = useState<Transaction[]>([]);
 
   const refresh = async () => {
@@ -28,7 +43,6 @@ export function TransactionProvider({ children }: { children: ReactNode }) {
       setTransactions([]);
       return;
     }
-
     const res = await fetch('/api/transactions', { credentials: 'include' });
     if (!res.ok) {
       setTransactions([]);
@@ -38,12 +52,62 @@ export function TransactionProvider({ children }: { children: ReactNode }) {
     setTransactions((json.transactions ?? []) as Transaction[]);
   };
 
+  // Uploads all guest transactions to the cloud, then clears localStorage.
+  const migrateGuestTransactions = async (guestTxs: Transaction[]) => {
+    await Promise.all(
+      guestTxs.map((tx) =>
+        fetch('/api/transactions', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({
+            type: tx.type,
+            amount: tx.amount,
+            description: tx.description,
+            date: tx.date,
+            category: tx.category,
+          }),
+        }),
+      ),
+    );
+    localStorage.removeItem(GUEST_TRANSACTIONS_KEY);
+    await refresh();
+  };
+
   useEffect(() => {
-    void refresh();
+    if (isGuest && !user?.id) {
+      // Guest mode: serve from localStorage
+      setTransactions(loadGuestTransactions());
+      return;
+    }
+
+    if (!user?.id) {
+      setTransactions([]);
+      return;
+    }
+
+    // Authenticated: check whether there are guest transactions to migrate
+    const guestTxs = loadGuestTransactions();
+    if (guestTxs.length > 0) {
+      void migrateGuestTransactions(guestTxs);
+    } else {
+      void refresh();
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user?.id]);
+  }, [user?.id, isGuest]);
 
   const addTransaction = async (transaction: Omit<Transaction, 'id'>) => {
+    if (isGuest) {
+      const newTx: Transaction = {
+        ...transaction,
+        id: `guest_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`,
+      };
+      const updated = [...transactions, newTx];
+      saveGuestTransactions(updated);
+      setTransactions(updated);
+      return;
+    }
+
     const res = await fetch('/api/transactions', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -55,6 +119,13 @@ export function TransactionProvider({ children }: { children: ReactNode }) {
   };
 
   const deleteTransaction = async (id: string) => {
+    if (isGuest) {
+      const updated = transactions.filter((t) => t.id !== id);
+      saveGuestTransactions(updated);
+      setTransactions(updated);
+      return;
+    }
+
     const res = await fetch(`/api/transactions?id=${encodeURIComponent(id)}`, {
       method: 'DELETE',
       credentials: 'include',
@@ -64,6 +135,13 @@ export function TransactionProvider({ children }: { children: ReactNode }) {
   };
 
   const updateTransaction = async (id: string, transaction: Omit<Transaction, 'id'>) => {
+    if (isGuest) {
+      const updated = transactions.map((t) => (t.id === id ? { ...transaction, id } : t));
+      saveGuestTransactions(updated);
+      setTransactions(updated);
+      return;
+    }
+
     const res = await fetch(`/api/transactions?id=${encodeURIComponent(id)}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },

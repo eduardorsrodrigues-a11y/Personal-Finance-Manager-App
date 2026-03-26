@@ -1,4 +1,4 @@
-import { LayoutDashboard, List, DollarSign, Globe, ChevronDown, LogOut } from 'lucide-react';
+import { LayoutDashboard, List, DollarSign, Globe, ChevronDown, LogOut, LogIn } from 'lucide-react';
 import { Link, useLocation } from 'react-router';
 import { useCurrency, currencies } from '../context/CurrencyContext';
 import { useAuth } from '../context/AuthContext';
@@ -7,7 +7,7 @@ import { useState } from 'react';
 export function Sidebar() {
   const location = useLocation();
   const { currency, setCurrency } = useCurrency();
-  const { user, signOut } = useAuth();
+  const { user, isGuest, signOut, signInWithGoogle } = useAuth();
   const [isCurrencyMenuOpen, setIsCurrencyMenuOpen] = useState(false);
 
   const navItems = [
@@ -52,7 +52,23 @@ export function Sidebar() {
         </ul>
       </nav>
 
-      {/* Logout */}
+      {/* Guest: sign-in prompt with migration note */}
+      {isGuest && (
+        <div className="px-4 pb-2 border-t border-sidebar-border pt-4">
+          <button
+            onClick={signInWithGoogle}
+            className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sidebar-foreground hover:bg-sidebar-accent/50 transition-colors"
+          >
+            <LogIn className="w-5 h-5 text-emerald-500" />
+            <div className="flex flex-col items-start">
+              <span className="text-sm font-medium text-emerald-600">Sign in with Google</span>
+              <span className="text-xs text-muted-foreground">Your data will sync to cloud</span>
+            </div>
+          </button>
+        </div>
+      )}
+
+      {/* Authenticated: sign out */}
       {user && (
         <div className="px-4 pb-2 border-t border-sidebar-border pt-4">
           <button

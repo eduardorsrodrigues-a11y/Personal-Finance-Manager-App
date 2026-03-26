@@ -9,16 +9,24 @@ export type AuthUser = {
 
 type AuthContextType = {
   user: AuthUser | null;
+  isGuest: boolean;
   loading: boolean;
   signInWithGoogle: () => void;
   signOut: () => void;
+  enterGuestMode: () => void;
 };
+
+// Shared localStorage keys — must match what TransactionContext and CurrencyContext use
+const GUEST_MODE_KEY = 'expense_manager_guest_mode';
+const GUEST_TRANSACTIONS_KEY = 'expense_manager_guest_transactions';
+const GUEST_CURRENCY_KEY = 'expense_manager_guest_currency';
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isGuest, setIsGuest] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -27,13 +35,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       try {
         const res = await fetch('/api/me', { credentials: 'include' });
         if (!res.ok) {
-          if (!cancelled) setUser(null);
+          if (!cancelled) {
+            // No authenticated session — restore guest flag if set
+            setIsGuest(localStorage.getItem(GUEST_MODE_KEY) === 'true');
+            setUser(null);
+          }
           return;
         }
         const json = (await res.json()) as { user: AuthUser };
-        if (!cancelled) setUser(json.user ?? null);
+        if (!cancelled) {
+          // Authenticated session found — clear guest flag.
+          // Guest transactions are NOT cleared here; TransactionContext will
+          // detect them and migrate them to the cloud.
+          setUser(json.user ?? null);
+          setIsGuest(false);
+          localStorage.removeItem(GUEST_MODE_KEY);
+        }
       } catch {
-        if (!cancelled) setUser(null);
+        if (!cancelled) {
+          setIsGuest(localStorage.getItem(GUEST_MODE_KEY) === 'true');
+          setUser(null);
+        }
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -47,16 +69,28 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const value = useMemo<AuthContextType>(
     () => ({
       user,
+      isGuest,
       loading,
+      enterGuestMode: () => {
+        localStorage.setItem(GUEST_MODE_KEY, 'true');
+        setIsGuest(true);
+        navigate('/', { replace: true });
+      },
       signInWithGoogle: () => {
+        // Guest transactions persist in localStorage through the OAuth redirect.
+        // TransactionContext will pick them up and migrate them after sign-in.
         window.location.href = '/api/auth/google';
       },
       signOut: () => {
-        // Let backend clear cookie and redirect
+        // Wipe all local data immediately before the server redirect.
+        // This ensures a new user at the same device sees a blank slate.
+        localStorage.removeItem(GUEST_MODE_KEY);
+        localStorage.removeItem(GUEST_TRANSACTIONS_KEY);
+        localStorage.removeItem(GUEST_CURRENCY_KEY);
         window.location.href = '/api/auth/logout';
       },
     }),
-    [user, loading],
+    [user, isGuest, loading, navigate],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
@@ -68,6 +102,7 @@ export function useAuth() {
   return ctx;
 }
 
+/** Allows access only to authenticated users (no guests). */
 export function RequireAuth({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
@@ -81,3 +116,16 @@ export function RequireAuth({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
 
+/** Allows access to both authenticated users and guests. */
+export function RequireAccess({ children }: { children: React.ReactNode }) {
+  const { user, isGuest, loading } = useAuth();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (!loading && !user && !isGuest) navigate('/login', { replace: true });
+  }, [loading, user, isGuest, navigate]);
+
+  if (loading) return null;
+  if (!user && !isGuest) return null;
+  return <>{children}</>;
+}

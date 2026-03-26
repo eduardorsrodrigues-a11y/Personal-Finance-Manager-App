@@ -5,7 +5,7 @@ import { useAuth } from '../context/AuthContext';
 
 export function MobileHeader() {
   const { currency, setCurrency } = useCurrency();
-  const { user, loading, signInWithGoogle, signOut } = useAuth();
+  const { user, isGuest, loading, signInWithGoogle, signOut } = useAuth();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isCurrencyOpen, setIsCurrencyOpen] = useState(false);
 
@@ -83,7 +83,7 @@ export function MobileHeader() {
           )}
         </div>
 
-        {/* Login / Logout section */}
+        {/* Login / Logout / Guest section */}
         <div className="border-t border-border">
           {loading ? (
             <div className="px-4 py-4 text-xs text-muted-foreground">Loading...</div>
@@ -98,6 +98,17 @@ export function MobileHeader() {
                 {user.name && (
                   <span className="text-xs text-muted-foreground">{user.name}</span>
                 )}
+              </div>
+            </button>
+          ) : isGuest ? (
+            <button
+              onClick={() => { signInWithGoogle(); closeMenu(); }}
+              className="flex items-center gap-3 px-4 py-4 w-full hover:bg-muted transition-colors"
+            >
+              <LogIn className="w-5 h-5 text-emerald-500" />
+              <div className="flex flex-col items-start">
+                <span className="text-sm font-medium text-emerald-500">Sign in with Google</span>
+                <span className="text-xs text-muted-foreground">Your data will migrate automatically</span>
               </div>
             </button>
           ) : (
