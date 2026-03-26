@@ -16,9 +16,8 @@ export function MobileHeader() {
 
   return (
     <>
-      {/* Header bar */}
-      <header className="lg:hidden fixed top-0 left-0 right-0 z-50 h-14 bg-card border-b border-border flex items-center px-4">
-        {/* Hamburger */}
+      {/* Header bar — always on top */}
+      <header className="lg:hidden fixed top-0 left-0 right-0 z-[210] h-14 bg-card border-b border-border flex items-center px-4">
         <button
           onClick={() => (isMenuOpen ? closeMenu() : setIsMenuOpen(true))}
           className="p-2 rounded-lg text-muted-foreground hover:bg-muted transition-colors"
@@ -27,7 +26,7 @@ export function MobileHeader() {
           {isMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
         </button>
 
-        {/* Logo — centered absolutely so it stays centered regardless of left element */}
+        {/* Logo centered */}
         <div className="absolute left-0 right-0 flex justify-center pointer-events-none">
           <span className="text-lg font-bold text-blue-600">Expense Manager</span>
         </div>
@@ -41,10 +40,10 @@ export function MobileHeader() {
         />
       )}
 
-      {/* Slide-down panel */}
+      {/* Slide-down panel — collapses via max-h so it never peeks */}
       <div
-        className={`lg:hidden fixed top-14 left-0 right-0 z-[200] bg-card border-b border-border shadow-2xl transition-transform duration-300 ease-in-out text-foreground ${
-          isMenuOpen ? 'translate-y-0 pointer-events-auto' : '-translate-y-full pointer-events-none'
+        className={`lg:hidden fixed top-14 left-0 right-0 z-[200] bg-card border-b border-border shadow-2xl text-foreground overflow-hidden transition-all duration-300 ease-in-out ${
+          isMenuOpen ? 'max-h-[500px] opacity-100 pointer-events-auto' : 'max-h-0 opacity-0 pointer-events-none'
         }`}
       >
         {/* Currency section */}
