@@ -35,7 +35,6 @@ export function MobileNav() {
               <div className="bg-emerald-500 rounded-full p-3 shadow-lg">
                 <Plus className="w-6 h-6 text-white" />
               </div>
-              <span className="text-xs mt-1 text-muted-foreground">Add</span>
             </button>
           </div>
 

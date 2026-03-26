@@ -30,6 +30,7 @@ export function Dashboard() {
   const { formatAmount } = useCurrency();
   const navigate = useNavigate();
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingTransaction, setEditingTransaction] = useState<import('../context/TransactionContext').Transaction | null>(null);
   const [selectedMonth, setSelectedMonth] = useState<string>('all');
 
   // Get available months for filters
@@ -243,8 +244,12 @@ export function Dashboard() {
                 recentTransactions.map((transaction) => {
                   const Icon = categoryIcons[transaction.category] || ShoppingCart;
                   return (
-                    <div key={transaction.id} className="flex items-center gap-4">
-                      <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
+                    <button
+                      key={transaction.id}
+                      onClick={() => setEditingTransaction(transaction)}
+                      className="w-full flex items-center gap-4 rounded-lg hover:bg-muted transition-colors px-2 py-1 -mx-2 text-left"
+                    >
+                      <div className={`w-10 h-10 rounded-lg flex items-center justify-center shrink-0 ${
                         transaction.type === 'income' ? 'bg-emerald-100' : 'bg-red-100'
                       }`}>
                         <Icon className={`w-5 h-5 ${
@@ -255,20 +260,18 @@ export function Dashboard() {
                         <p className="font-medium truncate">{transaction.description}</p>
                         <p className="text-sm text-muted-foreground">{transaction.category}</p>
                       </div>
-                      <div className="text-right">
-                      <p
-  className={`font-semibold ${
-    transaction.type === 'income' ? 'text-emerald-600' : 'text-red-500'
-  }`}
->
-  {transaction.type === 'income' ? '+' : '-'}
-  {formatAmount(transaction.amount)}
-</p>
+                      <div className="text-right shrink-0">
+                        <p className={`font-semibold ${
+                          transaction.type === 'income' ? 'text-emerald-600' : 'text-red-500'
+                        }`}>
+                          {transaction.type === 'income' ? '+' : '-'}
+                          {formatAmount(transaction.amount)}
+                        </p>
                         <p className="text-sm text-muted-foreground">
                           {new Date(transaction.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
                         </p>
                       </div>
-                    </div>
+                    </button>
                   );
                 })
               ) : (
@@ -282,6 +285,12 @@ export function Dashboard() {
       </div>
 
       <AddTransactionModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} />
+      <AddTransactionModal
+        isOpen={editingTransaction !== null}
+        onClose={() => setEditingTransaction(null)}
+        mode="edit"
+        initialTransaction={editingTransaction}
+      />
     </div>
   );
 }
