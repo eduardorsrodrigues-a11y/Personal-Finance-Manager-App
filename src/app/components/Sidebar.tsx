@@ -1,4 +1,5 @@
-import { LayoutDashboard, List, PiggyBank, DollarSign, Globe, ChevronDown, LogOut, LogIn, Languages } from 'lucide-react';
+import { LayoutDashboard, List, PiggyBank, Globe, ChevronDown, LogOut, LogIn, Languages } from 'lucide-react';
+import { FlowWealthLogo } from './FlowWealthLogo';
 import { Link, useLocation } from 'react-router';
 import { useCurrency, currencies } from '../context/CurrencyContext';
 import { useAuth } from '../context/AuthContext';
@@ -24,11 +25,9 @@ export function Sidebar() {
     <aside className="hidden lg:flex lg:flex-col lg:w-64 lg:border-r lg:border-border bg-sidebar h-screen sticky top-0">
       {/* Logo/Brand */}
       <div className="p-6 border-b border-sidebar-border">
-        <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-lg bg-emerald-500 flex items-center justify-center">
-            <DollarSign className="w-5 h-5 text-white" />
-          </div>
-          <span className="font-semibold text-sidebar-foreground">FinanceManager</span>
+        <div className="flex items-center gap-2.5">
+          <FlowWealthLogo size={36} />
+          <span className="font-semibold text-sidebar-foreground tracking-tight">Flow Wealth</span>
         </div>
       </div>
 

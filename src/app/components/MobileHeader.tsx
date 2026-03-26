@@ -1,4 +1,5 @@
 import { Menu, X, Globe, LogIn, LogOut, ChevronDown, PiggyBank, Languages } from 'lucide-react';
+import { FlowWealthLogo } from './FlowWealthLogo';
 import { useState } from 'react';
 import { Link } from 'react-router';
 import { useCurrency, currencies } from '../context/CurrencyContext';
@@ -32,8 +33,9 @@ export function MobileHeader() {
           {isMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
         </button>
 
-        <div className="absolute left-0 right-0 flex justify-center pointer-events-none">
-          <span className="text-lg font-bold text-blue-600">Expense Manager</span>
+        <div className="absolute left-0 right-0 flex justify-center items-center gap-2 pointer-events-none">
+          <FlowWealthLogo size={26} />
+          <span className="text-base font-semibold tracking-tight">Flow Wealth</span>
         </div>
       </header>
 
