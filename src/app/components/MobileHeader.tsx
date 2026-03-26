@@ -36,14 +36,14 @@ export function MobileHeader() {
       {/* Backdrop */}
       {isMenuOpen && (
         <div
-          className="lg:hidden fixed inset-0 z-30 bg-black/40"
+          className="lg:hidden fixed inset-0 z-[150] bg-black/40"
           onClick={closeMenu}
         />
       )}
 
       {/* Slide-down panel */}
       <div
-        className={`lg:hidden fixed top-14 left-0 right-0 z-40 bg-card border-b border-border shadow-2xl transition-transform duration-300 ease-in-out text-foreground ${
+        className={`lg:hidden fixed top-14 left-0 right-0 z-[200] bg-card border-b border-border shadow-2xl transition-transform duration-300 ease-in-out text-foreground ${
           isMenuOpen ? 'translate-y-0 pointer-events-auto' : '-translate-y-full pointer-events-none'
         }`}
       >
