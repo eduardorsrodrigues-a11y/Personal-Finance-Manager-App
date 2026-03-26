@@ -58,7 +58,7 @@ export function AddTransactionModal({
     e.preventDefault();
     if (amount === '' || !description || !category) return;
 
-    const parsedAmount = parseFloat(amount);
+    const parsedAmount = parseFloat(amount.replace(',', '.'));
     if (!Number.isFinite(parsedAmount)) return;
 
     if (mode === 'edit' && initialTransaction) {
@@ -131,12 +131,11 @@ export function AddTransactionModal({
                 {currency.symbol}
               </span>
               <input
-                type="number"
+                type="text"
                 inputMode="decimal"
                 value={amount}
                 onChange={(e) => setAmount(e.target.value)}
                 placeholder="0.00"
-                step="0.01"
                 className="w-full pl-10 pr-4 py-3 text-2xl bg-input-background rounded-lg border border-border focus:outline-none focus:ring-2 focus:ring-ring"
                 required
               />
