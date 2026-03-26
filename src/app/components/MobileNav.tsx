@@ -26,7 +26,7 @@ export function MobileNav() {
           </Link>
 
           {/* Add — visually distinct, disabled when not logged in */}
-          <div className="flex flex-col items-center justify-center flex-1 -mt-5">
+          <div className="flex flex-col items-center justify-center flex-1">
             <button
               onClick={() => (user || isGuest) && setIsAddModalOpen(true)}
               disabled={!user && !isGuest}
