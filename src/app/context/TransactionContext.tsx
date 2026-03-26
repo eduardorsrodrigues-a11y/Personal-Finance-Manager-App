@@ -14,6 +14,7 @@ interface TransactionContextType {
   transactions: Transaction[];
   addTransaction: (transaction: Omit<Transaction, 'id'>) => Promise<void>;
   deleteTransaction: (id: string) => Promise<void>;
+  updateTransaction: (id: string, transaction: Omit<Transaction, 'id'>) => Promise<void>;
 }
 
 const TransactionContext = createContext<TransactionContextType | undefined>(undefined);
@@ -62,8 +63,19 @@ export function TransactionProvider({ children }: { children: ReactNode }) {
     await refresh();
   };
 
+  const updateTransaction = async (id: string, transaction: Omit<Transaction, 'id'>) => {
+    const res = await fetch(`/api/transactions?id=${encodeURIComponent(id)}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify(transaction),
+    });
+    if (!res.ok) return;
+    await refresh();
+  };
+
   return (
-    <TransactionContext.Provider value={{ transactions, addTransaction, deleteTransaction }}>
+    <TransactionContext.Provider value={{ transactions, addTransaction, deleteTransaction, updateTransaction }}>
       {children}
     </TransactionContext.Provider>
   );

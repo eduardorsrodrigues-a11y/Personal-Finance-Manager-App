@@ -120,6 +120,35 @@ export async function createTransaction(params: {
   return data as { id: string };
 }
 
+export async function updateTransaction(params: {
+  userId: string;
+  id: string;
+  type: 'income' | 'expense';
+  amount: number;
+  description: string;
+  transactionDate: string;
+  category: string;
+}) {
+  const { userId, id, type, amount, description, transactionDate, category } = params;
+  const supabase = getSupabaseAdmin();
+  const { data, error } = await supabase
+    .from('transactions')
+    .update({
+      type,
+      amount,
+      description,
+      transaction_date: transactionDate,
+      category,
+    })
+    .eq('id', id)
+    .eq('user_id', userId)
+    .select('id')
+    .single();
+
+  if (error) throw error;
+  return data as { id: string };
+}
+
 export async function deleteTransaction(params: { userId: string; id: string }) {
   const { userId, id } = params;
   const supabase = getSupabaseAdmin();

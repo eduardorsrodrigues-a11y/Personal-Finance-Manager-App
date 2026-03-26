@@ -1,7 +1,7 @@
 import { useState, useMemo, useEffect } from 'react';
 import { Plus, Search, Trash2, ShoppingCart, Home, Utensils, Car, Film, Heart, Zap, DollarSign } from 'lucide-react';
 import { useSearchParams } from 'react-router';
-import { useTransactions } from '../context/TransactionContext';
+import { Transaction, useTransactions } from '../context/TransactionContext';
 import { AddTransactionModal } from '../components/AddTransactionModal';
 import { TransactionFilters } from '../components/TransactionFilters';
 import { getAvailableMonths, filterTransactionsByMonth } from '../utils/dateUtils';
@@ -33,6 +33,8 @@ export function TransactionHistory() {
   const [filter, setFilter] = useState<FilterType>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [modalMode, setModalMode] = useState<'add' | 'edit'>('add');
+  const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
   const [selectedMonth, setSelectedMonth] = useState<string>(initialMonthParam || 'all');
   const [selectedCategory, setSelectedCategory] = useState<string>(initialCategoryParam || 'all');
 
@@ -106,7 +108,11 @@ export function TransactionHistory() {
               </p>
             </div>
             <button
-              onClick={() => setIsModalOpen(true)}
+              onClick={() => {
+                setModalMode('add');
+                setEditingTransaction(null);
+                setIsModalOpen(true);
+              }}
               className="bg-emerald-500 hover:bg-emerald-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors"
             >
               <Plus className="w-5 h-5" />
@@ -158,7 +164,12 @@ export function TransactionHistory() {
                     return (
                       <div
                         key={transaction.id}
-                        className="p-4 flex items-center gap-4 hover:bg-muted/50 transition-colors group"
+                    className="p-4 flex items-center gap-4 hover:bg-muted/50 transition-colors group cursor-pointer"
+                    onClick={() => {
+                      setModalMode('edit');
+                      setEditingTransaction(transaction);
+                      setIsModalOpen(true);
+                    }}
                       >
                         <div
                           className={`w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 ${
@@ -186,10 +197,11 @@ export function TransactionHistory() {
                             </p>
                           </div>
                           <button
-                            onClick={() => {
+                            onClick={(e) => {
+                              e.stopPropagation();
                               void deleteTransaction(transaction.id);
                             }}
-                            className="opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-destructive p-2"
+                            className="transition-colors text-muted-foreground hover:text-destructive p-2"
                           >
                             <Trash2 className="w-4 h-4" />
                           </button>
@@ -214,7 +226,11 @@ export function TransactionHistory() {
             </p>
             {!searchQuery && (
               <button
-                onClick={() => setIsModalOpen(true)}
+                onClick={() => {
+                  setModalMode('add');
+                  setEditingTransaction(null);
+                  setIsModalOpen(true);
+                }}
                 className="bg-emerald-500 hover:bg-emerald-600 text-white px-4 py-2 rounded-lg inline-flex items-center gap-2 transition-colors"
               >
                 <Plus className="w-5 h-5" />
@@ -225,7 +241,12 @@ export function TransactionHistory() {
         )}
       </div>
 
-      <AddTransactionModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} />
+      <AddTransactionModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        mode={modalMode}
+        initialTransaction={editingTransaction}
+      />
     </div>
   );
 }

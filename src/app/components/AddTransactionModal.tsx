@@ -1,18 +1,25 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { X } from 'lucide-react';
-import { useTransactions } from '../context/TransactionContext';
+import { Transaction, useTransactions } from '../context/TransactionContext';
 import { useCurrency } from '../context/CurrencyContext';
 
 interface AddTransactionModalProps {
   isOpen: boolean;
   onClose: () => void;
+  mode?: 'add' | 'edit';
+  initialTransaction?: Transaction | null;
 }
 
 const expenseCategories = ['Food', 'Housing', 'Utilities', 'Transportation', 'Shopping', 'Health', 'Entertainment', 'Other'];
 const incomeCategories = ['Salary', 'Freelance', 'Investment', 'Business', 'Other'];
 
-export function AddTransactionModal({ isOpen, onClose }: AddTransactionModalProps) {
-  const { addTransaction } = useTransactions();
+export function AddTransactionModal({
+  isOpen,
+  onClose,
+  mode = 'add',
+  initialTransaction,
+}: AddTransactionModalProps) {
+  const { addTransaction, updateTransaction } = useTransactions();
   const { currency } = useCurrency();
   const [type, setType] = useState<'expense' | 'income'>('expense');
   const [amount, setAmount] = useState('');
@@ -22,17 +29,50 @@ export function AddTransactionModal({ isOpen, onClose }: AddTransactionModalProp
 
   const categories = type === 'expense' ? expenseCategories : incomeCategories;
 
+  useEffect(() => {
+    if (!isOpen) return;
+
+    if (mode === 'edit' && initialTransaction) {
+      setType(initialTransaction.type);
+      setAmount(String(initialTransaction.amount));
+      setDescription(initialTransaction.description);
+      setDate(initialTransaction.date);
+      setCategory(initialTransaction.category);
+      return;
+    }
+
+    // Reset form for "add"
+    setType('expense');
+    setAmount('');
+    setDescription('');
+    setDate(new Date().toISOString().split('T')[0]);
+    setCategory('');
+  }, [isOpen, mode, initialTransaction]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!amount || !description || !category) return;
+    if (amount === '' || !description || !category) return;
 
-    await addTransaction({
-      type,
-      amount: parseFloat(amount),
-      description,
-      date,
-      category,
-    });
+    const parsedAmount = parseFloat(amount);
+    if (!Number.isFinite(parsedAmount)) return;
+
+    if (mode === 'edit' && initialTransaction) {
+      await updateTransaction(initialTransaction.id, {
+        type,
+        amount: parsedAmount,
+        description,
+        date,
+        category,
+      });
+    } else {
+      await addTransaction({
+        type,
+        amount: parsedAmount,
+        description,
+        date,
+        category,
+      });
+    }
 
     // Reset form
     setAmount('');
@@ -49,7 +89,7 @@ export function AddTransactionModal({ isOpen, onClose }: AddTransactionModalProp
       <div className="bg-card rounded-xl shadow-lg w-full max-w-md">
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-border">
-          <h2 className="font-semibold">Add Transaction</h2>
+          <h2 className="font-semibold">{mode === 'edit' ? 'Edit Transaction' : 'Add Transaction'}</h2>
           <button
             onClick={onClose}
             className="text-muted-foreground hover:text-foreground transition-colors"
@@ -163,7 +203,7 @@ export function AddTransactionModal({ isOpen, onClose }: AddTransactionModalProp
                 : 'bg-emerald-500 hover:bg-emerald-600'
             }`}
           >
-            Add Transaction
+            {mode === 'edit' ? 'Confirm' : 'Add Transaction'}
           </button>
         </form>
       </div>
