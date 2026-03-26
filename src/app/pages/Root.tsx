@@ -1,6 +1,7 @@
 import { Outlet } from 'react-router';
 import { Sidebar } from '../components/Sidebar';
 import { MobileNav } from '../components/MobileNav';
+import { MobileHeader } from '../components/MobileHeader';
 import { AuthProvider } from '../context/AuthContext';
 import { TransactionProvider } from '../context/TransactionContext';
 import { CurrencyProvider } from '../context/CurrencyContext';
@@ -12,7 +13,8 @@ export function Root() {
         <TransactionProvider>
           <div className="flex min-h-screen bg-background">
             <Sidebar />
-            <main className="flex-1 pb-20 lg:pb-0">
+            <MobileHeader />
+            <main className="flex-1 pt-14 pb-20 lg:pt-0 lg:pb-0">
               <Outlet />
             </main>
             <MobileNav />
