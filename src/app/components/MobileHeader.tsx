@@ -43,7 +43,7 @@ export function MobileHeader() {
 
       {/* Slide-down panel */}
       <div
-        className={`lg:hidden fixed top-14 left-0 right-0 z-40 bg-card border-b border-border shadow-2xl transition-transform duration-300 ease-in-out ${
+        className={`lg:hidden fixed top-14 left-0 right-0 z-40 bg-card border-b border-border shadow-2xl transition-transform duration-300 ease-in-out text-foreground ${
           isMenuOpen ? 'translate-y-0 pointer-events-auto' : '-translate-y-full pointer-events-none'
         }`}
       >
@@ -54,8 +54,8 @@ export function MobileHeader() {
             className="flex items-center gap-3 px-4 py-4 w-full hover:bg-muted transition-colors"
           >
             <Globe className="w-5 h-5 text-muted-foreground" />
-            <span className="text-sm font-medium flex-1 text-left">Currency</span>
-            <span className="text-xs bg-muted px-2 py-0.5 rounded-full">{currency.code}</span>
+            <span className="text-sm font-medium flex-1 text-left text-foreground">Currency</span>
+            <span className="text-xs bg-muted text-foreground px-2 py-0.5 rounded-full">{currency.code}</span>
             <ChevronDown
               className={`w-4 h-4 text-muted-foreground transition-transform duration-200 ${
                 isCurrencyOpen ? 'rotate-180' : ''
@@ -95,7 +95,7 @@ export function MobileHeader() {
             >
               <LogOut className="w-5 h-5 text-muted-foreground" />
               <div className="flex flex-col items-start">
-                <span className="text-sm font-medium">Sign out</span>
+                <span className="text-sm font-medium text-foreground">Sign out</span>
                 {user.name && (
                   <span className="text-xs text-muted-foreground">{user.name}</span>
                 )}

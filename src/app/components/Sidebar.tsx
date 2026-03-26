@@ -1,11 +1,13 @@
-import { LayoutDashboard, List, DollarSign, Globe, ChevronDown } from 'lucide-react';
+import { LayoutDashboard, List, DollarSign, Globe, ChevronDown, LogOut } from 'lucide-react';
 import { Link, useLocation } from 'react-router';
 import { useCurrency, currencies } from '../context/CurrencyContext';
+import { useAuth } from '../context/AuthContext';
 import { useState } from 'react';
 
 export function Sidebar() {
   const location = useLocation();
   const { currency, setCurrency } = useCurrency();
+  const { user, signOut } = useAuth();
   const [isCurrencyMenuOpen, setIsCurrencyMenuOpen] = useState(false);
 
   const navItems = [
@@ -49,6 +51,24 @@ export function Sidebar() {
           })}
         </ul>
       </nav>
+
+      {/* Logout */}
+      {user && (
+        <div className="px-4 pb-2 border-t border-sidebar-border pt-4">
+          <button
+            onClick={signOut}
+            className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sidebar-foreground hover:bg-sidebar-accent/50 transition-colors"
+          >
+            <LogOut className="w-5 h-5" />
+            <div className="flex flex-col items-start">
+              <span className="text-sm">Sign out</span>
+              {user.name && (
+                <span className="text-xs text-muted-foreground">{user.name}</span>
+              )}
+            </div>
+          </button>
+        </div>
+      )}
 
       {/* Currency Selector */}
       <div className="p-4 border-t border-sidebar-border">
