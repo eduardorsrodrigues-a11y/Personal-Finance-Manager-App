@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router';
 import { Check, AlertTriangle } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
-import { FlowWealthLogo } from '../components/FlowWealthLogo';
 
 const VALUE_PROPS = [
   {
@@ -72,11 +71,6 @@ export function Login() {
 
       {/* Hero */}
       <div className="text-center space-y-4">
-        <div className="flex items-center justify-center gap-3">
-          <FlowWealthLogo size={52} />
-          <span className="text-3xl font-bold tracking-tight">Flow Wealth</span>
-        </div>
-
         {/* Animated value prop */}
         <div className="h-14 flex flex-col items-center justify-center">
           <div
