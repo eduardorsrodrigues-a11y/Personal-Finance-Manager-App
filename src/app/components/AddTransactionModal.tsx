@@ -1,7 +1,10 @@
 import React, { useEffect, useState } from 'react';
-import { X } from 'lucide-react';
+import { X, Trash2 } from 'lucide-react';
 import { Transaction, useTransactions } from '../context/TransactionContext';
 import { useCurrency } from '../context/CurrencyContext';
+import { useLanguage } from '../context/LanguageContext';
+import { DeleteConfirmationModal } from './DeleteConfirmationModal';
+import { useToast } from '../context/ToastContext';
 
 interface AddTransactionModalProps {
   isOpen: boolean;
@@ -19,8 +22,11 @@ export function AddTransactionModal({
   mode = 'add',
   initialTransaction,
 }: AddTransactionModalProps) {
-  const { addTransaction, updateTransaction } = useTransactions();
+  const { addTransaction, updateTransaction, deleteTransaction } = useTransactions();
   const { currency } = useCurrency();
+  const { t, tCategory } = useLanguage();
+  const { showToast } = useToast();
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [type, setType] = useState<'expense' | 'income'>('expense');
   const [amount, setAmount] = useState('');
   const [description, setDescription] = useState('');
@@ -41,7 +47,6 @@ export function AddTransactionModal({
       return;
     }
 
-    // Reset form for "add"
     setType('expense');
     setAmount('');
     setDescription('');
@@ -57,24 +62,13 @@ export function AddTransactionModal({
     if (!Number.isFinite(parsedAmount)) return;
 
     if (mode === 'edit' && initialTransaction) {
-      await updateTransaction(initialTransaction.id, {
-        type,
-        amount: parsedAmount,
-        description,
-        date,
-        category,
-      });
+      await updateTransaction(initialTransaction.id, { type, amount: parsedAmount, description, date, category });
+      showToast(t('toasts.updated'));
     } else {
-      await addTransaction({
-        type,
-        amount: parsedAmount,
-        description,
-        date,
-        category,
-      });
+      await addTransaction({ type, amount: parsedAmount, description, date, category });
+      showToast(t('toasts.added'));
     }
 
-    // Reset form
     setAmount('');
     setDescription('');
     setDate(new Date().toISOString().split('T')[0]);
@@ -85,17 +79,27 @@ export function AddTransactionModal({
   if (!isOpen) return null;
 
   return (
+    <>
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
       <div className="bg-card rounded-xl shadow-lg w-full max-w-md">
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-border">
-          <h2 className="font-semibold">{mode === 'edit' ? 'Edit Transaction' : 'Add Transaction'}</h2>
-          <button
-            onClick={onClose}
-            className="text-muted-foreground hover:text-foreground transition-colors"
-          >
-            <X className="w-5 h-5" />
-          </button>
+          <h2 className="font-semibold">{mode === 'edit' ? t('modal.editTitle') : t('modal.addTitle')}</h2>
+          <div className="flex items-center gap-2">
+            {mode === 'edit' && (
+              <button
+                type="button"
+                onClick={() => setShowDeleteConfirm(true)}
+                className="text-muted-foreground hover:text-red-500 transition-colors p-1"
+                aria-label={t('delete.title')}
+              >
+                <Trash2 className="w-5 h-5" />
+              </button>
+            )}
+            <button onClick={onClose} className="text-muted-foreground hover:text-foreground transition-colors">
+              <X className="w-5 h-5" />
+            </button>
+          </div>
         </div>
 
         {/* Form */}
@@ -104,37 +108,23 @@ export function AddTransactionModal({
           <div className="flex gap-2 p-1 bg-muted rounded-lg">
             <button
               type="button"
-              onClick={() => {
-                setType('expense');
-                setCategory('');
-              }}
-              className={`flex-1 py-2 rounded-md transition-colors ${
-                type === 'expense'
-                  ? 'bg-card shadow-sm text-foreground'
-                  : 'text-muted-foreground'
-              }`}
+              onClick={() => { setType('expense'); setCategory(''); }}
+              className={`flex-1 py-2 rounded-md transition-colors ${type === 'expense' ? 'bg-card shadow-sm text-foreground' : 'text-muted-foreground'}`}
             >
-              Expense
+              {t('modal.expense')}
             </button>
             <button
               type="button"
-              onClick={() => {
-                setType('income');
-                setCategory('');
-              }}
-              className={`flex-1 py-2 rounded-md transition-colors ${
-                type === 'income'
-                  ? 'bg-card shadow-sm text-foreground'
-                  : 'text-muted-foreground'
-              }`}
+              onClick={() => { setType('income'); setCategory(''); }}
+              className={`flex-1 py-2 rounded-md transition-colors ${type === 'income' ? 'bg-card shadow-sm text-foreground' : 'text-muted-foreground'}`}
             >
-              Income
+              {t('modal.income')}
             </button>
           </div>
 
           {/* Amount */}
           <div>
-            <label className="block text-sm mb-2 text-muted-foreground">Amount</label>
+            <label className="block text-sm mb-2 text-muted-foreground">{t('modal.amount')}</label>
             <div className="relative">
               <span className="absolute left-4 top-1/2 -translate-y-1/2 text-2xl text-muted-foreground">
                 {currency.symbol}
@@ -153,12 +143,12 @@ export function AddTransactionModal({
 
           {/* Description */}
           <div>
-            <label className="block text-sm mb-2 text-muted-foreground">Description</label>
+            <label className="block text-sm mb-2 text-muted-foreground">{t('modal.description')}</label>
             <input
               type="text"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              placeholder="Enter description"
+              placeholder={t('modal.enterDescription')}
               className="w-full px-4 py-3 bg-input-background rounded-lg border border-border focus:outline-none focus:ring-2 focus:ring-ring"
               required
             />
@@ -166,7 +156,7 @@ export function AddTransactionModal({
 
           {/* Date */}
           <div>
-            <label className="block text-sm mb-2 text-muted-foreground">Date</label>
+            <label className="block text-sm mb-2 text-muted-foreground">{t('modal.date')}</label>
             <input
               type="date"
               value={date}
@@ -178,35 +168,49 @@ export function AddTransactionModal({
 
           {/* Category */}
           <div>
-            <label className="block text-sm mb-2 text-muted-foreground">Category</label>
+            <label className="block text-sm mb-2 text-muted-foreground">{t('modal.category')}</label>
             <select
               value={category}
               onChange={(e) => setCategory(e.target.value)}
               className="w-full px-4 py-3 bg-input-background rounded-lg border border-border focus:outline-none focus:ring-2 focus:ring-ring"
               required
             >
-              <option value="">Select category</option>
+              <option value="">{t('modal.selectCategory')}</option>
               {categories.map((cat) => (
-                <option key={cat} value={cat}>
-                  {cat}
-                </option>
+                <option key={cat} value={cat}>{tCategory(cat)}</option>
               ))}
             </select>
           </div>
 
-          {/* Submit Button */}
+          {/* Submit */}
           <button
             type="submit"
             className={`w-full py-3 rounded-lg font-semibold text-white transition-colors ${
-              type === 'expense'
-                ? 'bg-red-500 hover:bg-red-600'
-                : 'bg-emerald-500 hover:bg-emerald-600'
+              type === 'expense' ? 'bg-red-500 hover:bg-red-600' : 'bg-emerald-500 hover:bg-emerald-600'
             }`}
           >
-            {mode === 'edit' ? 'Confirm' : 'Add Transaction'}
+            {mode === 'edit' ? t('modal.confirm') : t('modal.addTransaction')}
           </button>
         </form>
       </div>
     </div>
+
+    {mode === 'edit' && initialTransaction && (
+      <DeleteConfirmationModal
+        isOpen={showDeleteConfirm}
+        description={initialTransaction.description}
+        amount={initialTransaction.amount}
+        category={initialTransaction.category}
+        type={initialTransaction.type}
+        onCancel={() => setShowDeleteConfirm(false)}
+        onConfirm={async () => {
+          await deleteTransaction(initialTransaction.id);
+          showToast(t('delete.toast'));
+          setShowDeleteConfirm(false);
+          onClose();
+        }}
+      />
+    )}
+    </>
   );
 }

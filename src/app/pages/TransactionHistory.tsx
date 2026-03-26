@@ -1,32 +1,24 @@
 import { useState, useMemo, useEffect } from 'react';
-import { Plus, Search, Trash2, ShoppingCart, Home, Utensils, Car, Film, Heart, Zap, DollarSign } from 'lucide-react';
+import { Plus, Search, Trash2, ShoppingCart } from 'lucide-react';
 import { useSearchParams } from 'react-router';
 import { Transaction, useTransactions } from '../context/TransactionContext';
 import { AddTransactionModal } from '../components/AddTransactionModal';
+import { DeleteConfirmationModal } from '../components/DeleteConfirmationModal';
 import { TransactionFilters } from '../components/TransactionFilters';
 import { getAvailableMonths, filterTransactionsByMonth } from '../utils/dateUtils';
 import { useCurrency } from '../context/CurrencyContext';
+import { getCategoryConfig } from '../utils/categoryConfig';
+import { useLanguage } from '../context/LanguageContext';
+import { useToast } from '../context/ToastContext';
 
 type FilterType = 'all' | 'income' | 'expense';
-
-const categoryIcons: Record<string, any> = {
-  Food: Utensils,
-  Housing: Home,
-  Utilities: Zap,
-  Transportation: Car,
-  Shopping: ShoppingCart,
-  Health: Heart,
-  Entertainment: Film,
-  Salary: DollarSign,
-  Freelance: DollarSign,
-  Investment: DollarSign,
-  Business: DollarSign,
-  Other: ShoppingCart,
-};
 
 export function TransactionHistory() {
   const { transactions, deleteTransaction } = useTransactions();
   const { formatAmount } = useCurrency();
+  const { t, tCategory } = useLanguage();
+  const { showToast } = useToast();
+  const [pendingDelete, setPendingDelete] = useState<Transaction | null>(null);
   const [searchParams] = useSearchParams();
   const initialMonthParam = searchParams.get('month');
   const initialCategoryParam = searchParams.get('category');
@@ -102,9 +94,9 @@ export function TransactionHistory() {
         <div className="px-4 lg:px-8 py-4 lg:py-6">
           <div className="flex items-center justify-between mb-4">
             <div>
-              <h1 className="font-semibold mb-1">Transaction History</h1>
+              <h1 className="font-semibold mb-1">{t('transactions.title')}</h1>
               <p className="text-sm text-muted-foreground">
-                View and manage all your transactions
+                {t('transactions.subtitle')}
               </p>
             </div>
             <button
@@ -116,7 +108,7 @@ export function TransactionHistory() {
               className="bg-emerald-500 hover:bg-emerald-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors"
             >
               <Plus className="w-5 h-5" />
-              <span className="hidden sm:inline">Add Transaction</span>
+              <span className="hidden sm:inline">{t('transactions.addTransaction')}</span>
             </button>
           </div>
 
@@ -127,7 +119,7 @@ export function TransactionHistory() {
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search transactions..."
+              placeholder={t('transactions.searchPlaceholder')}
               className="w-full pl-10 pr-4 py-2.5 bg-input-background rounded-lg border border-border focus:outline-none focus:ring-2 focus:ring-ring"
             />
           </div>
@@ -160,31 +152,23 @@ export function TransactionHistory() {
                 {/* Transactions */}
                 <div className="bg-card border border-border rounded-xl divide-y divide-border">
                   {dateTransactions.map((transaction) => {
-                    const Icon = categoryIcons[transaction.category] || ShoppingCart;
+                    const { icon: Icon, bg, text } = getCategoryConfig(transaction.category);
                     return (
                       <div
                         key={transaction.id}
-                    className="p-4 flex items-center gap-4 hover:bg-muted/50 transition-colors group cursor-pointer"
-                    onClick={() => {
-                      setModalMode('edit');
-                      setEditingTransaction(transaction);
-                      setIsModalOpen(true);
-                    }}
+                        className="p-4 flex items-center gap-4 hover:bg-muted/50 transition-colors group cursor-pointer"
+                        onClick={() => {
+                          setModalMode('edit');
+                          setEditingTransaction(transaction);
+                          setIsModalOpen(true);
+                        }}
                       >
-                        <div
-                          className={`w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 ${
-                            transaction.type === 'income' ? 'bg-emerald-100' : 'bg-red-100'
-                          }`}
-                        >
-                          <Icon
-                            className={`w-5 h-5 ${
-                              transaction.type === 'income' ? 'text-emerald-600' : 'text-red-600'
-                            }`}
-                          />
+                        <div className={`w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 ${bg}`}>
+                          <Icon className={`w-5 h-5 ${text}`} />
                         </div>
                         <div className="flex-1 min-w-0">
                           <p className="font-medium truncate">{transaction.description}</p>
-                          <p className="text-sm text-muted-foreground">{transaction.category}</p>
+                          <p className="text-sm text-muted-foreground">{tCategory(transaction.category)}</p>
                         </div>
                         <div className="text-right flex items-center gap-3">
                           <div>
@@ -199,7 +183,7 @@ export function TransactionHistory() {
                           <button
                             onClick={(e) => {
                               e.stopPropagation();
-                              void deleteTransaction(transaction.id);
+                              setPendingDelete(transaction);
                             }}
                             className="transition-colors text-muted-foreground hover:text-destructive p-2"
                           >
@@ -218,11 +202,11 @@ export function TransactionHistory() {
             <div className="w-16 h-16 rounded-full bg-muted mx-auto mb-4 flex items-center justify-center">
               <ShoppingCart className="w-8 h-8 text-muted-foreground" />
             </div>
-            <h3 className="font-semibold mb-2">No transactions found</h3>
+            <h3 className="font-semibold mb-2">{t('transactions.noTransactions')}</h3>
             <p className="text-sm text-muted-foreground mb-4">
               {searchQuery
-                ? 'Try adjusting your search or filters'
-                : 'Start by adding your first transaction'}
+                ? t('transactions.adjustFilters')
+                : t('transactions.startAdding')}
             </p>
             {!searchQuery && (
               <button
@@ -234,7 +218,7 @@ export function TransactionHistory() {
                 className="bg-emerald-500 hover:bg-emerald-600 text-white px-4 py-2 rounded-lg inline-flex items-center gap-2 transition-colors"
               >
                 <Plus className="w-5 h-5" />
-                Add Transaction
+                {t('transactions.addTransaction')}
               </button>
             )}
           </div>
@@ -246,6 +230,22 @@ export function TransactionHistory() {
         onClose={() => setIsModalOpen(false)}
         mode={modalMode}
         initialTransaction={editingTransaction}
+      />
+
+      <DeleteConfirmationModal
+        isOpen={pendingDelete !== null}
+        description={pendingDelete?.description ?? ''}
+        amount={pendingDelete?.amount ?? 0}
+        category={pendingDelete?.category ?? ''}
+        type={pendingDelete?.type ?? 'expense'}
+        onCancel={() => setPendingDelete(null)}
+        onConfirm={async () => {
+          if (pendingDelete) {
+            await deleteTransaction(pendingDelete.id);
+            showToast(t('delete.toast'));
+          }
+          setPendingDelete(null);
+        }}
       />
     </div>
   );

@@ -1,4 +1,5 @@
 import { Calendar } from 'lucide-react';
+import { useLanguage } from '../context/LanguageContext';
 
 type FilterType = 'all' | 'income' | 'expense';
 
@@ -27,71 +28,55 @@ export function TransactionFilters({
   showTypeFilter = true,
   showCategoryFilter = true,
 }: TransactionFiltersProps) {
+  const { t, tCategory } = useLanguage();
+
   return (
     <div className="space-y-4">
-      {/* Type Filter Chips */}
       {showTypeFilter && (
         <div>
-          <label className="text-xs font-medium text-muted-foreground mb-2 block">Filter by Type</label>
+          <label className="text-xs font-medium text-muted-foreground mb-2 block">{t('transactions.filterByType')}</label>
           <div className="flex gap-2 overflow-x-auto pb-2">
             <button
               onClick={() => onTypeChange('all')}
-              className={`px-4 py-2 rounded-lg whitespace-nowrap transition-colors text-sm ${
-                selectedType === 'all'
-                  ? 'bg-primary text-primary-foreground'
-                  : 'bg-muted text-muted-foreground hover:bg-muted/80'
-              }`}
+              className={`px-4 py-2 rounded-lg whitespace-nowrap transition-colors text-sm ${selectedType === 'all' ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground hover:bg-muted/80'}`}
             >
-              All
+              {t('transactions.all')}
             </button>
             <button
               onClick={() => onTypeChange('income')}
-              className={`px-4 py-2 rounded-lg whitespace-nowrap transition-colors text-sm ${
-                selectedType === 'income'
-                  ? 'bg-emerald-500 text-white'
-                  : 'bg-muted text-muted-foreground hover:bg-muted/80'
-              }`}
+              className={`px-4 py-2 rounded-lg whitespace-nowrap transition-colors text-sm ${selectedType === 'income' ? 'bg-emerald-500 text-white' : 'bg-muted text-muted-foreground hover:bg-muted/80'}`}
             >
-              Income
+              {t('transactions.income')}
             </button>
             <button
               onClick={() => onTypeChange('expense')}
-              className={`px-4 py-2 rounded-lg whitespace-nowrap transition-colors text-sm ${
-                selectedType === 'expense'
-                  ? 'bg-red-500 text-white'
-                  : 'bg-muted text-muted-foreground hover:bg-muted/80'
-              }`}
+              className={`px-4 py-2 rounded-lg whitespace-nowrap transition-colors text-sm ${selectedType === 'expense' ? 'bg-red-500 text-white' : 'bg-muted text-muted-foreground hover:bg-muted/80'}`}
             >
-              Expense
+              {t('transactions.expense')}
             </button>
           </div>
         </div>
       )}
 
-      {/* Category and Date Filters */}
       <div className="flex flex-col sm:flex-row gap-3">
-        {/* Category Filter */}
         {showCategoryFilter && (
           <div className="flex-1">
-            <label className="text-xs font-medium text-muted-foreground mb-2 block">Category</label>
+            <label className="text-xs font-medium text-muted-foreground mb-2 block">{t('transactions.category')}</label>
             <select
               value={selectedCategory}
               onChange={(e) => onCategoryChange(e.target.value)}
               className="w-full px-3 py-2 bg-input-background rounded-lg border border-border focus:outline-none focus:ring-2 focus:ring-ring text-sm"
             >
-              <option value="all">All Categories</option>
+              <option value="all">{t('transactions.allCategories')}</option>
               {availableCategories.map((category) => (
-                <option key={category} value={category}>
-                  {category}
-                </option>
+                <option key={category} value={category}>{tCategory(category)}</option>
               ))}
             </select>
           </div>
         )}
 
-        {/* Month Filter */}
         <div className="flex-1">
-          <label className="text-xs font-medium text-muted-foreground mb-2 block">Time Period</label>
+          <label className="text-xs font-medium text-muted-foreground mb-2 block">{t('transactions.timePeriod')}</label>
           <div className="flex items-center gap-2">
             <Calendar className="w-5 h-5 text-muted-foreground hidden sm:block" />
             <select
@@ -99,11 +84,9 @@ export function TransactionFilters({
               onChange={(e) => onMonthChange(e.target.value)}
               className="flex-1 px-3 py-2 bg-input-background rounded-lg border border-border focus:outline-none focus:ring-2 focus:ring-ring text-sm"
             >
-              <option value="all">All time</option>
+              <option value="all">{t('transactions.allTime')}</option>
               {availableMonths.map((month) => (
-                <option key={month} value={month}>
-                  {month}
-                </option>
+                <option key={month} value={month}>{month}</option>
               ))}
             </select>
           </div>

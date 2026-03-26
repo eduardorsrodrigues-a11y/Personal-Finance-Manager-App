@@ -155,3 +155,25 @@ export async function deleteTransaction(params: { userId: string; id: string }) 
   const { error } = await supabase.from('transactions').delete().eq('id', id).eq('user_id', userId);
   if (error) throw error;
 }
+
+// Budgets are stored as a JSONB object { [category]: monthlyAllowance } in user_settings
+export async function getBudgets(userId: string): Promise<Record<string, number>> {
+  const supabase = getSupabaseAdmin();
+  const { data, error } = await supabase
+    .from('user_settings')
+    .select('budgets')
+    .eq('user_id', userId)
+    .maybeSingle();
+
+  if (error) throw error;
+  return (data?.budgets as Record<string, number>) ?? {};
+}
+
+export async function upsertBudgets(params: { userId: string; budgets: Record<string, number> }) {
+  const { userId, budgets } = params;
+  const supabase = getSupabaseAdmin();
+  const { error } = await supabase
+    .from('user_settings')
+    .upsert({ user_id: userId, budgets }, { onConflict: 'user_id' });
+  if (error) throw error;
+}

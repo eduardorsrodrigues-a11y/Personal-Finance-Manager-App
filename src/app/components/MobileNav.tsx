@@ -1,12 +1,14 @@
 import { LayoutDashboard, List, Plus } from 'lucide-react';
 import { Link, useLocation } from 'react-router';
 import { useAuth } from '../context/AuthContext';
+import { useLanguage } from '../context/LanguageContext';
 import { useState } from 'react';
 import { AddTransactionModal } from './AddTransactionModal';
 
 export function MobileNav() {
   const location = useLocation();
   const { user, isGuest } = useAuth();
+  const { t } = useLanguage();
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
 
   return (
@@ -22,10 +24,10 @@ export function MobileNav() {
             }`}
           >
             <LayoutDashboard className="w-5 h-5" />
-            <span className="text-xs">Dashboard</span>
+            <span className="text-xs">{t('nav.dashboard')}</span>
           </Link>
 
-          {/* Add — visually distinct, disabled when not logged in */}
+          {/* Add */}
           <div className="flex flex-col items-center justify-center flex-1">
             <button
               onClick={() => (user || isGuest) && setIsAddModalOpen(true)}
@@ -46,12 +48,11 @@ export function MobileNav() {
             }`}
           >
             <List className="w-5 h-5" />
-            <span className="text-xs">Transactions</span>
+            <span className="text-xs">{t('nav.transactions')}</span>
           </Link>
         </div>
       </nav>
 
-      {/* Add Transaction Modal */}
       <AddTransactionModal
         isOpen={isAddModalOpen}
         onClose={() => setIsAddModalOpen(false)}

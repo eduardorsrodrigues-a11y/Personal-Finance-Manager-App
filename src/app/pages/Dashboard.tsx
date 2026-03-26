@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { TrendingUp, TrendingDown, Wallet, Plus, ShoppingCart, Home, Utensils, Car, Film, Heart, Zap, DollarSign } from 'lucide-react';
+import { TrendingUp, TrendingDown, Wallet, Plus } from 'lucide-react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
 import { useNavigate } from 'react-router';
 import { useTransactions } from '../context/TransactionContext';
@@ -7,27 +7,40 @@ import { AddTransactionModal } from '../components/AddTransactionModal';
 import { TransactionFilters } from '../components/TransactionFilters';
 import { getAvailableMonths, filterTransactionsByMonth } from '../utils/dateUtils';
 import { useCurrency } from '../context/CurrencyContext';
+import { useBudgets } from '../context/BudgetContext';
+import { getCategoryConfig } from '../utils/categoryConfig';
+import { useLanguage } from '../context/LanguageContext';
 
-const categoryIcons: Record<string, any> = {
-  Food: Utensils,
-  Housing: Home,
-  Utilities: Zap,
-  Transportation: Car,
-  Shopping: ShoppingCart,
-  Health: Heart,
-  Entertainment: Film,
-  Salary: DollarSign,
-  Freelance: DollarSign,
-  Investment: DollarSign,
-  Business: DollarSign,
-  Other: ShoppingCart,
-};
+const RADIAN = Math.PI / 180;
 
-const COLORS = ['#ef4444', '#f97316', '#f59e0b', '#eab308', '#84cc16', '#22c55e', '#10b981', '#14b8a6'];
+function renderPieLabel({ cx, cy, midAngle, outerRadius, percent, name }: {
+  cx: number; cy: number; midAngle: number; outerRadius: number; percent: number; name: string;
+}) {
+  if (percent < 0.04) return null;
+  const radius = outerRadius + 48;
+  const x = cx + radius * Math.cos(-midAngle * RADIAN);
+  const y = cy + radius * Math.sin(-midAngle * RADIAN);
+  const { icon: Icon, hex } = getCategoryConfig(name);
+  const size = 21;
+  return (
+    <g>
+      <foreignObject x={x - size / 2} y={y - size - 1} width={size} height={size} style={{ overflow: 'visible' }}>
+        <div xmlns="http://www.w3.org/1999/xhtml" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: size, height: size }}>
+          <Icon style={{ width: size, height: size, color: hex }} />
+        </div>
+      </foreignObject>
+      <text x={x} y={y + 17} textAnchor="middle" fill={hex} fontSize={16} fontWeight={500}>
+        {`${(percent * 100).toFixed(0)}%`}
+      </text>
+    </g>
+  );
+}
 
 export function Dashboard() {
   const { transactions } = useTransactions();
   const { formatAmount } = useCurrency();
+  const { budgets } = useBudgets();
+  const { t: tr, tCategory } = useLanguage();
   const navigate = useNavigate();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingTransaction, setEditingTransaction] = useState<import('../context/TransactionContext').Transaction | null>(null);
@@ -96,9 +109,9 @@ export function Dashboard() {
         <div className="px-4 lg:px-8 py-4 lg:py-6">
           <div className="flex items-center justify-between mb-4">
             <div>
-              <h1 className="font-semibold mb-1">Dashboard</h1>
+              <h1 className="font-semibold mb-1">{tr('dashboard.title')}</h1>
               <p className="text-sm text-muted-foreground">
-                Welcome back! Here's your financial overview.
+                {tr('dashboard.subtitle')}
               </p>
             </div>
             <button
@@ -106,7 +119,7 @@ export function Dashboard() {
               className="bg-emerald-500 hover:bg-emerald-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors"
             >
               <Plus className="w-5 h-5" />
-              <span className="hidden sm:inline">Add Transaction</span>
+              <span className="hidden sm:inline">{tr('dashboard.addTransaction')}</span>
             </button>
           </div>
           
@@ -138,7 +151,7 @@ export function Dashboard() {
               </div>
             </div>
             <div>
-              <p className="text-sm text-muted-foreground mb-1">Total Income</p>
+              <p className="text-sm text-muted-foreground mb-1">{tr('dashboard.totalIncome')}</p>
               <p className="text-3xl font-semibold text-emerald-600">
                 {formatAmount(totalIncome)}
               </p>
@@ -153,7 +166,7 @@ export function Dashboard() {
               </div>
             </div>
             <div>
-              <p className="text-sm text-muted-foreground mb-1">Total Expenses</p>
+              <p className="text-sm text-muted-foreground mb-1">{tr('dashboard.totalExpenses')}</p>
               <p className="text-3xl font-semibold text-red-500">
                 {formatAmount(totalExpenses)}
               </p>
@@ -168,7 +181,7 @@ export function Dashboard() {
               </div>
             </div>
             <div>
-              <p className="text-sm text-muted-foreground mb-1">Current Balance</p>
+              <p className="text-sm text-muted-foreground mb-1">{tr('dashboard.currentBalance')}</p>
               <p className={`text-3xl font-semibold ${balance >= 0 ? 'text-foreground' : 'text-red-500'}`}>
                 {formatAmount(balance)}
               </p>
@@ -180,7 +193,7 @@ export function Dashboard() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8">
           {/* Expenses by Category Chart */}
           <div className="bg-card border border-border rounded-xl p-6">
-            <h2 className="font-semibold mb-6">Expenses by Category</h2>
+            <h2 className="font-semibold mb-6">{tr('dashboard.expensesByCategory')}</h2>
             {chartData.length > 0 ? (
               <ResponsiveContainer width="100%" height={300}>
                 <PieChart>
@@ -193,10 +206,11 @@ export function Dashboard() {
                     fill="#8884d8"
                     paddingAngle={2}
                     dataKey="value"
-                    label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                    label={renderPieLabel}
+                    labelLine={false}
                   >
                     {chartData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                      <Cell key={`cell-${index}`} fill={getCategoryConfig(entry.name).hex} />
                     ))}
                   </Pie>
                   <Tooltip
@@ -211,54 +225,73 @@ export function Dashboard() {
               </ResponsiveContainer>
             ) : (
               <div className="h-[300px] flex items-center justify-center text-muted-foreground">
-                No expense data available
+                {tr('dashboard.noExpenseData')}
               </div>
             )}
 
             <div className="mt-6 pt-6 border-t border-border">
-              <h3 className="text-sm font-semibold mb-3">Total by Category</h3>
+              <h3 className="text-sm font-semibold mb-3">{tr('dashboard.totalByCategory')}</h3>
               {categoryTotals.length > 0 ? (
-                <div className="space-y-2">
-                  {categoryTotals.map(({ category, total }) => (
-                    <button
-                      key={category}
-                      onClick={() => handleCategoryDrilldown(category)}
-                      className="w-full flex items-center justify-between rounded-lg px-3 py-2 hover:bg-muted transition-colors text-left"
-                    >
-                      <span className="text-sm">{category}</span>
-                      <span className="text-sm font-medium">{formatAmount(total)}</span>
-                    </button>
-                  ))}
+                <div className="space-y-1">
+                  {categoryTotals.map(({ category, total }) => {
+                    const { icon: Icon, bg, text } = getCategoryConfig(category);
+                    const budget = budgets[category];
+                    const hasBudget = budget != null && budget > 0;
+                    const isOverBudget = hasBudget && total >= budget;
+                    const amountColor = hasBudget
+                      ? isOverBudget ? 'text-red-500' : 'text-emerald-600'
+                      : 'text-foreground';
+                    return (
+                      <button
+                        key={category}
+                        onClick={() => handleCategoryDrilldown(category)}
+                        className="w-full flex items-center gap-4 rounded-lg hover:bg-muted transition-colors px-2 py-1 -mx-2 text-left"
+                      >
+                        <div className={`w-10 h-10 rounded-lg flex items-center justify-center shrink-0 ${bg}`}>
+                          <Icon className={`w-5 h-5 ${text}`} />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="font-medium text-sm truncate">{tCategory(category)}</p>
+                        </div>
+                        <div className="text-right shrink-0">
+                          <p className={`font-semibold text-sm ${amountColor}`}>
+                            {formatAmount(total)}
+                          </p>
+                          {hasBudget && (
+                            <p className="text-xs text-muted-foreground">
+                              {tr('dashboard.of')} {formatAmount(budget)}
+                            </p>
+                          )}
+                        </div>
+                      </button>
+                    );
+                  })}
                 </div>
               ) : (
-                <p className="text-sm text-muted-foreground">No category totals for this time period.</p>
+                <p className="text-sm text-muted-foreground">{tr('dashboard.noCategoryTotals')}</p>
               )}
             </div>
           </div>
 
           {/* Recent Transactions */}
           <div className="bg-card border border-border rounded-xl p-6">
-            <h2 className="font-semibold mb-6">Recent Transactions</h2>
+            <h2 className="font-semibold mb-6">{tr('dashboard.recentTransactions')}</h2>
             <div className="space-y-4">
               {recentTransactions.length > 0 ? (
                 recentTransactions.map((transaction) => {
-                  const Icon = categoryIcons[transaction.category] || ShoppingCart;
+                  const { icon: Icon, bg, text } = getCategoryConfig(transaction.category);
                   return (
                     <button
                       key={transaction.id}
                       onClick={() => setEditingTransaction(transaction)}
                       className="w-full flex items-center gap-4 rounded-lg hover:bg-muted transition-colors px-2 py-1 -mx-2 text-left"
                     >
-                      <div className={`w-10 h-10 rounded-lg flex items-center justify-center shrink-0 ${
-                        transaction.type === 'income' ? 'bg-emerald-100' : 'bg-red-100'
-                      }`}>
-                        <Icon className={`w-5 h-5 ${
-                          transaction.type === 'income' ? 'text-emerald-600' : 'text-red-600'
-                        }`} />
+                      <div className={`w-10 h-10 rounded-lg flex items-center justify-center shrink-0 ${bg}`}>
+                        <Icon className={`w-5 h-5 ${text}`} />
                       </div>
                       <div className="flex-1 min-w-0">
                         <p className="font-medium truncate">{transaction.description}</p>
-                        <p className="text-sm text-muted-foreground">{transaction.category}</p>
+                        <p className="text-sm text-muted-foreground">{tCategory(transaction.category)}</p>
                       </div>
                       <div className="text-right shrink-0">
                         <p className={`font-semibold ${
@@ -276,7 +309,7 @@ export function Dashboard() {
                 })
               ) : (
                 <div className="text-center text-muted-foreground py-8">
-                  No transactions yet
+                  {tr('dashboard.noTransactions')}
                 </div>
               )}
             </div>

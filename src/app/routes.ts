@@ -2,6 +2,7 @@ import React from 'react';
 import { createBrowserRouter } from "react-router";
 import { Dashboard } from "./pages/Dashboard";
 import { TransactionHistory } from "./pages/TransactionHistory";
+import { Budgets } from "./pages/Budgets";
 import { Root } from "./pages/Root";
 import { Login } from "./pages/Login";
 import { RequireAccess } from "./context/AuthContext";
@@ -10,6 +11,8 @@ import { RequireAccess } from "./context/AuthContext";
 const ProtectedDashboard = () => React.createElement(RequireAccess, null, React.createElement(Dashboard));
 const ProtectedTransactions = () =>
   React.createElement(RequireAccess, null, React.createElement(TransactionHistory));
+const ProtectedBudgets = () =>
+  React.createElement(RequireAccess, null, React.createElement(Budgets));
 
 export const router = createBrowserRouter([
   {
@@ -18,6 +21,7 @@ export const router = createBrowserRouter([
     children: [
       { index: true, Component: ProtectedDashboard },
       { path: "transactions", Component: ProtectedTransactions },
+      { path: "budgets", Component: ProtectedBudgets },
       { path: "login", Component: Login },
     ],
   },
