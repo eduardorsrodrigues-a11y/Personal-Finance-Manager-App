@@ -35,7 +35,7 @@ export function TransactionFilters({
       {showTypeFilter && (
         <div>
           <label className="text-xs font-medium text-muted-foreground mb-2 block">{t('transactions.filterByType')}</label>
-          <div className="flex gap-2 overflow-x-auto pb-2">
+          <div className="flex gap-2 flex-wrap">
             <button
               onClick={() => onTypeChange('all')}
               className={`px-4 py-2 rounded-lg whitespace-nowrap transition-colors text-sm ${selectedType === 'all' ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground hover:bg-muted/80'}`}

@@ -88,7 +88,7 @@ export function TransactionHistory() {
   }, {} as Record<string, typeof filteredTransactions>);
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background overflow-x-hidden">
       {/* Header */}
       <header className="border-b border-border bg-card sticky top-0 z-40">
         <div className="px-4 lg:px-8 py-4 lg:py-6">
