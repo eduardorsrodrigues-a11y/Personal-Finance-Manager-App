@@ -30,9 +30,8 @@ export function MobileNav() {
   return (
     <>
       <nav
-        className={`lg:hidden fixed bottom-0 left-0 right-0 bg-card border-t border-border z-50 transition-transform duration-300 ease-in-out ${
-          visible ? 'translate-y-0' : 'translate-y-full'
-        }`}
+        className="lg:hidden fixed bottom-0 left-0 right-0 bg-card border-t border-border z-50 transition-transform duration-300 ease-in-out"
+        style={{ transform: visible ? 'translateY(0)' : 'translateY(calc(100% + 0.75rem))' }}
       >
         <div className="relative flex items-start justify-around h-20 px-2 pt-3">
 
@@ -47,12 +46,12 @@ export function MobileNav() {
             <span className="text-xs">{t('nav.dashboard')}</span>
           </Link>
 
-          {/* Add — floats above the nav */}
+          {/* Add — floats just above the nav */}
           <div className="flex flex-col items-center flex-1">
             <button
               onClick={() => (user || isGuest) && setIsAddModalOpen(true)}
               disabled={!user && !isGuest}
-              className={`absolute -top-6 ${!user && !isGuest ? 'opacity-40 cursor-not-allowed' : ''}`}
+              className={`absolute -top-3 ${!user && !isGuest ? 'opacity-40 cursor-not-allowed' : ''}`}
             >
               <div className="bg-emerald-500 rounded-full p-3.5 shadow-xl shadow-emerald-300/60">
                 <Plus className="w-6 h-6 text-white" />
