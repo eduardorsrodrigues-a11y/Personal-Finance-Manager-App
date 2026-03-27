@@ -1,4 +1,4 @@
-import { ShoppingCart, Home, Utensils, Car, Film, Heart, Zap, DollarSign, MoreHorizontal, Users, ShoppingBasket, Plane, Gift, CreditCard, TrendingUp, Umbrella, Coffee } from 'lucide-react';
+import { ShoppingCart, Home, Utensils, Car, Film, Heart, Zap, DollarSign, MoreHorizontal, Users, ShoppingBasket, Plane, Gift, CreditCard, TrendingUp, Umbrella, Coffee, Dumbbell } from 'lucide-react';
 
 export type CategoryConfig = {
   icon: React.ComponentType<{ className?: string }>;
@@ -19,6 +19,7 @@ export const CATEGORY_CONFIG: Record<string, CategoryConfig> = {
   Groceries:      { icon: ShoppingBasket, bg: 'bg-white border border-border', text: 'text-green-600',  hex: '#16a34a' },
   Travel:         { icon: Plane,          bg: 'bg-white border border-border', text: 'text-sky-500',    hex: '#0ea5e9' },
   Gifts:          { icon: Gift,           bg: 'bg-white border border-border', text: 'text-rose-500',   hex: '#f43f5e' },
+  'Gym & Sports': { icon: Dumbbell,       bg: 'bg-white border border-border', text: 'text-orange-500', hex: '#f97316' },
   Salary:         { icon: DollarSign,    bg: 'bg-white border border-border', text: 'text-emerald-500',hex: '#10b981' },
   Freelance:      { icon: DollarSign,    bg: 'bg-white border border-border', text: 'text-teal-500',   hex: '#14b8a6' },
   Investment:     { icon: DollarSign,    bg: 'bg-white border border-border', text: 'text-cyan-500',   hex: '#06b6d4' },

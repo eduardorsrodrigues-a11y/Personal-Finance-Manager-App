@@ -13,7 +13,7 @@ interface AddTransactionModalProps {
   initialTransaction?: Transaction | null;
 }
 
-const expenseCategories = ['Food', 'Groceries', 'Housing', 'Utilities', 'Transportation', 'Shopping', 'Health', 'Entertainment', 'Travel', 'Family & Personal', 'Gifts', 'Other'];
+const expenseCategories = ['Food', 'Groceries', 'Housing', 'Utilities', 'Transportation', 'Shopping', 'Health', 'Entertainment', 'Travel', 'Family & Personal', 'Gifts', 'Gym & Sports', 'Other'];
 const incomeCategories = ['Salary', 'Freelance', 'Investment', 'Business', 'RSUs', 'Cashback', 'Holiday Allowance', 'Meal Allowance', 'Other'];
 
 export function AddTransactionModal({

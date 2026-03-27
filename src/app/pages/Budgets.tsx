@@ -7,7 +7,7 @@ import { useLanguage } from '../context/LanguageContext';
 
 const EXPENSE_CATEGORIES = [
   'Food', 'Groceries', 'Housing', 'Utilities', 'Transportation',
-  'Shopping', 'Health', 'Entertainment', 'Travel', 'Family & Personal', 'Gifts', 'Other',
+  'Shopping', 'Health', 'Entertainment', 'Travel', 'Family & Personal', 'Gifts', 'Gym & Sports', 'Other',
 ];
 
 export function Budgets() {
