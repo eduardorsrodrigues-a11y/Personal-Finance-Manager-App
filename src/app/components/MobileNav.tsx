@@ -2,7 +2,7 @@ import { LayoutDashboard, List, Plus } from 'lucide-react';
 import { Link, useLocation } from 'react-router';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { AddTransactionModal } from './AddTransactionModal';
 
 export function MobileNav() {
@@ -10,16 +10,36 @@ export function MobileNav() {
   const { user, isGuest } = useAuth();
   const { t } = useLanguage();
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [visible, setVisible] = useState(true);
+  const lastScrollY = useRef(0);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      const currentY = window.scrollY;
+      if (currentY < lastScrollY.current || currentY < 10) {
+        setVisible(true);
+      } else {
+        setVisible(false);
+      }
+      lastScrollY.current = currentY;
+    };
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
 
   return (
     <>
-      {/* Bottom nav bar */}
-      <nav className="lg:hidden fixed bottom-0 left-0 right-0 bg-card border-t border-border z-50">
-        <div className="flex items-center justify-around h-20 px-2">
+      <nav
+        className={`lg:hidden fixed bottom-0 left-0 right-0 bg-card border-t border-border z-50 transition-transform duration-300 ease-in-out ${
+          visible ? 'translate-y-0' : 'translate-y-full'
+        }`}
+      >
+        <div className="relative flex items-start justify-around h-20 px-2 pt-3">
+
           {/* Dashboard */}
           <Link
             to="/"
-            className={`flex flex-col items-center justify-center gap-1 px-3 py-2 rounded-lg transition-colors flex-1 ${
+            className={`flex flex-col items-center gap-1 px-3 py-1 rounded-lg transition-colors flex-1 ${
               location.pathname === '/' ? 'text-emerald-500' : 'text-muted-foreground'
             }`}
           >
@@ -27,14 +47,14 @@ export function MobileNav() {
             <span className="text-xs">{t('nav.dashboard')}</span>
           </Link>
 
-          {/* Add */}
-          <div className="flex flex-col items-center justify-center flex-1">
+          {/* Add — floats above the nav */}
+          <div className="flex flex-col items-center flex-1">
             <button
               onClick={() => (user || isGuest) && setIsAddModalOpen(true)}
               disabled={!user && !isGuest}
-              className={`flex flex-col items-center justify-center ${!user && !isGuest ? 'opacity-40 cursor-not-allowed' : ''}`}
+              className={`absolute -top-6 ${!user && !isGuest ? 'opacity-40 cursor-not-allowed' : ''}`}
             >
-              <div className="bg-emerald-500 rounded-full p-3 shadow-lg">
+              <div className="bg-emerald-500 rounded-full p-3.5 shadow-xl shadow-emerald-300/60">
                 <Plus className="w-6 h-6 text-white" />
               </div>
             </button>
@@ -43,13 +63,14 @@ export function MobileNav() {
           {/* Transactions */}
           <Link
             to="/transactions"
-            className={`flex flex-col items-center justify-center gap-1 px-3 py-2 rounded-lg transition-colors flex-1 ${
+            className={`flex flex-col items-center gap-1 px-3 py-1 rounded-lg transition-colors flex-1 ${
               location.pathname === '/transactions' ? 'text-emerald-500' : 'text-muted-foreground'
             }`}
           >
             <List className="w-5 h-5" />
             <span className="text-xs">{t('nav.transactions')}</span>
           </Link>
+
         </div>
       </nav>
 
