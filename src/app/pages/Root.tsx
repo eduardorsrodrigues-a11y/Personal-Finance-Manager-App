@@ -24,7 +24,7 @@ export function Root() {
             <div className="flex min-h-screen bg-background">
               <Sidebar />
               <MobileHeader />
-              <main className="flex-1 pt-14 pb-20 lg:pt-0 lg:pb-0">
+              <main className="flex-1 pt-14 pb-24 lg:pt-0 lg:pb-0">
                 <Outlet />
               </main>
               <MobileNav />
