@@ -21,21 +21,30 @@ export function getAvailableMonths(transactions: Transaction[]): string[] {
 }
 
 export function filterTransactionsByMonth(
-  transactions: Transaction[], 
+  transactions: Transaction[],
   selectedMonth: string
 ): Transaction[] {
   if (selectedMonth === 'all') {
     return transactions;
   }
 
+  if (selectedMonth === 'this-year') {
+    const year = new Date().getFullYear();
+    return transactions.filter((t) => new Date(t.date).getFullYear() === year);
+  }
+
   return transactions.filter((transaction) => {
     const date = new Date(transaction.date);
-    const monthYear = date.toLocaleDateString('en-US', { 
-      year: 'numeric', 
-      month: 'long' 
+    const monthYear = date.toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'long'
     });
     return monthYear === selectedMonth;
   });
+}
+
+export function getCurrentMonthLabel(): string {
+  return new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long' });
 }
 
 export function getMonthYearFromDate(dateString: string): string {

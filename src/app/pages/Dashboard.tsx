@@ -5,7 +5,7 @@ import { useNavigate } from 'react-router';
 import { useTransactions } from '../context/TransactionContext';
 import { AddTransactionModal } from '../components/AddTransactionModal';
 import { TransactionFilters } from '../components/TransactionFilters';
-import { getAvailableMonths, filterTransactionsByMonth } from '../utils/dateUtils';
+import { getAvailableMonths, filterTransactionsByMonth, getCurrentMonthLabel } from '../utils/dateUtils';
 import { useCurrency } from '../context/CurrencyContext';
 import { useBudgets } from '../context/BudgetContext';
 import { getCategoryConfig } from '../utils/categoryConfig';
@@ -17,7 +17,7 @@ function renderPieLabel({ cx, cy, midAngle, outerRadius, percent, name }: {
   cx: number; cy: number; midAngle: number; outerRadius: number; percent: number; name: string;
 }) {
   if (percent < 0.04) return null;
-  const radius = outerRadius + 48;
+  const radius = outerRadius + 38;
   const x = cx + radius * Math.cos(-midAngle * RADIAN);
   const y = cy + radius * Math.sin(-midAngle * RADIAN);
   const { icon: Icon, hex } = getCategoryConfig(name);
@@ -44,7 +44,7 @@ export function Dashboard() {
   const navigate = useNavigate();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingTransaction, setEditingTransaction] = useState<import('../context/TransactionContext').Transaction | null>(null);
-  const [selectedMonth, setSelectedMonth] = useState<string>('all');
+  const [selectedMonth, setSelectedMonth] = useState<string>(getCurrentMonthLabel);
 
   // Get available months for filters
   const availableMonths = useMemo(() => getAvailableMonths(transactions), [transactions]);
@@ -92,8 +92,15 @@ export function Dashboard() {
     [monthFilteredTransactions],
   );
 
-  // Recent transactions (last 5) from month-filtered transactions
-  const recentTransactions = monthFilteredTransactions.slice(0, 5);
+  // Top 3 highest expenses
+  const top3Expenses = useMemo(
+    () =>
+      monthFilteredTransactions
+        .filter((t) => t.type === 'expense')
+        .sort((a, b) => b.amount - a.amount)
+        .slice(0, 3),
+    [monthFilteredTransactions],
+  );
 
   const handleCategoryDrilldown = (category: string) => {
     const params = new URLSearchParams();
@@ -141,51 +148,41 @@ export function Dashboard() {
 
       {/* Main Content */}
       <div className="px-4 lg:px-8 py-6 lg:py-8">
-        {/* Metric Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 lg:gap-6 mb-6 lg:mb-8">
+        {/* Metric Cards — Income + Expenses side by side, Balance below on mobile */}
+        <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 lg:gap-4 mb-6 lg:mb-8">
           {/* Total Income */}
-          <div className="bg-card border border-border rounded-xl p-6">
-            <div className="flex items-start justify-between mb-4">
-              <div className="w-10 h-10 rounded-lg bg-emerald-100 flex items-center justify-center">
-                <TrendingUp className="w-5 h-5 text-emerald-600" />
+          <div className="bg-card border border-border rounded-xl p-4">
+            <div className="flex items-center gap-2 mb-2">
+              <div className="w-7 h-7 rounded-lg bg-emerald-100 flex items-center justify-center">
+                <TrendingUp className="w-4 h-4 text-emerald-600" />
               </div>
+              <p className="text-xs text-muted-foreground">{tr('dashboard.totalIncome')}</p>
             </div>
-            <div>
-              <p className="text-sm text-muted-foreground mb-1">{tr('dashboard.totalIncome')}</p>
-              <p className="text-3xl font-semibold text-emerald-600">
-                {formatAmount(totalIncome)}
-              </p>
-            </div>
+            <p className="text-xl font-semibold text-emerald-600 truncate">{formatAmount(totalIncome)}</p>
           </div>
 
           {/* Total Expenses */}
-          <div className="bg-card border border-border rounded-xl p-6">
-            <div className="flex items-start justify-between mb-4">
-              <div className="w-10 h-10 rounded-lg bg-red-100 flex items-center justify-center">
-                <TrendingDown className="w-5 h-5 text-red-600" />
+          <div className="bg-card border border-border rounded-xl p-4">
+            <div className="flex items-center gap-2 mb-2">
+              <div className="w-7 h-7 rounded-lg bg-red-100 flex items-center justify-center">
+                <TrendingDown className="w-4 h-4 text-red-600" />
               </div>
+              <p className="text-xs text-muted-foreground">{tr('dashboard.totalExpenses')}</p>
             </div>
-            <div>
-              <p className="text-sm text-muted-foreground mb-1">{tr('dashboard.totalExpenses')}</p>
-              <p className="text-3xl font-semibold text-red-500">
-                {formatAmount(totalExpenses)}
-              </p>
-            </div>
+            <p className="text-xl font-semibold text-red-500 truncate">{formatAmount(totalExpenses)}</p>
           </div>
 
-          {/* Current Balance */}
-          <div className="bg-card border border-border rounded-xl p-6">
-            <div className="flex items-start justify-between mb-4">
-              <div className="w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center">
-                <Wallet className="w-5 h-5 text-blue-600" />
+          {/* Current Balance — full width on mobile, normal on desktop */}
+          <div className="col-span-2 lg:col-span-1 bg-card border border-border rounded-xl p-4">
+            <div className="flex items-center gap-2 mb-2">
+              <div className="w-7 h-7 rounded-lg bg-blue-100 flex items-center justify-center">
+                <Wallet className="w-4 h-4 text-blue-600" />
               </div>
+              <p className="text-xs text-muted-foreground">{tr('dashboard.currentBalance')}</p>
             </div>
-            <div>
-              <p className="text-sm text-muted-foreground mb-1">{tr('dashboard.currentBalance')}</p>
-              <p className={`text-3xl font-semibold ${balance >= 0 ? 'text-foreground' : 'text-red-500'}`}>
-                {formatAmount(balance)}
-              </p>
-            </div>
+            <p className={`text-xl font-semibold truncate ${balance >= 0 ? 'text-foreground' : 'text-red-500'}`}>
+              {formatAmount(balance)}
+            </p>
           </div>
         </div>
 
@@ -195,14 +192,14 @@ export function Dashboard() {
           <div className="bg-card border border-border rounded-xl p-6">
             <h2 className="font-semibold mb-6">{tr('dashboard.expensesByCategory')}</h2>
             {chartData.length > 0 ? (
-              <ResponsiveContainer width="100%" height={300}>
+              <ResponsiveContainer width="100%" height={260}>
                 <PieChart>
                   <Pie
                     data={chartData}
                     cx="50%"
                     cy="50%"
-                    innerRadius={60}
-                    outerRadius={100}
+                    innerRadius={45}
+                    outerRadius={75}
                     fill="#8884d8"
                     paddingAngle={2}
                     dataKey="value"
@@ -273,19 +270,20 @@ export function Dashboard() {
             </div>
           </div>
 
-          {/* Recent Transactions */}
+          {/* Top 3 Highest Expenses */}
           <div className="bg-card border border-border rounded-xl p-6">
-            <h2 className="font-semibold mb-6">{tr('dashboard.recentTransactions')}</h2>
-            <div className="space-y-4">
-              {recentTransactions.length > 0 ? (
-                recentTransactions.map((transaction) => {
+            <h2 className="font-semibold mb-6">Top 3 Expenses</h2>
+            <div className="space-y-3">
+              {top3Expenses.length > 0 ? (
+                top3Expenses.map((transaction, idx) => {
                   const { icon: Icon, bg, text } = getCategoryConfig(transaction.category);
                   return (
                     <button
                       key={transaction.id}
                       onClick={() => setEditingTransaction(transaction)}
-                      className="w-full flex items-center gap-4 rounded-lg hover:bg-muted transition-colors px-2 py-1 -mx-2 text-left"
+                      className="w-full flex items-center gap-4 rounded-lg hover:bg-muted transition-colors px-2 py-2 -mx-2 text-left"
                     >
+                      <span className="text-xs font-bold text-muted-foreground w-4 shrink-0">#{idx + 1}</span>
                       <div className={`w-10 h-10 rounded-lg flex items-center justify-center shrink-0 ${bg}`}>
                         <Icon className={`w-5 h-5 ${text}`} />
                       </div>
@@ -294,13 +292,8 @@ export function Dashboard() {
                         <p className="text-sm text-muted-foreground">{tCategory(transaction.category)}</p>
                       </div>
                       <div className="text-right shrink-0">
-                        <p className={`font-semibold ${
-                          transaction.type === 'income' ? 'text-emerald-600' : 'text-red-500'
-                        }`}>
-                          {transaction.type === 'income' ? '+' : '-'}
-                          {formatAmount(transaction.amount)}
-                        </p>
-                        <p className="text-sm text-muted-foreground">
+                        <p className="font-semibold text-red-500">-{formatAmount(transaction.amount)}</p>
+                        <p className="text-xs text-muted-foreground">
                           {new Date(transaction.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
                         </p>
                       </div>
@@ -308,8 +301,8 @@ export function Dashboard() {
                   );
                 })
               ) : (
-                <div className="text-center text-muted-foreground py-8">
-                  {tr('dashboard.noTransactions')}
+                <div className="text-center text-muted-foreground py-8 text-sm">
+                  No expenses this period
                 </div>
               )}
             </div>
