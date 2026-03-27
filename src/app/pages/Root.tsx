@@ -8,9 +8,13 @@ import { CurrencyProvider } from '../context/CurrencyContext';
 import { BudgetProvider } from '../context/BudgetContext';
 import { LanguageProvider } from '../context/LanguageContext';
 import { ToastProvider } from '../context/ToastContext';
+import { PWAProvider } from '../context/PWAContext';
+import { InstallPrompt } from '../components/InstallPrompt';
+import { SyncIndicator } from '../components/SyncIndicator';
 
 export function Root() {
   return (
+    <PWAProvider>
     <LanguageProvider>
     <AuthProvider>
       <CurrencyProvider>
@@ -24,6 +28,12 @@ export function Root() {
                 <Outlet />
               </main>
               <MobileNav />
+              <InstallPrompt />
+              <div className="fixed top-16 lg:top-4 right-4 z-[100] pointer-events-none">
+                <div className="pointer-events-auto">
+                  <SyncIndicator />
+                </div>
+              </div>
             </div>
           </ToastProvider>
           </BudgetProvider>
@@ -31,5 +41,6 @@ export function Root() {
       </CurrencyProvider>
     </AuthProvider>
     </LanguageProvider>
+    </PWAProvider>
   );
 }

@@ -15,9 +15,22 @@ interface TransactionContextType {
   addTransaction: (transaction: Omit<Transaction, 'id'>) => Promise<void>;
   deleteTransaction: (id: string) => Promise<void>;
   updateTransaction: (id: string, transaction: Omit<Transaction, 'id'>) => Promise<void>;
+  hasPendingSync: boolean;
 }
 
 const GUEST_TRANSACTIONS_KEY = 'expense_manager_guest_transactions';
+const PENDING_SYNC_KEY = 'fw_pending_sync';
+
+function loadPending(): Array<Omit<Transaction, 'id'>> {
+  try {
+    const raw = localStorage.getItem(PENDING_SYNC_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch { return []; }
+}
+
+function savePending(items: Array<Omit<Transaction, 'id'>>): void {
+  localStorage.setItem(PENDING_SYNC_KEY, JSON.stringify(items));
+}
 
 const TransactionContext = createContext<TransactionContextType | undefined>(undefined);
 
@@ -37,6 +50,7 @@ function saveGuestTransactions(transactions: Transaction[]): void {
 export function TransactionProvider({ children }: { children: ReactNode }) {
   const { user, isGuest } = useAuth();
   const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [hasPendingSync, setHasPendingSync] = useState(() => loadPending().length > 0);
 
   const refresh = async () => {
     if (!user?.id) {
@@ -96,6 +110,36 @@ export function TransactionProvider({ children }: { children: ReactNode }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.id, isGuest]);
 
+  // Flush pending sync when back online
+  useEffect(() => {
+    const flushPending = async () => {
+      if (!user?.id) return;
+      const pending = loadPending();
+      if (pending.length === 0) return;
+      try {
+        await Promise.all(
+          pending.map((tx) =>
+            fetch('/api/transactions', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              credentials: 'include',
+              body: JSON.stringify(tx),
+            })
+          )
+        );
+        savePending([]);
+        setHasPendingSync(false);
+        await refresh();
+      } catch {
+        // Will retry next time online
+      }
+    };
+
+    window.addEventListener('online', flushPending);
+    return () => window.removeEventListener('online', flushPending);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id]);
+
   const addTransaction = async (transaction: Omit<Transaction, 'id'>) => {
     if (isGuest) {
       const newTx: Transaction = {
@@ -105,17 +149,44 @@ export function TransactionProvider({ children }: { children: ReactNode }) {
       const updated = [...transactions, newTx];
       saveGuestTransactions(updated);
       setTransactions(updated);
+      window.dispatchEvent(new Event('fw:first-transaction'));
       return;
     }
 
-    const res = await fetch('/api/transactions', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      credentials: 'include',
-      body: JSON.stringify(transaction),
-    });
-    if (!res.ok) return;
-    await refresh();
+    // Dispatch engagement event for PWA install prompt
+    window.dispatchEvent(new Event('fw:first-transaction'));
+
+    if (!navigator.onLine) {
+      // Save to pending queue and add to local state optimistically
+      const pending = loadPending();
+      savePending([...pending, transaction]);
+      const tempTx: Transaction = {
+        ...transaction,
+        id: `pending_${Date.now()}`,
+      };
+      setTransactions((prev) => [tempTx, ...prev]);
+      setHasPendingSync(true);
+      return;
+    }
+
+    try {
+      const res = await fetch('/api/transactions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify(transaction),
+      });
+      if (!res.ok) return;
+      await refresh();
+    } catch {
+      if (!navigator.onLine) {
+        const pending = loadPending();
+        savePending([...pending, transaction]);
+        const tempTx: Transaction = { ...transaction, id: `pending_${Date.now()}` };
+        setTransactions((prev) => [tempTx, ...prev]);
+        setHasPendingSync(true);
+      }
+    }
   };
 
   const deleteTransaction = async (id: string) => {
@@ -153,7 +224,7 @@ export function TransactionProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <TransactionContext.Provider value={{ transactions, addTransaction, deleteTransaction, updateTransaction }}>
+    <TransactionContext.Provider value={{ transactions, addTransaction, deleteTransaction, updateTransaction, hasPendingSync }}>
       {children}
     </TransactionContext.Provider>
   );
