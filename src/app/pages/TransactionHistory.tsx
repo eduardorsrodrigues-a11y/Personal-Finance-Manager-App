@@ -1,10 +1,9 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
 import { Plus, Search, Trash2, ShoppingCart } from 'lucide-react';
 import { useSearchParams } from 'react-router';
 import { Transaction, useTransactions } from '../context/TransactionContext';
 import { AddTransactionModal } from '../components/AddTransactionModal';
 import { DeleteConfirmationModal } from '../components/DeleteConfirmationModal';
-import { TransactionFilters } from '../components/TransactionFilters';
 import { getAvailableMonths, filterTransactionsByMonth } from '../utils/dateUtils';
 import { useCurrency } from '../context/CurrencyContext';
 import { getCategoryConfig } from '../utils/categoryConfig';
@@ -29,8 +28,23 @@ export function TransactionHistory() {
   const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
   const [selectedMonth, setSelectedMonth] = useState<string>(initialMonthParam || 'all');
   const [selectedCategory, setSelectedCategory] = useState<string>(initialCategoryParam || 'all');
+  const [isScrolled, setIsScrolled] = useState(false);
+  const lastScrollY = useRef(0);
 
-  // Keep state in sync with URL query params (for Dashboard drilldown).
+  useEffect(() => {
+    const handleScroll = () => {
+      const y = window.scrollY;
+      if (y > 60 && y > lastScrollY.current) {
+        setIsScrolled(true);
+      } else if (y < 60 || y < lastScrollY.current) {
+        setIsScrolled(false);
+      }
+      lastScrollY.current = y;
+    };
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
   useEffect(() => {
     setSelectedMonth(initialMonthParam || 'all');
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -41,153 +55,252 @@ export function TransactionHistory() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initialCategoryParam]);
 
-  // Get available months and categories
   const availableMonths = useMemo(() => getAvailableMonths(transactions), [transactions]);
-  
+
   const availableCategories = useMemo(() => {
-    const categories = new Set(transactions.map(t => t.category));
-    return Array.from(categories).sort();
+    const cats = new Set(transactions.map(tx => tx.category));
+    return Array.from(cats).sort();
   }, [transactions]);
 
-  // Filter and search transactions
   const filteredTransactions = useMemo(() => {
-    let filtered = transactions.filter((transaction) => {
-      const matchesFilter = filter === 'all' || transaction.type === filter;
+    let filtered = transactions.filter((tx) => {
+      const matchesFilter = filter === 'all' || tx.type === filter;
       const matchesSearch =
         searchQuery === '' ||
-        transaction.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        transaction.category.toLowerCase().includes(searchQuery.toLowerCase());
+        tx.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        tx.category.toLowerCase().includes(searchQuery.toLowerCase());
       return matchesFilter && matchesSearch;
     });
-    
-    // Filter by category
     if (selectedCategory !== 'all') {
-      filtered = filtered.filter(t => t.category === selectedCategory);
+      filtered = filtered.filter(tx => tx.category === selectedCategory);
     }
-    
     return filtered;
   }, [transactions, filter, searchQuery, selectedCategory]);
 
-  // Filter transactions by month
-  const filteredByMonthTransactions = useMemo(() => {
-    return filterTransactionsByMonth(filteredTransactions, selectedMonth);
-  }, [filteredTransactions, selectedMonth]);
+  const filteredByMonthTransactions = useMemo(
+    () => filterTransactionsByMonth(filteredTransactions, selectedMonth),
+    [filteredTransactions, selectedMonth],
+  );
 
-  // Group by date
-  const groupedTransactions = filteredByMonthTransactions.reduce((acc, transaction) => {
-    const date = new Date(transaction.date).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
+  const groupedTransactions = filteredByMonthTransactions.reduce((acc, tx) => {
+    const date = new Date(tx.date).toLocaleDateString('en-US', {
+      year: 'numeric', month: 'long', day: 'numeric',
     });
-    if (!acc[date]) {
-      acc[date] = [];
-    }
-    acc[date].push(transaction);
+    if (!acc[date]) acc[date] = [];
+    acc[date].push(tx);
     return acc;
   }, {} as Record<string, typeof filteredTransactions>);
 
+  const openAdd = () => {
+    setModalMode('add');
+    setEditingTransaction(null);
+    setIsModalOpen(true);
+  };
+
+  const typeButtonClass = (ft: FilterType) =>
+    `px-2.5 py-1.5 rounded-lg text-xs font-medium transition-colors shrink-0 ${
+      filter === ft
+        ? ft === 'income'
+          ? 'bg-emerald-500 text-white'
+          : ft === 'expense'
+          ? 'bg-red-500 text-white'
+          : 'bg-primary text-primary-foreground'
+        : 'bg-muted text-muted-foreground'
+    }`;
+
   return (
-    <div className="min-h-screen bg-background overflow-x-hidden">
-      {/* Header */}
+    <div className="min-h-screen bg-background">
+      {/* ── Sticky header ── */}
       <header className="border-b border-border bg-card sticky top-0 z-40">
-        <div className="px-4 lg:px-8 py-4 lg:py-6">
-          <div className="flex items-center justify-between mb-4">
-            <div>
-              <h1 className="font-semibold mb-1">{t('transactions.title')}</h1>
-              <p className="text-sm text-muted-foreground">
-                {t('transactions.subtitle')}
-              </p>
+        <div className={`px-4 lg:px-8 transition-all duration-200 ${isScrolled ? 'py-2' : 'py-3 lg:py-5'}`}>
+
+          {/* Title row — hidden when compact */}
+          {!isScrolled && (
+            <div className="flex items-center justify-between mb-3">
+              <div>
+                <h1 className="text-lg font-semibold leading-tight">{t('transactions.title')}</h1>
+                <p className="text-xs text-muted-foreground hidden sm:block">{t('transactions.subtitle')}</p>
+              </div>
+              <button
+                onClick={openAdd}
+                className="bg-emerald-500 hover:bg-emerald-600 text-white px-3 py-1.5 rounded-lg flex items-center gap-1.5 text-sm font-medium transition-colors shrink-0"
+              >
+                <Plus className="w-4 h-4" />
+                <span className="hidden sm:inline">{t('transactions.addTransaction')}</span>
+              </button>
             </div>
-            <button
-              onClick={() => {
-                setModalMode('add');
-                setEditingTransaction(null);
-                setIsModalOpen(true);
-              }}
-              className="bg-emerald-500 hover:bg-emerald-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors"
-            >
-              <Plus className="w-5 h-5" />
-              <span className="hidden sm:inline">{t('transactions.addTransaction')}</span>
-            </button>
-          </div>
+          )}
 
-          {/* Search */}
-          <div className="relative mb-4">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder={t('transactions.searchPlaceholder')}
-              className="w-full pl-10 pr-4 py-2.5 bg-input-background rounded-lg border border-border focus:outline-none focus:ring-2 focus:ring-ring"
-            />
-          </div>
+          {isScrolled ? (
+            /* ── Compact row (scrolled) ── */
+            <div className="flex items-center gap-1.5">
+              <div className="relative w-24 shrink-0">
+                <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Search"
+                  className="w-full pl-6 pr-2 py-1.5 text-xs bg-input-background rounded-lg border border-border focus:outline-none"
+                />
+              </div>
 
-          {/* Filters */}
-          <TransactionFilters
-            selectedType={filter}
-            onTypeChange={setFilter}
-            selectedCategory={selectedCategory}
-            onCategoryChange={setSelectedCategory}
-            selectedMonth={selectedMonth}
-            onMonthChange={setSelectedMonth}
-            availableMonths={availableMonths}
-            availableCategories={availableCategories}
-          />
+              {(['all', 'income', 'expense'] as FilterType[]).map((ft) => (
+                <button key={ft} onClick={() => setFilter(ft)} className={typeButtonClass(ft)}>
+                  {ft === 'all' ? 'All' : ft === 'income' ? 'In' : 'Ex'}
+                </button>
+              ))}
+
+              <select
+                value={selectedCategory}
+                onChange={(e) => setSelectedCategory(e.target.value)}
+                className="flex-1 min-w-0 px-2 py-1.5 bg-input-background rounded-lg border border-border text-xs focus:outline-none"
+              >
+                <option value="all">Cat.</option>
+                {availableCategories.map(c => (
+                  <option key={c} value={c}>{tCategory(c)}</option>
+                ))}
+              </select>
+
+              <select
+                value={selectedMonth}
+                onChange={(e) => setSelectedMonth(e.target.value)}
+                className="flex-1 min-w-0 px-2 py-1.5 bg-input-background rounded-lg border border-border text-xs focus:outline-none"
+              >
+                <option value="all">All</option>
+                <option value="this-year">Year</option>
+                {availableMonths.map(m => (
+                  <option key={m} value={m}>{m}</option>
+                ))}
+              </select>
+
+              <button onClick={openAdd} className="bg-emerald-500 hover:bg-emerald-600 text-white p-1.5 rounded-lg shrink-0 transition-colors">
+                <Plus className="w-4 h-4" />
+              </button>
+            </div>
+          ) : (
+            <>
+              {/* ── Search + type pills ── */}
+              <div className="flex items-center gap-2 mb-2">
+                <div className="relative flex-1 min-w-0">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                  <input
+                    type="text"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    placeholder={t('transactions.searchPlaceholder')}
+                    className="w-full pl-9 pr-3 py-2 text-sm bg-input-background rounded-lg border border-border focus:outline-none focus:ring-2 focus:ring-ring"
+                  />
+                </div>
+                <div className="flex gap-1.5 shrink-0">
+                  {(['all', 'income', 'expense'] as FilterType[]).map((ft) => (
+                    <button key={ft} onClick={() => setFilter(ft)} className={typeButtonClass(ft)}>
+                      {ft === 'all'
+                        ? t('transactions.all')
+                        : ft === 'income'
+                        ? t('transactions.income')
+                        : t('transactions.expense')}
+                    </button>
+                  ))}
+                </div>
+                {/* Desktop: selects inline with search row */}
+                <div className="hidden lg:flex gap-2 shrink-0">
+                  <select
+                    value={selectedCategory}
+                    onChange={(e) => setSelectedCategory(e.target.value)}
+                    className="px-3 py-2 bg-input-background rounded-lg border border-border text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                  >
+                    <option value="all">{t('transactions.allCategories')}</option>
+                    {availableCategories.map(c => (
+                      <option key={c} value={c}>{tCategory(c)}</option>
+                    ))}
+                  </select>
+                  <select
+                    value={selectedMonth}
+                    onChange={(e) => setSelectedMonth(e.target.value)}
+                    className="px-3 py-2 bg-input-background rounded-lg border border-border text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                  >
+                    <option value="all">{t('transactions.allTime')}</option>
+                    <option value="this-year">This year</option>
+                    {availableMonths.map(m => (
+                      <option key={m} value={m}>{m}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              {/* Mobile: Category + Time on one row */}
+              <div className="grid grid-cols-2 gap-2 lg:hidden">
+                <select
+                  value={selectedCategory}
+                  onChange={(e) => setSelectedCategory(e.target.value)}
+                  className="w-full px-3 py-2 bg-input-background rounded-lg border border-border text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                >
+                  <option value="all">{t('transactions.allCategories')}</option>
+                  {availableCategories.map(c => (
+                    <option key={c} value={c}>{tCategory(c)}</option>
+                  ))}
+                </select>
+                <select
+                  value={selectedMonth}
+                  onChange={(e) => setSelectedMonth(e.target.value)}
+                  className="w-full px-3 py-2 bg-input-background rounded-lg border border-border text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                >
+                  <option value="all">{t('transactions.allTime')}</option>
+                  <option value="this-year">This year</option>
+                  {availableMonths.map(m => (
+                    <option key={m} value={m}>{m}</option>
+                  ))}
+                </select>
+              </div>
+            </>
+          )}
         </div>
       </header>
 
-      {/* Transaction List */}
+      {/* ── Transaction list ── */}
       <div className="px-4 lg:px-8 py-6 lg:py-8">
         {Object.keys(groupedTransactions).length > 0 ? (
           <div className="space-y-6">
             {Object.entries(groupedTransactions).map(([date, dateTransactions]) => (
               <div key={date}>
-                {/* Date Header */}
                 <div className="mb-3">
                   <h3 className="text-sm font-semibold text-muted-foreground">{date}</h3>
                 </div>
-
-                {/* Transactions */}
                 <div className="bg-card border border-border rounded-xl divide-y divide-border">
                   {dateTransactions.map((transaction) => {
                     const { icon: Icon, bg, text } = getCategoryConfig(transaction.category);
                     return (
                       <div
                         key={transaction.id}
-                        className="p-4 flex items-center gap-4 hover:bg-muted/50 transition-colors group cursor-pointer"
+                        className="p-4 flex items-center gap-3 hover:bg-muted/50 transition-colors cursor-pointer"
                         onClick={() => {
                           setModalMode('edit');
                           setEditingTransaction(transaction);
                           setIsModalOpen(true);
                         }}
                       >
-                        <div className={`w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 ${bg}`}>
-                          <Icon className={`w-5 h-5 ${text}`} />
+                        <div className={`w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 ${bg}`}>
+                          <Icon className={`w-4 h-4 ${text}`} />
                         </div>
                         <div className="flex-1 min-w-0">
-                          <p className="font-medium truncate">{transaction.description}</p>
-                          <p className="text-sm text-muted-foreground">{tCategory(transaction.category)}</p>
+                          <p className="font-medium text-sm truncate">{transaction.description}</p>
+                          <p className="text-xs text-muted-foreground">{tCategory(transaction.category)}</p>
                         </div>
-                        <div className="text-right flex items-center gap-3">
-                          <div>
-                            <p
-                              className={`font-semibold ${
-                                transaction.type === 'income' ? 'text-emerald-600' : 'text-red-500'
-                              }`}
-                            >
-                              {transaction.type === 'income' ? '+' : '-'}{formatAmount(transaction.amount)}
-                            </p>
-                          </div>
+                        <div className="flex items-center gap-2 shrink-0">
+                          <p className={`font-semibold text-sm ${
+                            transaction.type === 'income' ? 'text-emerald-600' : 'text-red-500'
+                          }`}>
+                            {transaction.type === 'income' ? '+' : '-'}{formatAmount(transaction.amount)}
+                          </p>
                           <button
                             onClick={(e) => {
                               e.stopPropagation();
                               setPendingDelete(transaction);
                             }}
-                            className="transition-colors text-muted-foreground hover:text-destructive p-2"
+                            className="text-muted-foreground hover:text-destructive transition-colors p-1.5 rounded"
                           >
-                            <Trash2 className="w-4 h-4" />
+                            <Trash2 className="w-3.5 h-3.5" />
                           </button>
                         </div>
                       </div>
@@ -204,17 +317,11 @@ export function TransactionHistory() {
             </div>
             <h3 className="font-semibold mb-2">{t('transactions.noTransactions')}</h3>
             <p className="text-sm text-muted-foreground mb-4">
-              {searchQuery
-                ? t('transactions.adjustFilters')
-                : t('transactions.startAdding')}
+              {searchQuery ? t('transactions.adjustFilters') : t('transactions.startAdding')}
             </p>
             {!searchQuery && (
               <button
-                onClick={() => {
-                  setModalMode('add');
-                  setEditingTransaction(null);
-                  setIsModalOpen(true);
-                }}
+                onClick={openAdd}
                 className="bg-emerald-500 hover:bg-emerald-600 text-white px-4 py-2 rounded-lg inline-flex items-center gap-2 transition-colors"
               >
                 <Plus className="w-5 h-5" />
