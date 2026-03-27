@@ -1,6 +1,13 @@
 import { createContext, useContext, useEffect, useState, useCallback, ReactNode } from 'react';
 
 const DISMISSED_KEY = 'fw_install_dismissed';
+const DISMISS_DURATION_MS = 3 * 24 * 60 * 60 * 1000; // 3 days
+
+function isDismissed(): boolean {
+  const val = localStorage.getItem(DISMISSED_KEY);
+  if (!val) return false;
+  return Date.now() - Number(val) < DISMISS_DURATION_MS;
+}
 
 function detectIOSSafari(): boolean {
   const ua = navigator.userAgent;
@@ -29,6 +36,9 @@ interface PWAContextType {
 const PWAContext = createContext<PWAContextType | undefined>(undefined);
 
 export function PWAProvider({ children }: { children: ReactNode }) {
+  // Clear any legacy "forever dismissed" flag (old value was '1', not a timestamp)
+  const legacyVal = localStorage.getItem(DISMISSED_KEY);
+  if (legacyVal === '1') localStorage.removeItem(DISMISSED_KEY);
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const [canInstall, setCanInstall] = useState(false);
   const [showInstallBanner, setShowInstallBanner] = useState(false);
@@ -80,16 +90,14 @@ export function PWAProvider({ children }: { children: ReactNode }) {
 
   // Show banner when eligible (Chrome/Android)
   useEffect(() => {
-    const dismissed = localStorage.getItem(DISMISSED_KEY);
-    if (canInstall && engaged && !dismissed) {
+    if (canInstall && engaged && !isDismissed()) {
       setShowInstallBanner(true);
     }
   }, [canInstall, engaged]);
 
   // Show iOS guidance banner when eligible
   useEffect(() => {
-    const dismissed = localStorage.getItem(DISMISSED_KEY);
-    if (isIOSSafari && engaged && !dismissed) {
+    if (isIOSSafari && engaged && !isDismissed()) {
       setShowIOSBanner(true);
     }
   }, [isIOSSafari, engaged]);
@@ -106,7 +114,7 @@ export function PWAProvider({ children }: { children: ReactNode }) {
   }, [deferredPrompt]);
 
   const dismissInstall = useCallback(() => {
-    localStorage.setItem(DISMISSED_KEY, '1');
+    localStorage.setItem(DISMISSED_KEY, String(Date.now()));
     setShowInstallBanner(false);
     setShowIOSBanner(false);
   }, []);
