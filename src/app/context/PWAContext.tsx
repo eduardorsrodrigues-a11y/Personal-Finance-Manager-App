@@ -2,6 +2,16 @@ import { createContext, useContext, useEffect, useState, useCallback, ReactNode 
 
 const DISMISSED_KEY = 'fw_install_dismissed';
 
+function detectIOSSafari(): boolean {
+  const ua = navigator.userAgent;
+  const isIOS = /iphone|ipad|ipod/i.test(ua);
+  const isSafari = /safari/i.test(ua) && !/chrome|crios|fxios|edgios/i.test(ua);
+  const isStandalone =
+    (navigator as Navigator & { standalone?: boolean }).standalone === true ||
+    window.matchMedia('(display-mode: standalone)').matches;
+  return isIOS && isSafari && !isStandalone;
+}
+
 interface BeforeInstallPromptEvent extends Event {
   prompt: () => Promise<void>;
   userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }>;
@@ -10,6 +20,7 @@ interface BeforeInstallPromptEvent extends Event {
 interface PWAContextType {
   canInstall: boolean;
   showInstallBanner: boolean;
+  showIOSBanner: boolean;
   promptInstall: () => Promise<void>;
   dismissInstall: () => void;
   isOnline: boolean;
@@ -21,8 +32,10 @@ export function PWAProvider({ children }: { children: ReactNode }) {
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const [canInstall, setCanInstall] = useState(false);
   const [showInstallBanner, setShowInstallBanner] = useState(false);
+  const [showIOSBanner, setShowIOSBanner] = useState(false);
   const [engaged, setEngaged] = useState(false);
   const [isOnline, setIsOnline] = useState(navigator.onLine);
+  const isIOSSafari = detectIOSSafari();
 
   // Track online/offline
   useEffect(() => {
@@ -65,13 +78,21 @@ export function PWAProvider({ children }: { children: ReactNode }) {
     return () => window.removeEventListener('fw:first-transaction', handler);
   }, []);
 
-  // Show banner when eligible
+  // Show banner when eligible (Chrome/Android)
   useEffect(() => {
     const dismissed = localStorage.getItem(DISMISSED_KEY);
     if (canInstall && engaged && !dismissed) {
       setShowInstallBanner(true);
     }
   }, [canInstall, engaged]);
+
+  // Show iOS guidance banner when eligible
+  useEffect(() => {
+    const dismissed = localStorage.getItem(DISMISSED_KEY);
+    if (isIOSSafari && engaged && !dismissed) {
+      setShowIOSBanner(true);
+    }
+  }, [isIOSSafari, engaged]);
 
   const promptInstall = useCallback(async () => {
     if (!deferredPrompt) return;
@@ -87,10 +108,11 @@ export function PWAProvider({ children }: { children: ReactNode }) {
   const dismissInstall = useCallback(() => {
     localStorage.setItem(DISMISSED_KEY, '1');
     setShowInstallBanner(false);
+    setShowIOSBanner(false);
   }, []);
 
   return (
-    <PWAContext.Provider value={{ canInstall, showInstallBanner, promptInstall, dismissInstall, isOnline }}>
+    <PWAContext.Provider value={{ canInstall, showInstallBanner, showIOSBanner, promptInstall, dismissInstall, isOnline }}>
       {children}
     </PWAContext.Provider>
   );
