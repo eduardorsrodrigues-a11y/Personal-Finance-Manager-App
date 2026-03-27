@@ -42,9 +42,12 @@ export type TranslationSchema = {
     added: string; updated: string;
   };
   categories: {
-    Food: string; Housing: string; Utilities: string; Transportation: string;
-    Shopping: string; Health: string; Entertainment: string; Salary: string;
-    Freelance: string; Investment: string; Business: string; Other: string;
+    Food: string; Groceries: string; Housing: string; Utilities: string; Transportation: string;
+    Shopping: string; Health: string; Entertainment: string; Travel: string;
+    'Family & Personal': string; Gifts: string;
+    Salary: string; Freelance: string; Investment: string; Business: string;
+    Cashback: string; RSUs: string; 'Holiday Allowance': string; 'Meal Allowance': string;
+    Other: string;
   };
 };
 
@@ -97,10 +100,12 @@ const en: TranslationSchema = {
   },
   toasts: { added: 'Transaction added', updated: 'Transaction updated' },
   categories: {
-    Food: 'Food', Housing: 'Housing', Utilities: 'Utilities', Transportation: 'Transportation',
-    Shopping: 'Shopping', Health: 'Health', Entertainment: 'Entertainment',
-    Salary: 'Salary', Freelance: 'Freelance', Investment: 'Investment',
-    Business: 'Business', Other: 'Other',
+    Food: 'Food', Groceries: 'Groceries', Housing: 'Housing', Utilities: 'Utilities',
+    Transportation: 'Transportation', Shopping: 'Shopping', Health: 'Health',
+    Entertainment: 'Entertainment', Travel: 'Travel', 'Family & Personal': 'Family & Personal',
+    Gifts: 'Gifts', Salary: 'Salary', Freelance: 'Freelance', Investment: 'Investment',
+    Business: 'Business', Cashback: 'Cashback', RSUs: 'RSUs',
+    'Holiday Allowance': 'Holiday Allowance', 'Meal Allowance': 'Meal Allowance', Other: 'Other',
   },
 };
 
@@ -153,10 +158,12 @@ const zh: TranslationSchema = {
   },
   toasts: { added: '交易已添加', updated: '交易已更新' },
   categories: {
-    Food: '餐饮', Housing: '住房', Utilities: '水电', Transportation: '交通',
-    Shopping: '购物', Health: '健康', Entertainment: '娱乐',
-    Salary: '薪资', Freelance: '自由职业', Investment: '投资',
-    Business: '商业', Other: '其他',
+    Food: '餐饮', Groceries: '杂货', Housing: '住房', Utilities: '水电',
+    Transportation: '交通', Shopping: '购物', Health: '健康',
+    Entertainment: '娱乐', Travel: '旅行', 'Family & Personal': '家庭与个人',
+    Gifts: '礼物', Salary: '薪资', Freelance: '自由职业', Investment: '投资',
+    Business: '商业', Cashback: '返现', RSUs: '限制性股票',
+    'Holiday Allowance': '节假日补贴', 'Meal Allowance': '餐饮补贴', Other: '其他',
   },
 };
 
@@ -209,10 +216,12 @@ const es: TranslationSchema = {
   },
   toasts: { added: 'Transacción añadida', updated: 'Transacción actualizada' },
   categories: {
-    Food: 'Comida', Housing: 'Vivienda', Utilities: 'Servicios', Transportation: 'Transporte',
-    Shopping: 'Compras', Health: 'Salud', Entertainment: 'Entretenimiento',
-    Salary: 'Salario', Freelance: 'Freelance', Investment: 'Inversión',
-    Business: 'Negocio', Other: 'Otros',
+    Food: 'Comida', Groceries: 'Supermercado', Housing: 'Vivienda', Utilities: 'Servicios',
+    Transportation: 'Transporte', Shopping: 'Compras', Health: 'Salud',
+    Entertainment: 'Entretenimiento', Travel: 'Viajes', 'Family & Personal': 'Familia y personal',
+    Gifts: 'Regalos', Salary: 'Salario', Freelance: 'Freelance', Investment: 'Inversión',
+    Business: 'Negocio', Cashback: 'Devolución', RSUs: 'Acciones RSU',
+    'Holiday Allowance': 'Subsidio vacacional', 'Meal Allowance': 'Subsidio de comida', Other: 'Otros',
   },
 };
 
@@ -265,10 +274,12 @@ const hi: TranslationSchema = {
   },
   toasts: { added: 'लेन-देन जोड़ा गया', updated: 'लेन-देन अपडेट किया गया' },
   categories: {
-    Food: 'खाना', Housing: 'आवास', Utilities: 'उपयोगिताएँ', Transportation: 'परिवहन',
-    Shopping: 'खरीदारी', Health: 'स्वास्थ्य', Entertainment: 'मनोरंजन',
-    Salary: 'वेतन', Freelance: 'फ्रीलांस', Investment: 'निवेश',
-    Business: 'व्यवसाय', Other: 'अन्य',
+    Food: 'खाना', Groceries: 'किराना', Housing: 'आवास', Utilities: 'उपयोगिताएँ',
+    Transportation: 'परिवहन', Shopping: 'खरीदारी', Health: 'स्वास्थ्य',
+    Entertainment: 'मनोरंजन', Travel: 'यात्रा', 'Family & Personal': 'परिवार और व्यक्तिगत',
+    Gifts: 'उपहार', Salary: 'वेतन', Freelance: 'फ्रीलांस', Investment: 'निवेश',
+    Business: 'व्यवसाय', Cashback: 'कैशबैक', RSUs: 'आरएसयू',
+    'Holiday Allowance': 'छुट्टी भत्ता', 'Meal Allowance': 'भोजन भत्ता', Other: 'अन्य',
   },
 };
 
@@ -321,10 +332,12 @@ const ar: TranslationSchema = {
   },
   toasts: { added: 'تمت إضافة المعاملة', updated: 'تم تحديث المعاملة' },
   categories: {
-    Food: 'طعام', Housing: 'سكن', Utilities: 'مرافق', Transportation: 'مواصلات',
-    Shopping: 'تسوق', Health: 'صحة', Entertainment: 'ترفيه',
-    Salary: 'راتب', Freelance: 'عمل حر', Investment: 'استثمار',
-    Business: 'أعمال', Other: 'أخرى',
+    Food: 'طعام', Groceries: 'بقالة', Housing: 'سكن', Utilities: 'مرافق',
+    Transportation: 'مواصلات', Shopping: 'تسوق', Health: 'صحة',
+    Entertainment: 'ترفيه', Travel: 'سفر', 'Family & Personal': 'عائلة وشخصي',
+    Gifts: 'هدايا', Salary: 'راتب', Freelance: 'عمل حر', Investment: 'استثمار',
+    Business: 'أعمال', Cashback: 'استرداد نقدي', RSUs: 'أسهم مقيدة',
+    'Holiday Allowance': 'بدل الإجازة', 'Meal Allowance': 'بدل الوجبات', Other: 'أخرى',
   },
 };
 
@@ -377,10 +390,12 @@ const de: TranslationSchema = {
   },
   toasts: { added: 'Transaktion hinzugefügt', updated: 'Transaktion aktualisiert' },
   categories: {
-    Food: 'Essen', Housing: 'Wohnen', Utilities: 'Nebenkosten', Transportation: 'Transport',
-    Shopping: 'Einkaufen', Health: 'Gesundheit', Entertainment: 'Unterhaltung',
-    Salary: 'Gehalt', Freelance: 'Freelance', Investment: 'Investition',
-    Business: 'Geschäft', Other: 'Sonstiges',
+    Food: 'Essen', Groceries: 'Lebensmittel', Housing: 'Wohnen', Utilities: 'Nebenkosten',
+    Transportation: 'Transport', Shopping: 'Einkaufen', Health: 'Gesundheit',
+    Entertainment: 'Unterhaltung', Travel: 'Reisen', 'Family & Personal': 'Familie & Persönliches',
+    Gifts: 'Geschenke', Salary: 'Gehalt', Freelance: 'Freelance', Investment: 'Investition',
+    Business: 'Geschäft', Cashback: 'Cashback', RSUs: 'Aktienoptionen',
+    'Holiday Allowance': 'Urlaubsgeld', 'Meal Allowance': 'Essensgeld', Other: 'Sonstiges',
   },
 };
 
@@ -433,10 +448,12 @@ const fr: TranslationSchema = {
   },
   toasts: { added: 'Transaction ajoutée', updated: 'Transaction mise à jour' },
   categories: {
-    Food: 'Alimentation', Housing: 'Logement', Utilities: 'Services', Transportation: 'Transport',
-    Shopping: 'Shopping', Health: 'Santé', Entertainment: 'Divertissement',
-    Salary: 'Salaire', Freelance: 'Freelance', Investment: 'Investissement',
-    Business: 'Entreprise', Other: 'Autre',
+    Food: 'Alimentation', Groceries: 'Courses', Housing: 'Logement', Utilities: 'Services',
+    Transportation: 'Transport', Shopping: 'Shopping', Health: 'Santé',
+    Entertainment: 'Divertissement', Travel: 'Voyages', 'Family & Personal': 'Famille et personnel',
+    Gifts: 'Cadeaux', Salary: 'Salaire', Freelance: 'Freelance', Investment: 'Investissement',
+    Business: 'Entreprise', Cashback: 'Remboursement', RSUs: 'Actions gratuites',
+    'Holiday Allowance': 'Prime de vacances', 'Meal Allowance': 'Ticket restaurant', Other: 'Autre',
   },
 };
 
@@ -489,10 +506,12 @@ const ja: TranslationSchema = {
   },
   toasts: { added: '取引を追加しました', updated: '取引を更新しました' },
   categories: {
-    Food: '食費', Housing: '住居', Utilities: '光熱費', Transportation: '交通',
-    Shopping: 'ショッピング', Health: '健康', Entertainment: 'エンタメ',
-    Salary: '給与', Freelance: 'フリーランス', Investment: '投資',
-    Business: 'ビジネス', Other: 'その他',
+    Food: '食費', Groceries: '食料品', Housing: '住居', Utilities: '光熱費',
+    Transportation: '交通', Shopping: 'ショッピング', Health: '健康',
+    Entertainment: 'エンタメ', Travel: '旅行', 'Family & Personal': '家族・個人',
+    Gifts: 'ギフト', Salary: '給与', Freelance: 'フリーランス', Investment: '投資',
+    Business: 'ビジネス', Cashback: 'キャッシュバック', RSUs: '株式報酬',
+    'Holiday Allowance': '休暇手当', 'Meal Allowance': '食事手当', Other: 'その他',
   },
 };
 
@@ -545,10 +564,12 @@ const pt: TranslationSchema = {
   },
   toasts: { added: 'Transação adicionada', updated: 'Transação atualizada' },
   categories: {
-    Food: 'Alimentação', Housing: 'Habitação', Utilities: 'Utilidades', Transportation: 'Transporte',
-    Shopping: 'Compras', Health: 'Saúde', Entertainment: 'Entretenimento',
-    Salary: 'Salário', Freelance: 'Freelance', Investment: 'Investimento',
-    Business: 'Negócios', Other: 'Outros',
+    Food: 'Alimentação', Groceries: 'Mercearia', Housing: 'Habitação', Utilities: 'Utilidades',
+    Transportation: 'Transporte', Shopping: 'Compras', Health: 'Saúde',
+    Entertainment: 'Entretenimento', Travel: 'Viagem', 'Family & Personal': 'Família e Pessoal',
+    Gifts: 'Presentes', Salary: 'Salário', Freelance: 'Freelance', Investment: 'Investimento',
+    Business: 'Negócios', Cashback: 'Cashback', RSUs: 'RSUs',
+    'Holiday Allowance': 'Subsídio de Férias', 'Meal Allowance': 'Subsídio de Refeição', Other: 'Outros',
   },
 };
 
@@ -601,10 +622,12 @@ const ko: TranslationSchema = {
   },
   toasts: { added: '거래가 추가되었습니다', updated: '거래가 수정되었습니다' },
   categories: {
-    Food: '식비', Housing: '주거', Utilities: '공과금', Transportation: '교통',
-    Shopping: '쇼핑', Health: '건강', Entertainment: '엔터테인먼트',
-    Salary: '급여', Freelance: '프리랜서', Investment: '투자',
-    Business: '사업', Other: '기타',
+    Food: '식비', Groceries: '식료품', Housing: '주거', Utilities: '공과금',
+    Transportation: '교통', Shopping: '쇼핑', Health: '건강',
+    Entertainment: '엔터테인먼트', Travel: '여행', 'Family & Personal': '가족 및 개인',
+    Gifts: '선물', Salary: '급여', Freelance: '프리랜서', Investment: '투자',
+    Business: '사업', Cashback: '캐시백', RSUs: '주식 보상',
+    'Holiday Allowance': '휴가 수당', 'Meal Allowance': '식대', Other: '기타',
   },
 };
 
@@ -657,10 +680,12 @@ const id: TranslationSchema = {
   },
   toasts: { added: 'Transaksi ditambahkan', updated: 'Transaksi diperbarui' },
   categories: {
-    Food: 'Makanan', Housing: 'Perumahan', Utilities: 'Utilitas', Transportation: 'Transportasi',
-    Shopping: 'Belanja', Health: 'Kesehatan', Entertainment: 'Hiburan',
-    Salary: 'Gaji', Freelance: 'Freelance', Investment: 'Investasi',
-    Business: 'Bisnis', Other: 'Lainnya',
+    Food: 'Makanan', Groceries: 'Belanjaan', Housing: 'Perumahan', Utilities: 'Utilitas',
+    Transportation: 'Transportasi', Shopping: 'Belanja', Health: 'Kesehatan',
+    Entertainment: 'Hiburan', Travel: 'Perjalanan', 'Family & Personal': 'Keluarga & Pribadi',
+    Gifts: 'Hadiah', Salary: 'Gaji', Freelance: 'Freelance', Investment: 'Investasi',
+    Business: 'Bisnis', Cashback: 'Cashback', RSUs: 'RSU Saham',
+    'Holiday Allowance': 'Tunjangan Hari Raya', 'Meal Allowance': 'Uang Makan', Other: 'Lainnya',
   },
 };
 
@@ -713,10 +738,12 @@ const ru: TranslationSchema = {
   },
   toasts: { added: 'Транзакция добавлена', updated: 'Транзакция обновлена' },
   categories: {
-    Food: 'Питание', Housing: 'Жильё', Utilities: 'Коммунальные', Transportation: 'Транспорт',
-    Shopping: 'Покупки', Health: 'Здоровье', Entertainment: 'Развлечения',
-    Salary: 'Зарплата', Freelance: 'Фриланс', Investment: 'Инвестиции',
-    Business: 'Бизнес', Other: 'Другое',
+    Food: 'Питание', Groceries: 'Продукты', Housing: 'Жильё', Utilities: 'Коммунальные',
+    Transportation: 'Транспорт', Shopping: 'Покупки', Health: 'Здоровье',
+    Entertainment: 'Развлечения', Travel: 'Путешествия', 'Family & Personal': 'Семья и личное',
+    Gifts: 'Подарки', Salary: 'Зарплата', Freelance: 'Фриланс', Investment: 'Инвестиции',
+    Business: 'Бизнес', Cashback: 'Кэшбэк', RSUs: 'Акции (RSU)',
+    'Holiday Allowance': 'Отпускные', 'Meal Allowance': 'Обеденные', Other: 'Другое',
   },
 };
 
@@ -769,10 +796,12 @@ const it: TranslationSchema = {
   },
   toasts: { added: 'Transazione aggiunta', updated: 'Transazione aggiornata' },
   categories: {
-    Food: 'Cibo', Housing: 'Alloggio', Utilities: 'Utenze', Transportation: 'Trasporti',
-    Shopping: 'Shopping', Health: 'Salute', Entertainment: 'Intrattenimento',
-    Salary: 'Stipendio', Freelance: 'Freelance', Investment: 'Investimento',
-    Business: 'Affari', Other: 'Altro',
+    Food: 'Cibo', Groceries: 'Spesa', Housing: 'Alloggio', Utilities: 'Utenze',
+    Transportation: 'Trasporti', Shopping: 'Shopping', Health: 'Salute',
+    Entertainment: 'Intrattenimento', Travel: 'Viaggi', 'Family & Personal': 'Famiglia e personale',
+    Gifts: 'Regali', Salary: 'Stipendio', Freelance: 'Freelance', Investment: 'Investimento',
+    Business: 'Affari', Cashback: 'Cashback', RSUs: 'Azioni RSU',
+    'Holiday Allowance': 'Indennità vacanze', 'Meal Allowance': 'Buono pasto', Other: 'Altro',
   },
 };
 
@@ -825,10 +854,12 @@ const tr: TranslationSchema = {
   },
   toasts: { added: 'İşlem eklendi', updated: 'İşlem güncellendi' },
   categories: {
-    Food: 'Yiyecek', Housing: 'Konut', Utilities: 'Faturalar', Transportation: 'Ulaşım',
-    Shopping: 'Alışveriş', Health: 'Sağlık', Entertainment: 'Eğlence',
-    Salary: 'Maaş', Freelance: 'Serbest Çalışma', Investment: 'Yatırım',
-    Business: 'İş', Other: 'Diğer',
+    Food: 'Yiyecek', Groceries: 'Market', Housing: 'Konut', Utilities: 'Faturalar',
+    Transportation: 'Ulaşım', Shopping: 'Alışveriş', Health: 'Sağlık',
+    Entertainment: 'Eğlence', Travel: 'Seyahat', 'Family & Personal': 'Aile ve Kişisel',
+    Gifts: 'Hediyeler', Salary: 'Maaş', Freelance: 'Serbest Çalışma', Investment: 'Yatırım',
+    Business: 'İş', Cashback: 'Nakit İadesi', RSUs: 'Hisse Senetleri',
+    'Holiday Allowance': 'Tatil Ödeneği', 'Meal Allowance': 'Yemek Ödeneği', Other: 'Diğer',
   },
 };
 
@@ -881,10 +912,12 @@ const vi: TranslationSchema = {
   },
   toasts: { added: 'Đã thêm giao dịch', updated: 'Đã cập nhật giao dịch' },
   categories: {
-    Food: 'Thức ăn', Housing: 'Nhà ở', Utilities: 'Tiện ích', Transportation: 'Giao thông',
-    Shopping: 'Mua sắm', Health: 'Sức khỏe', Entertainment: 'Giải trí',
-    Salary: 'Lương', Freelance: 'Tự do', Investment: 'Đầu tư',
-    Business: 'Kinh doanh', Other: 'Khác',
+    Food: 'Thức ăn', Groceries: 'Hàng tạp hóa', Housing: 'Nhà ở', Utilities: 'Tiện ích',
+    Transportation: 'Giao thông', Shopping: 'Mua sắm', Health: 'Sức khỏe',
+    Entertainment: 'Giải trí', Travel: 'Du lịch', 'Family & Personal': 'Gia đình & Cá nhân',
+    Gifts: 'Quà tặng', Salary: 'Lương', Freelance: 'Tự do', Investment: 'Đầu tư',
+    Business: 'Kinh doanh', Cashback: 'Hoàn tiền', RSUs: 'Cổ phiếu RSU',
+    'Holiday Allowance': 'Phụ cấp nghỉ lễ', 'Meal Allowance': 'Phụ cấp ăn uống', Other: 'Khác',
   },
 };
 
