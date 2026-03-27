@@ -27,6 +27,7 @@ export function AddTransactionModal({
   const { t, tCategory } = useLanguage();
   const { showToast } = useToast();
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [type, setType] = useState<'expense' | 'income'>('expense');
   const [amount, setAmount] = useState('');
   const [description, setDescription] = useState('');
@@ -56,24 +57,28 @@ export function AddTransactionModal({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (amount === '' || !description || !category) return;
+    if (amount === '' || !description || !category || isSubmitting) return;
 
     const parsedAmount = parseFloat(amount.replace(',', '.'));
     if (!Number.isFinite(parsedAmount)) return;
 
-    if (mode === 'edit' && initialTransaction) {
-      await updateTransaction(initialTransaction.id, { type, amount: parsedAmount, description, date, category });
-      showToast(t('toasts.updated'));
-    } else {
-      await addTransaction({ type, amount: parsedAmount, description, date, category });
-      showToast(t('toasts.added'));
+    setIsSubmitting(true);
+    try {
+      if (mode === 'edit' && initialTransaction) {
+        await updateTransaction(initialTransaction.id, { type, amount: parsedAmount, description, date, category });
+        showToast(t('toasts.updated'));
+      } else {
+        await addTransaction({ type, amount: parsedAmount, description, date, category });
+        showToast(t('toasts.added'));
+      }
+      setAmount('');
+      setDescription('');
+      setDate(new Date().toISOString().split('T')[0]);
+      setCategory('');
+      onClose();
+    } finally {
+      setIsSubmitting(false);
     }
-
-    setAmount('');
-    setDescription('');
-    setDate(new Date().toISOString().split('T')[0]);
-    setCategory('');
-    onClose();
   };
 
   if (!isOpen) return null;
@@ -189,10 +194,17 @@ export function AddTransactionModal({
           {/* Submit */}
           <button
             type="submit"
-            className={`w-full py-3 rounded-lg font-semibold text-white transition-colors ${
+            disabled={isSubmitting}
+            className={`w-full py-3 rounded-lg font-semibold text-white transition-colors flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed ${
               type === 'expense' ? 'bg-red-500 hover:bg-red-600' : 'bg-emerald-500 hover:bg-emerald-600'
             }`}
           >
+            {isSubmitting && (
+              <svg className="animate-spin w-4 h-4" viewBox="0 0 24 24" fill="none">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
+              </svg>
+            )}
             {mode === 'edit' ? t('modal.confirm') : t('modal.addTransaction')}
           </button>
         </form>

@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { AlertTriangle } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
 import { useCurrency } from '../context/CurrencyContext';
@@ -23,8 +24,19 @@ export function DeleteConfirmationModal({
 }: DeleteConfirmationModalProps) {
   const { t, tCategory } = useLanguage();
   const { formatAmount } = useCurrency();
+  const [isDeleting, setIsDeleting] = useState(false);
 
   if (!isOpen) return null;
+
+  const handleConfirm = async () => {
+    if (isDeleting) return;
+    setIsDeleting(true);
+    try {
+      await onConfirm();
+    } finally {
+      setIsDeleting(false);
+    }
+  };
 
   const sign = type === 'income' ? '+' : '-';
   const amountColor = type === 'income' ? 'text-emerald-600' : 'text-red-500';
@@ -61,9 +73,16 @@ export function DeleteConfirmationModal({
             {t('delete.cancel')}
           </button>
           <button
-            onClick={onConfirm}
-            className="flex-1 py-2.5 rounded-lg bg-red-500 hover:bg-red-600 text-white text-sm font-medium transition-colors"
+            onClick={handleConfirm}
+            disabled={isDeleting}
+            className="flex-1 py-2.5 rounded-lg bg-red-500 hover:bg-red-600 text-white text-sm font-medium transition-colors flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
           >
+            {isDeleting && (
+              <svg className="animate-spin w-3.5 h-3.5" viewBox="0 0 24 24" fill="none">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
+              </svg>
+            )}
             {t('delete.confirm')}
           </button>
         </div>
