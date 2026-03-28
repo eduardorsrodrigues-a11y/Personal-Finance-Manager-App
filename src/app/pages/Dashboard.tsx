@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { TrendingUp, TrendingDown, Wallet, Plus } from 'lucide-react';
-import { PieChart, Pie, Cell, Tooltip } from 'recharts';
+import { PieChart, Pie, Cell, Tooltip, LineChart, Line, XAxis, YAxis, CartesianGrid, ResponsiveContainer, ReferenceLine, LabelList } from 'recharts';
 import { useNavigate } from 'react-router';
 import { useTransactions } from '../context/TransactionContext';
 import { AddTransactionModal } from '../components/AddTransactionModal';
@@ -55,6 +55,27 @@ export function Dashboard() {
     value,
   }));
 
+
+  // Monthly expense evolution (all transactions, not filtered by month)
+  const monthlyExpenses = useMemo(() => {
+    const map: Record<string, number> = {};
+    transactions
+      .filter((t) => t.type === 'expense')
+      .forEach((t) => {
+        const d = new Date(t.date);
+        const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+        map[key] = (map[key] || 0) + t.amount;
+      });
+    const now = new Date();
+    const currentKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+    return Object.entries(map)
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([key, value]) => {
+        const [year, month] = key.split('-');
+        const label = new Date(Number(year), Number(month) - 1, 1).toLocaleDateString('en-US', { month: 'short', year: '2-digit' });
+        return { key, label, value, isCurrent: key === currentKey };
+      });
+  }, [transactions]);
 
   // Top 5 highest expenses
   const top5Expenses = useMemo(
@@ -159,7 +180,13 @@ export function Dashboard() {
               return (
                 <>
                   {/* Compact donut — purely visual, no labels */}
-                  <div className="relative flex justify-center mb-5">
+                  <div
+                    className="relative flex justify-center mb-5"
+                    onClick={(e) => {
+                      // Click outside the SVG (on the wrapper) resets selection
+                      if ((e.target as HTMLElement).closest('svg') === null) setSelectedSlice(null);
+                    }}
+                  >
                     <PieChart width={148} height={148}>
                       <Pie
                         data={sorted}
@@ -173,19 +200,18 @@ export function Dashboard() {
                         cursor="pointer"
                         onClick={(data) => { if (data?.name) setSelectedSlice(prev => prev === data.name ? null : data.name); }}
                       >
-                        {sorted.map((entry, i) => (
-                          <Cell key={i} fill={getCategoryConfig(entry.name).hex} />
-                        ))}
+                        {sorted.map((entry, i) => {
+                          const isSelected = selectedSlice === entry.name;
+                          const isDimmed = selectedSlice !== null && !isSelected;
+                          return (
+                            <Cell
+                              key={i}
+                              fill={getCategoryConfig(entry.name).hex}
+                              opacity={isDimmed ? 0.25 : 1}
+                            />
+                          );
+                        })}
                       </Pie>
-                      <Tooltip
-                        formatter={(value: number, name: string) => [formatAmount(value), tCategory(name)]}
-                        contentStyle={{
-                          backgroundColor: 'var(--card)',
-                          border: '1px solid var(--border)',
-                          borderRadius: '8px',
-                          fontSize: '12px',
-                        }}
-                      />
                     </PieChart>
                     <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
                       {selectedSlice ? (() => {
@@ -221,11 +247,13 @@ export function Dashboard() {
                       const budget = budgets[name];
                       const hasBudget = budget != null && budget > 0;
                       const isOverBudget = hasBudget && value >= budget;
+                      const isDimmedBar = selectedSlice !== null && selectedSlice !== name;
                       return (
                         <button
                           key={name}
                           onClick={() => handleCategoryDrilldown(name)}
                           className="w-full flex items-center gap-3 group"
+                          style={{ opacity: isDimmedBar ? 0.35 : 1, transition: 'opacity 0.2s' }}
                         >
                           {/* Icon */}
                           <div className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${bg}`}>
@@ -317,6 +345,80 @@ export function Dashboard() {
             </div>
           </div>
         </div>
+
+          {/* Monthly Expense Evolution */}
+          {monthlyExpenses.length >= 1 && (
+            <div className="bg-card border border-border rounded-xl p-6 mt-6 lg:mt-8">
+              <h2 className="font-semibold mb-4">Monthly Expenses</h2>
+              <div className="h-44 lg:h-64">
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart data={monthlyExpenses} margin={{ top: 24, right: 16, left: 0, bottom: 0 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
+                    <XAxis
+                      dataKey="label"
+                      tick={{ fontSize: 11, fill: 'var(--muted-foreground)' }}
+                      axisLine={false}
+                      tickLine={false}
+                    />
+                    <YAxis
+                      tick={{ fontSize: 11, fill: 'var(--muted-foreground)' }}
+                      axisLine={false}
+                      tickLine={false}
+                      width={48}
+                      tickFormatter={(v: number) => formatAmount(v)}
+                    />
+                    <Tooltip
+                      formatter={(value: number) => [formatAmount(value), 'Expenses']}
+                      labelStyle={{ fontSize: 12 }}
+                      contentStyle={{
+                        backgroundColor: 'var(--card)',
+                        border: '1px solid var(--border)',
+                        borderRadius: '8px',
+                        fontSize: '12px',
+                      }}
+                    />
+                    {monthlyExpenses.find(m => m.isCurrent) && (
+                      <ReferenceLine
+                        x={monthlyExpenses.find(m => m.isCurrent)!.label}
+                        stroke="#10b981"
+                        strokeDasharray="4 3"
+                        strokeWidth={1.5}
+                      />
+                    )}
+                    <Line
+                      type="monotone"
+                      dataKey="value"
+                      stroke="#10b981"
+                      strokeWidth={2}
+                      dot={(props: { cx: number; cy: number; payload: { isCurrent: boolean } }) => {
+                        const { cx, cy, payload } = props;
+                        if (payload.isCurrent) {
+                          return <circle key={`dot-current-${cx}`} cx={cx} cy={cy} r={5} fill="#10b981" stroke="var(--card)" strokeWidth={2} />;
+                        }
+                        return <circle key={`dot-${cx}`} cx={cx} cy={cy} r={3} fill="#10b981" stroke="var(--card)" strokeWidth={1.5} />;
+                      }}
+                      activeDot={{ r: 5, fill: '#10b981', stroke: 'var(--card)', strokeWidth: 2 }}
+                    >
+                      <LabelList
+                        dataKey="value"
+                        position="top"
+                        content={(props: { x?: number; y?: number; value?: number; index?: number }) => {
+                          const { x, y, value, index } = props;
+                          const entry = monthlyExpenses[index ?? -1];
+                          if (!entry?.isCurrent) return null;
+                          return (
+                            <text x={x} y={(y ?? 0) - 8} textAnchor="middle" fontSize={11} fill="#10b981" fontWeight={600}>
+                              {formatAmount(value ?? 0)}
+                            </text>
+                          );
+                        }}
+                      />
+                    </Line>
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+          )}
       </div>
 
       <AddTransactionModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} />
