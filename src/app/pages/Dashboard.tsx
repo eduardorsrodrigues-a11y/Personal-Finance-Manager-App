@@ -56,13 +56,13 @@ export function Dashboard() {
   }));
 
 
-  // Top 3 highest expenses
-  const top3Expenses = useMemo(
+  // Top 5 highest expenses
+  const top5Expenses = useMemo(
     () =>
       monthFilteredTransactions
         .filter((t) => t.type === 'expense')
         .sort((a, b) => b.amount - a.amount)
-        .slice(0, 3),
+        .slice(0, 5),
     [monthFilteredTransactions],
   );
 
@@ -187,10 +187,7 @@ export function Dashboard() {
                         }}
                       />
                     </PieChart>
-                    <div
-                      className="absolute inset-0 flex flex-col items-center justify-center cursor-pointer select-none"
-                      onClick={() => setSelectedSlice(null)}
-                    >
+                    <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
                       {selectedSlice ? (() => {
                         const sliceData = sorted.find(s => s.name === selectedSlice);
                         const { icon: SliceIcon, hex, bg, text } = getCategoryConfig(selectedSlice);
@@ -284,10 +281,10 @@ export function Dashboard() {
 
           {/* Top 3 Highest Expenses */}
           <div className="bg-card border border-border rounded-xl p-6">
-            <h2 className="font-semibold mb-6">Top 3 Expenses</h2>
+            <h2 className="font-semibold mb-6">Top 5 Expenses</h2>
             <div className="space-y-3">
-              {top3Expenses.length > 0 ? (
-                top3Expenses.map((transaction, idx) => {
+              {top5Expenses.length > 0 ? (
+                top5Expenses.map((transaction, idx) => {
                   const { icon: Icon, bg, text } = getCategoryConfig(transaction.category);
                   return (
                     <button
