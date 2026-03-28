@@ -20,6 +20,7 @@ export function Dashboard() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingTransaction, setEditingTransaction] = useState<import('../context/TransactionContext').Transaction | null>(null);
   const [selectedMonth, setSelectedMonth] = useState<string>(getCurrentMonthLabel);
+  const [selectedSlice, setSelectedSlice] = useState<string | null>(null);
 
   // Get available months for filters
   const availableMonths = useMemo(() => getAvailableMonths(transactions), [transactions]);
@@ -170,7 +171,7 @@ export function Dashboard() {
                         dataKey="value"
                         strokeWidth={0}
                         cursor="pointer"
-                        onClick={(data) => { if (data?.name) handleCategoryDrilldown(data.name); }}
+                        onClick={(data) => { if (data?.name) setSelectedSlice(prev => prev === data.name ? null : data.name); }}
                       >
                         {sorted.map((entry, i) => (
                           <Cell key={i} fill={getCategoryConfig(entry.name).hex} />
@@ -186,9 +187,31 @@ export function Dashboard() {
                         }}
                       />
                     </PieChart>
-                    <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-                      <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Total</p>
-                      <p className="text-sm font-bold leading-tight">{formatAmount(totalExpenses)}</p>
+                    <div
+                      className="absolute inset-0 flex flex-col items-center justify-center cursor-pointer select-none"
+                      onClick={() => setSelectedSlice(null)}
+                    >
+                      {selectedSlice ? (() => {
+                        const sliceData = sorted.find(s => s.name === selectedSlice);
+                        const { icon: SliceIcon, hex, bg, text } = getCategoryConfig(selectedSlice);
+                        const slicePct = totalExpenses > 0 ? ((sliceData?.value ?? 0) / totalExpenses * 100).toFixed(0) : '0';
+                        return (
+                          <>
+                            <div className={`w-7 h-7 rounded-lg flex items-center justify-center mb-0.5 ${bg}`}>
+                              <SliceIcon className={`w-3.5 h-3.5 ${text}`} />
+                            </div>
+                            <p className="text-[9px] font-medium leading-tight text-center px-1 max-w-[70px] truncate" style={{ color: hex }}>
+                              {tCategory(selectedSlice)}
+                            </p>
+                            <p className="text-[10px] font-bold leading-tight">{slicePct}%</p>
+                          </>
+                        );
+                      })() : (
+                        <>
+                          <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Total</p>
+                          <p className="text-sm font-bold leading-tight">{formatAmount(totalExpenses)}</p>
+                        </>
+                      )}
                     </div>
                   </div>
 
@@ -215,8 +238,8 @@ export function Dashboard() {
                           {/* Bar + labels — always flex-1, bar always same width */}
                           <div className="flex-1 min-w-0">
                             <div className="flex items-baseline gap-1.5 mb-1">
-                              {/* Category name — truncates to give room to amount */}
-                              <span className="text-xs font-medium truncate flex-1 min-w-0">
+                              {/* Category name — left-aligned, truncates to give room to amount */}
+                              <span className="text-xs font-medium truncate flex-1 min-w-0 text-left">
                                 {tCategory(name)}
                               </span>
                               {/* % — fixed small width */}
