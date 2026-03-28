@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { TrendingUp, TrendingDown, Wallet, Plus } from 'lucide-react';
-import { PieChart, Pie, Cell } from 'recharts';
+import { PieChart, Pie, Cell, Tooltip } from 'recharts';
 import { useNavigate } from 'react-router';
 import { useTransactions } from '../context/TransactionContext';
 import { AddTransactionModal } from '../components/AddTransactionModal';
@@ -169,11 +169,22 @@ export function Dashboard() {
                         paddingAngle={2}
                         dataKey="value"
                         strokeWidth={0}
+                        cursor="pointer"
+                        onClick={(data) => { if (data?.name) handleCategoryDrilldown(data.name); }}
                       >
                         {sorted.map((entry, i) => (
                           <Cell key={i} fill={getCategoryConfig(entry.name).hex} />
                         ))}
                       </Pie>
+                      <Tooltip
+                        formatter={(value: number, name: string) => [formatAmount(value), tCategory(name)]}
+                        contentStyle={{
+                          backgroundColor: 'var(--card)',
+                          border: '1px solid var(--border)',
+                          borderRadius: '8px',
+                          fontSize: '12px',
+                        }}
+                      />
                     </PieChart>
                     <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
                       <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Total</p>
@@ -196,21 +207,35 @@ export function Dashboard() {
                           onClick={() => handleCategoryDrilldown(name)}
                           className="w-full flex items-center gap-3 group"
                         >
-                          {/* Color dot + icon */}
+                          {/* Icon */}
                           <div className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${bg}`}>
                             <Icon className={`w-3.5 h-3.5 ${text}`} />
                           </div>
 
-                          {/* Name + bar */}
+                          {/* Bar + labels — always flex-1, bar always same width */}
                           <div className="flex-1 min-w-0">
-                            <div className="flex items-center justify-between mb-1">
-                              <span className="text-xs font-medium truncate group-hover:text-foreground transition-colors">
+                            <div className="flex items-baseline gap-1.5 mb-1">
+                              {/* Category name — truncates to give room to amount */}
+                              <span className="text-xs font-medium truncate flex-1 min-w-0">
                                 {tCategory(name)}
                               </span>
-                              <span className="text-[10px] text-muted-foreground shrink-0 ml-1">
+                              {/* % — fixed small width */}
+                              <span className="text-[10px] text-muted-foreground shrink-0 w-7 text-right">
                                 {(pct * 100).toFixed(0)}%
                               </span>
+                              {/* Amount — fixed min-width so bars stay consistent */}
+                              <div className="shrink-0 min-w-[5rem] text-right">
+                                <span className={`text-xs font-semibold ${isOverBudget ? 'text-red-500' : ''}`}>
+                                  {formatAmount(value)}
+                                </span>
+                                {hasBudget && (
+                                  <span className="text-[10px] text-muted-foreground block">
+                                    / {formatAmount(budget)}
+                                  </span>
+                                )}
+                              </div>
                             </div>
+                            {/* Bar always spans full flex-1 width */}
                             <div className="h-1.5 bg-muted rounded-full overflow-hidden">
                               <div
                                 className="h-full rounded-full transition-all duration-500"
@@ -220,18 +245,6 @@ export function Dashboard() {
                                 }}
                               />
                             </div>
-                          </div>
-
-                          {/* Amount */}
-                          <div className="text-right shrink-0">
-                            <p className={`text-xs font-semibold ${isOverBudget ? 'text-red-500' : ''}`}>
-                              {formatAmount(value)}
-                            </p>
-                            {hasBudget && (
-                              <p className="text-[10px] text-muted-foreground">
-                                / {formatAmount(budget)}
-                              </p>
-                            )}
                           </div>
                         </button>
                       );
