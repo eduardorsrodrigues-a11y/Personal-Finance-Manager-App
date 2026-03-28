@@ -28,27 +28,18 @@ export function TransactionHistory() {
   const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
   const [selectedMonth, setSelectedMonth] = useState<string>(initialMonthParam || 'all');
   const [selectedCategory, setSelectedCategory] = useState<string>(initialCategoryParam || 'all');
-  const [isCompact, setIsCompact] = useState(false);
   const [isHidden, setIsHidden] = useState(false);
   const lastScrollY = useRef(0);
 
   useEffect(() => {
     const handleScroll = () => {
       const y = window.scrollY;
-      const prev = lastScrollY.current;
-      const delta = y - prev;
-
-      // Compact layout when scrolled past 60px
-      setIsCompact(y > 60);
-
-      // Hide on intentional scroll down (delta > 4), show on intentional scroll up (delta < -4)
-      // Ignore tiny movements (iOS bounce, momentum end)
+      const delta = y - lastScrollY.current;
       if (delta > 4 && y > 80) {
         setIsHidden(true);
       } else if (delta < -4) {
         setIsHidden(false);
       }
-
       lastScrollY.current = y;
     };
     window.addEventListener('scroll', handleScroll, { passive: true });
@@ -122,163 +113,68 @@ export function TransactionHistory() {
     <div className="min-h-screen bg-background">
       {/* ── Sticky header ── */}
       <header className={`border-b border-border bg-card sticky top-14 lg:top-0 z-40 transition-transform duration-300 ease-in-out ${isHidden ? '-translate-y-full' : 'translate-y-0'}`}>
-        <div className={`px-4 lg:px-8 transition-all duration-200 ${isCompact ? 'py-2' : 'py-3 lg:py-5'}`}>
+        <div className="px-4 lg:px-8 py-3 lg:py-5">
+          {/* Title + Add */}
+          <div className="flex items-center justify-between mb-3">
+            <h1 className="text-lg font-semibold leading-tight">{t('transactions.title')}</h1>
+            <button
+              onClick={openAdd}
+              className="bg-emerald-500 hover:bg-emerald-600 text-white px-3 py-1.5 rounded-lg flex items-center gap-1.5 text-sm font-medium transition-colors shrink-0"
+            >
+              <Plus className="w-4 h-4" />
+              <span className="hidden sm:inline">{t('transactions.addTransaction')}</span>
+            </button>
+          </div>
 
-          {/* Title row — hidden when compact */}
-          {!isCompact && (
-            <div className="flex items-center justify-between mb-3">
-              <div>
-                <h1 className="text-lg font-semibold leading-tight">{t('transactions.title')}</h1>
-                <p className="text-xs text-muted-foreground hidden sm:block">{t('transactions.subtitle')}</p>
-              </div>
-              <button
-                onClick={openAdd}
-                className="bg-emerald-500 hover:bg-emerald-600 text-white px-3 py-1.5 rounded-lg flex items-center gap-1.5 text-sm font-medium transition-colors shrink-0"
-              >
-                <Plus className="w-4 h-4" />
-                <span className="hidden sm:inline">{t('transactions.addTransaction')}</span>
-              </button>
+          {/* Search + type pills */}
+          <div className="flex items-center gap-2 mb-2">
+            <div className="relative flex-1 min-w-0">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder={t('transactions.searchPlaceholder')}
+                className="w-full pl-9 pr-3 py-2 text-sm bg-input-background rounded-lg border border-border focus:outline-none focus:ring-2 focus:ring-ring"
+              />
             </div>
-          )}
-
-          {isCompact ? (
-            /* ── Compact mode (scrolled): two tight rows ── */
-            <div className="space-y-1.5">
-              {/* Row 1: search + type pills + add */}
-              <div className="flex items-center gap-2">
-                <div className="relative flex-1 min-w-0">
-                  <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
-                  <input
-                    type="text"
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    placeholder={t('transactions.searchPlaceholder')}
-                    className="w-full pl-8 pr-2 py-1.5 text-xs bg-input-background rounded-lg border border-border focus:outline-none"
-                  />
-                </div>
-                <div className="flex gap-1 shrink-0">
-                  {(['all', 'income', 'expense'] as FilterType[]).map((ft) => (
-                    <button
-                      key={ft}
-                      onClick={() => setFilter(ft)}
-                      className={`px-2.5 py-1.5 rounded-lg text-xs font-medium transition-colors shrink-0 ${
-                        filter === ft
-                          ? ft === 'income' ? 'bg-emerald-500 text-white'
-                          : ft === 'expense' ? 'bg-red-500 text-white'
-                          : 'bg-primary text-primary-foreground'
-                          : 'bg-muted text-muted-foreground'
-                      }`}
-                    >
-                      {ft === 'all' ? 'All' : ft === 'income' ? 'In' : 'Ex'}
-                    </button>
-                  ))}
-                </div>
-                <button onClick={openAdd} className="bg-emerald-500 hover:bg-emerald-600 text-white p-1.5 rounded-lg shrink-0 transition-colors">
-                  <Plus className="w-4 h-4" />
+            <div className="flex gap-1.5 shrink-0">
+              {(['all', 'income', 'expense'] as FilterType[]).map((ft) => (
+                <button key={ft} onClick={() => setFilter(ft)} className={typeButtonClass(ft)}>
+                  {ft === 'all' ? t('transactions.all') : ft === 'income' ? t('transactions.income') : t('transactions.expense')}
                 </button>
-              </div>
-              {/* Row 2: category + time selects */}
-              <div className="grid grid-cols-2 gap-2">
-                <select
-                  value={selectedCategory}
-                  onChange={(e) => setSelectedCategory(e.target.value)}
-                  className="w-full px-2.5 py-1.5 bg-input-background rounded-lg border border-border text-xs focus:outline-none"
-                >
-                  <option value="all">{t('transactions.allCategories')}</option>
-                  {availableCategories.map(c => (
-                    <option key={c} value={c}>{tCategory(c)}</option>
-                  ))}
-                </select>
-                <select
-                  value={selectedMonth}
-                  onChange={(e) => setSelectedMonth(e.target.value)}
-                  className="w-full px-2.5 py-1.5 bg-input-background rounded-lg border border-border text-xs focus:outline-none"
-                >
-                  <option value="all">{t('transactions.allTime')}</option>
-                  <option value="this-year">This year</option>
-                  {availableMonths.map(m => (
-                    <option key={m} value={m}>{m}</option>
-                  ))}
-                </select>
-              </div>
+              ))}
             </div>
-          ) : (
-            <>
-              {/* ── Search + type pills ── */}
-              <div className="flex items-center gap-2 mb-2">
-                <div className="relative flex-1 min-w-0">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                  <input
-                    type="text"
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    placeholder={t('transactions.searchPlaceholder')}
-                    className="w-full pl-9 pr-3 py-2 text-sm bg-input-background rounded-lg border border-border focus:outline-none focus:ring-2 focus:ring-ring"
-                  />
-                </div>
-                <div className="flex gap-1.5 shrink-0">
-                  {(['all', 'income', 'expense'] as FilterType[]).map((ft) => (
-                    <button key={ft} onClick={() => setFilter(ft)} className={typeButtonClass(ft)}>
-                      {ft === 'all'
-                        ? t('transactions.all')
-                        : ft === 'income'
-                        ? t('transactions.income')
-                        : t('transactions.expense')}
-                    </button>
-                  ))}
-                </div>
-                {/* Desktop: selects inline with search row */}
-                <div className="hidden lg:flex gap-2 shrink-0">
-                  <select
-                    value={selectedCategory}
-                    onChange={(e) => setSelectedCategory(e.target.value)}
-                    className="px-3 py-2 bg-input-background rounded-lg border border-border text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-                  >
-                    <option value="all">{t('transactions.allCategories')}</option>
-                    {availableCategories.map(c => (
-                      <option key={c} value={c}>{tCategory(c)}</option>
-                    ))}
-                  </select>
-                  <select
-                    value={selectedMonth}
-                    onChange={(e) => setSelectedMonth(e.target.value)}
-                    className="px-3 py-2 bg-input-background rounded-lg border border-border text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-                  >
-                    <option value="all">{t('transactions.allTime')}</option>
-                    <option value="this-year">This year</option>
-                    {availableMonths.map(m => (
-                      <option key={m} value={m}>{m}</option>
-                    ))}
-                  </select>
-                </div>
-              </div>
+            {/* Desktop: selects inline */}
+            <div className="hidden lg:flex gap-2 shrink-0">
+              <select value={selectedCategory} onChange={(e) => setSelectedCategory(e.target.value)}
+                className="px-3 py-2 bg-input-background rounded-lg border border-border text-sm focus:outline-none focus:ring-2 focus:ring-ring">
+                <option value="all">{t('transactions.allCategories')}</option>
+                {availableCategories.map(c => <option key={c} value={c}>{tCategory(c)}</option>)}
+              </select>
+              <select value={selectedMonth} onChange={(e) => setSelectedMonth(e.target.value)}
+                className="px-3 py-2 bg-input-background rounded-lg border border-border text-sm focus:outline-none focus:ring-2 focus:ring-ring">
+                <option value="all">{t('transactions.allTime')}</option>
+                <option value="this-year">This year</option>
+                {availableMonths.map(m => <option key={m} value={m}>{m}</option>)}
+              </select>
+            </div>
+          </div>
 
-              {/* Mobile: Category + Time on one row */}
-              <div className="grid grid-cols-2 gap-2 lg:hidden">
-                <select
-                  value={selectedCategory}
-                  onChange={(e) => setSelectedCategory(e.target.value)}
-                  className="w-full px-3 py-2 bg-input-background rounded-lg border border-border text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-                >
-                  <option value="all">{t('transactions.allCategories')}</option>
-                  {availableCategories.map(c => (
-                    <option key={c} value={c}>{tCategory(c)}</option>
-                  ))}
-                </select>
-                <select
-                  value={selectedMonth}
-                  onChange={(e) => setSelectedMonth(e.target.value)}
-                  className="w-full px-3 py-2 bg-input-background rounded-lg border border-border text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-                >
-                  <option value="all">{t('transactions.allTime')}</option>
-                  <option value="this-year">This year</option>
-                  {availableMonths.map(m => (
-                    <option key={m} value={m}>{m}</option>
-                  ))}
-                </select>
-              </div>
-            </>
-          )}
+          {/* Mobile: Category + Time */}
+          <div className="grid grid-cols-2 gap-2 lg:hidden">
+            <select value={selectedCategory} onChange={(e) => setSelectedCategory(e.target.value)}
+              className="w-full px-3 py-2 bg-input-background rounded-lg border border-border text-sm focus:outline-none focus:ring-2 focus:ring-ring">
+              <option value="all">{t('transactions.allCategories')}</option>
+              {availableCategories.map(c => <option key={c} value={c}>{tCategory(c)}</option>)}
+            </select>
+            <select value={selectedMonth} onChange={(e) => setSelectedMonth(e.target.value)}
+              className="w-full px-3 py-2 bg-input-background rounded-lg border border-border text-sm focus:outline-none focus:ring-2 focus:ring-ring">
+              <option value="all">{t('transactions.allTime')}</option>
+              <option value="this-year">This year</option>
+              {availableMonths.map(m => <option key={m} value={m}>{m}</option>)}
+            </select>
+          </div>
         </div>
       </header>
 
