@@ -121,7 +121,7 @@ export function TransactionHistory() {
   return (
     <div className="min-h-screen bg-background">
       {/* ── Sticky header ── */}
-      <header className={`border-b border-border bg-card sticky top-0 z-40 transition-transform duration-300 ease-in-out ${isHidden ? '-translate-y-full' : 'translate-y-0'}`}>
+      <header className={`border-b border-border bg-card sticky top-14 lg:top-0 z-40 transition-transform duration-300 ease-in-out ${isHidden ? '-translate-y-full' : 'translate-y-0'}`}>
         <div className={`px-4 lg:px-8 transition-all duration-200 ${isCompact ? 'py-2' : 'py-3 lg:py-5'}`}>
 
           {/* Title row — hidden when compact */}
