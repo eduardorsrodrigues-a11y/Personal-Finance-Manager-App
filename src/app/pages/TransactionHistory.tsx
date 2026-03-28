@@ -28,17 +28,27 @@ export function TransactionHistory() {
   const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
   const [selectedMonth, setSelectedMonth] = useState<string>(initialMonthParam || 'all');
   const [selectedCategory, setSelectedCategory] = useState<string>(initialCategoryParam || 'all');
-  const [isScrolled, setIsScrolled] = useState(false);
+  const [isCompact, setIsCompact] = useState(false);
+  const [isHidden, setIsHidden] = useState(false);
   const lastScrollY = useRef(0);
 
   useEffect(() => {
     const handleScroll = () => {
       const y = window.scrollY;
-      if (y > 60 && y > lastScrollY.current) {
-        setIsScrolled(true);
-      } else if (y < 60 || y < lastScrollY.current) {
-        setIsScrolled(false);
+      const prev = lastScrollY.current;
+      const delta = y - prev;
+
+      // Compact layout when scrolled past 60px
+      setIsCompact(y > 60);
+
+      // Hide on intentional scroll down (delta > 4), show on intentional scroll up (delta < -4)
+      // Ignore tiny movements (iOS bounce, momentum end)
+      if (delta > 4 && y > 80) {
+        setIsHidden(true);
+      } else if (delta < -4) {
+        setIsHidden(false);
       }
+
       lastScrollY.current = y;
     };
     window.addEventListener('scroll', handleScroll, { passive: true });
@@ -111,11 +121,11 @@ export function TransactionHistory() {
   return (
     <div className="min-h-screen bg-background">
       {/* ── Sticky header ── */}
-      <header className="border-b border-border bg-card sticky top-0 z-40">
-        <div className={`px-4 lg:px-8 transition-all duration-200 ${isScrolled ? 'py-2' : 'py-3 lg:py-5'}`}>
+      <header className={`border-b border-border bg-card sticky top-0 z-40 transition-transform duration-300 ease-in-out ${isHidden ? '-translate-y-full' : 'translate-y-0'}`}>
+        <div className={`px-4 lg:px-8 transition-all duration-200 ${isCompact ? 'py-2' : 'py-3 lg:py-5'}`}>
 
           {/* Title row — hidden when compact */}
-          {!isScrolled && (
+          {!isCompact && (
             <div className="flex items-center justify-between mb-3">
               <div>
                 <h1 className="text-lg font-semibold leading-tight">{t('transactions.title')}</h1>
@@ -131,7 +141,7 @@ export function TransactionHistory() {
             </div>
           )}
 
-          {isScrolled ? (
+          {isCompact ? (
             /* ── Compact mode (scrolled): two tight rows ── */
             <div className="space-y-1.5">
               {/* Row 1: search + type pills + add */}

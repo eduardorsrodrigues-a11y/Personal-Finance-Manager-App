@@ -16,11 +16,15 @@ export function MobileNav() {
   useEffect(() => {
     const handleScroll = () => {
       const currentY = window.scrollY;
-      if (currentY < lastScrollY.current || currentY < 10) {
-        setVisible(true);
-      } else {
+      const delta = currentY - lastScrollY.current;
+
+      // Only react to intentional scroll movements (ignore iOS bounce / momentum end)
+      if (delta > 4 && currentY > 80) {
         setVisible(false);
+      } else if (delta < -4 || currentY < 10) {
+        setVisible(true);
       }
+
       lastScrollY.current = currentY;
     };
     window.addEventListener('scroll', handleScroll, { passive: true });
