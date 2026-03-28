@@ -11,6 +11,7 @@ import { ToastProvider } from '../context/ToastContext';
 import { PWAProvider } from '../context/PWAContext';
 import { InstallPrompt } from '../components/InstallPrompt';
 import { SyncIndicator } from '../components/SyncIndicator';
+import { DataLoader } from '../components/DataLoader';
 
 export function Root() {
   return (
@@ -28,6 +29,7 @@ export function Root() {
                 <Outlet />
               </main>
               <MobileNav />
+              <DataLoader />
               <InstallPrompt />
               <div className="fixed top-16 lg:top-4 right-4 z-[100] pointer-events-none">
                 <div className="pointer-events-auto">

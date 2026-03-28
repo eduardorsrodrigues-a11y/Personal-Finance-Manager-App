@@ -16,6 +16,7 @@ interface TransactionContextType {
   deleteTransaction: (id: string) => Promise<void>;
   updateTransaction: (id: string, transaction: Omit<Transaction, 'id'>) => Promise<void>;
   hasPendingSync: boolean;
+  isLoading: boolean;
 }
 
 const GUEST_TRANSACTIONS_KEY = 'expense_manager_guest_transactions';
@@ -51,23 +52,27 @@ export function TransactionProvider({ children }: { children: ReactNode }) {
   const { user, isGuest } = useAuth();
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [hasPendingSync, setHasPendingSync] = useState(() => loadPending().length > 0);
+  const [isLoading, setIsLoading] = useState(false);
 
   const refresh = async () => {
     if (!user?.id) {
       setTransactions([]);
       return;
     }
-    const res = await fetch('/api/transactions', { credentials: 'include' });
-    if (!res.ok) {
-      setTransactions([]);
-      return;
+    setIsLoading(true);
+    try {
+      const res = await fetch('/api/transactions', { credentials: 'include' });
+      if (!res.ok) { setTransactions([]); return; }
+      const json = await res.json();
+      setTransactions((json.transactions ?? []) as Transaction[]);
+    } finally {
+      setIsLoading(false);
     }
-    const json = await res.json();
-    setTransactions((json.transactions ?? []) as Transaction[]);
   };
 
   // Uploads all guest transactions to the cloud, then clears localStorage.
   const migrateGuestTransactions = async (guestTxs: Transaction[]) => {
+    setIsLoading(true);
     await Promise.all(
       guestTxs.map((tx) =>
         fetch('/api/transactions', {
@@ -224,7 +229,7 @@ export function TransactionProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <TransactionContext.Provider value={{ transactions, addTransaction, deleteTransaction, updateTransaction, hasPendingSync }}>
+    <TransactionContext.Provider value={{ transactions, addTransaction, deleteTransaction, updateTransaction, hasPendingSync, isLoading }}>
       {children}
     </TransactionContext.Provider>
   );

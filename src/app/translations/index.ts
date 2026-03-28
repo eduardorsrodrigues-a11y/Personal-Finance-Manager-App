@@ -41,6 +41,7 @@ export type TranslationSchema = {
   toasts: {
     added: string; updated: string;
   };
+  loading: { fetching: string };
   categories: {
     Food: string; Groceries: string; Housing: string; Utilities: string; Transportation: string;
     Shopping: string; Health: string; Entertainment: string; Travel: string;
@@ -99,6 +100,7 @@ const en: TranslationSchema = {
     cancel: 'Cancel', confirm: 'Delete', toast: 'Transaction deleted',
   },
   toasts: { added: 'Transaction added', updated: 'Transaction updated' },
+  loading: { fetching: 'Fetching your data...' },
   categories: {
     Food: 'Food', Groceries: 'Groceries', Housing: 'Housing', Utilities: 'Utilities',
     Transportation: 'Transportation', Shopping: 'Shopping', Health: 'Health',
@@ -157,6 +159,7 @@ const zh: TranslationSchema = {
     cancel: '取消', confirm: '删除', toast: '交易已删除',
   },
   toasts: { added: '交易已添加', updated: '交易已更新' },
+  loading: { fetching: '正在获取数据...' },
   categories: {
     Food: '餐饮', Groceries: '杂货', Housing: '住房', Utilities: '水电',
     Transportation: '交通', Shopping: '购物', Health: '健康',
@@ -215,6 +218,7 @@ const es: TranslationSchema = {
     cancel: 'Cancelar', confirm: 'Eliminar', toast: 'Transacción eliminada',
   },
   toasts: { added: 'Transacción añadida', updated: 'Transacción actualizada' },
+  loading: { fetching: 'Obteniendo tus datos...' },
   categories: {
     Food: 'Comida', Groceries: 'Supermercado', Housing: 'Vivienda', Utilities: 'Servicios',
     Transportation: 'Transporte', Shopping: 'Compras', Health: 'Salud',
@@ -273,6 +277,7 @@ const hi: TranslationSchema = {
     cancel: 'रद्द करें', confirm: 'हटाएं', toast: 'लेन-देन हटा दिया गया',
   },
   toasts: { added: 'लेन-देन जोड़ा गया', updated: 'लेन-देन अपडेट किया गया' },
+  loading: { fetching: 'डेटा प्राप्त हो रहा है...' },
   categories: {
     Food: 'खाना', Groceries: 'किराना', Housing: 'आवास', Utilities: 'उपयोगिताएँ',
     Transportation: 'परिवहन', Shopping: 'खरीदारी', Health: 'स्वास्थ्य',
@@ -331,6 +336,7 @@ const ar: TranslationSchema = {
     cancel: 'إلغاء', confirm: 'حذف', toast: 'تم حذف المعاملة',
   },
   toasts: { added: 'تمت إضافة المعاملة', updated: 'تم تحديث المعاملة' },
+  loading: { fetching: 'جارٍ جلب بياناتك...' },
   categories: {
     Food: 'طعام', Groceries: 'بقالة', Housing: 'سكن', Utilities: 'مرافق',
     Transportation: 'مواصلات', Shopping: 'تسوق', Health: 'صحة',
@@ -389,6 +395,7 @@ const de: TranslationSchema = {
     cancel: 'Abbrechen', confirm: 'Löschen', toast: 'Transaktion gelöscht',
   },
   toasts: { added: 'Transaktion hinzugefügt', updated: 'Transaktion aktualisiert' },
+  loading: { fetching: 'Daten werden geladen...' },
   categories: {
     Food: 'Essen', Groceries: 'Lebensmittel', Housing: 'Wohnen', Utilities: 'Nebenkosten',
     Transportation: 'Transport', Shopping: 'Einkaufen', Health: 'Gesundheit',
@@ -447,6 +454,7 @@ const fr: TranslationSchema = {
     cancel: 'Annuler', confirm: 'Supprimer', toast: 'Transaction supprimée',
   },
   toasts: { added: 'Transaction ajoutée', updated: 'Transaction mise à jour' },
+  loading: { fetching: 'Récupération des données...' },
   categories: {
     Food: 'Alimentation', Groceries: 'Courses', Housing: 'Logement', Utilities: 'Services',
     Transportation: 'Transport', Shopping: 'Shopping', Health: 'Santé',
@@ -505,6 +513,7 @@ const ja: TranslationSchema = {
     cancel: 'キャンセル', confirm: '削除', toast: '取引を削除しました',
   },
   toasts: { added: '取引を追加しました', updated: '取引を更新しました' },
+  loading: { fetching: 'データを読み込んでいます...' },
   categories: {
     Food: '食費', Groceries: '食料品', Housing: '住居', Utilities: '光熱費',
     Transportation: '交通', Shopping: 'ショッピング', Health: '健康',
@@ -563,6 +572,7 @@ const pt: TranslationSchema = {
     cancel: 'Cancelar', confirm: 'Excluir', toast: 'Transação excluída',
   },
   toasts: { added: 'Transação adicionada', updated: 'Transação atualizada' },
+  loading: { fetching: 'Carregando seus dados...' },
   categories: {
     Food: 'Alimentação', Groceries: 'Mercearia', Housing: 'Habitação', Utilities: 'Utilidades',
     Transportation: 'Transporte', Shopping: 'Compras', Health: 'Saúde',
@@ -621,6 +631,7 @@ const ko: TranslationSchema = {
     cancel: '취소', confirm: '삭제', toast: '거래가 삭제되었습니다',
   },
   toasts: { added: '거래가 추가되었습니다', updated: '거래가 수정되었습니다' },
+  loading: { fetching: '데이터를 불러오는 중...' },
   categories: {
     Food: '식비', Groceries: '식료품', Housing: '주거', Utilities: '공과금',
     Transportation: '교통', Shopping: '쇼핑', Health: '건강',
@@ -679,6 +690,7 @@ const id: TranslationSchema = {
     cancel: 'Batal', confirm: 'Hapus', toast: 'Transaksi dihapus',
   },
   toasts: { added: 'Transaksi ditambahkan', updated: 'Transaksi diperbarui' },
+  loading: { fetching: 'Mengambil data Anda...' },
   categories: {
     Food: 'Makanan', Groceries: 'Belanjaan', Housing: 'Perumahan', Utilities: 'Utilitas',
     Transportation: 'Transportasi', Shopping: 'Belanja', Health: 'Kesehatan',
@@ -737,6 +749,7 @@ const ru: TranslationSchema = {
     cancel: 'Отмена', confirm: 'Удалить', toast: 'Транзакция удалена',
   },
   toasts: { added: 'Транзакция добавлена', updated: 'Транзакция обновлена' },
+  loading: { fetching: 'Загрузка данных...' },
   categories: {
     Food: 'Питание', Groceries: 'Продукты', Housing: 'Жильё', Utilities: 'Коммунальные',
     Transportation: 'Транспорт', Shopping: 'Покупки', Health: 'Здоровье',
@@ -795,6 +808,7 @@ const it: TranslationSchema = {
     cancel: 'Annulla', confirm: 'Elimina', toast: 'Transazione eliminata',
   },
   toasts: { added: 'Transazione aggiunta', updated: 'Transazione aggiornata' },
+  loading: { fetching: 'Recupero dati in corso...' },
   categories: {
     Food: 'Cibo', Groceries: 'Spesa', Housing: 'Alloggio', Utilities: 'Utenze',
     Transportation: 'Trasporti', Shopping: 'Shopping', Health: 'Salute',
@@ -853,6 +867,7 @@ const tr: TranslationSchema = {
     cancel: 'İptal', confirm: 'Sil', toast: 'İşlem silindi',
   },
   toasts: { added: 'İşlem eklendi', updated: 'İşlem güncellendi' },
+  loading: { fetching: 'Verileriniz yükleniyor...' },
   categories: {
     Food: 'Yiyecek', Groceries: 'Market', Housing: 'Konut', Utilities: 'Faturalar',
     Transportation: 'Ulaşım', Shopping: 'Alışveriş', Health: 'Sağlık',
@@ -911,6 +926,7 @@ const vi: TranslationSchema = {
     cancel: 'Hủy', confirm: 'Xóa', toast: 'Đã xóa giao dịch',
   },
   toasts: { added: 'Đã thêm giao dịch', updated: 'Đã cập nhật giao dịch' },
+  loading: { fetching: 'Đang tải dữ liệu...' },
   categories: {
     Food: 'Thức ăn', Groceries: 'Hàng tạp hóa', Housing: 'Nhà ở', Utilities: 'Tiện ích',
     Transportation: 'Giao thông', Shopping: 'Mua sắm', Health: 'Sức khỏe',
