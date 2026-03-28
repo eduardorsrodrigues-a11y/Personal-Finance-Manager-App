@@ -21,6 +21,7 @@ export function Dashboard() {
   const [editingTransaction, setEditingTransaction] = useState<import('../context/TransactionContext').Transaction | null>(null);
   const [selectedMonth, setSelectedMonth] = useState<string>(getCurrentMonthLabel);
   const [selectedSlice, setSelectedSlice] = useState<string | null>(null);
+  const [chartCategory, setChartCategory] = useState<string>('all');
 
   // Get available months for filters
   const availableMonths = useMemo(() => getAvailableMonths(transactions), [transactions]);
@@ -56,11 +57,17 @@ export function Dashboard() {
   }));
 
 
+  // Categories available in expenses (for chart filter)
+  const expenseCategories = useMemo(
+    () => Array.from(new Set(transactions.filter((t) => t.type === 'expense').map((t) => t.category))).sort(),
+    [transactions],
+  );
+
   // Monthly expense evolution (all transactions, not filtered by month)
   const monthlyExpenses = useMemo(() => {
     const map: Record<string, number> = {};
     transactions
-      .filter((t) => t.type === 'expense')
+      .filter((t) => t.type === 'expense' && (chartCategory === 'all' || t.category === chartCategory))
       .forEach((t) => {
         const d = new Date(t.date);
         const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
@@ -75,7 +82,7 @@ export function Dashboard() {
         const label = new Date(Number(year), Number(month) - 1, 1).toLocaleDateString('en-US', { month: 'short', year: '2-digit' });
         return { key, label, value, isCurrent: key === currentKey };
       });
-  }, [transactions]);
+  }, [transactions, chartCategory]);
 
   // Top 5 highest expenses
   const top5Expenses = useMemo(
@@ -349,7 +356,19 @@ export function Dashboard() {
           {/* Monthly Expense Evolution */}
           {monthlyExpenses.length >= 1 && (
             <div className="bg-card border border-border rounded-xl p-6 mt-6 lg:mt-8">
-              <h2 className="font-semibold mb-4">Monthly Expenses</h2>
+              <div className="flex items-center justify-between mb-4 gap-3">
+                <h2 className="font-semibold">Monthly Expenses</h2>
+                <select
+                  value={chartCategory}
+                  onChange={(e) => setChartCategory(e.target.value)}
+                  className="px-2 py-1 bg-input-background rounded-lg border border-border text-xs focus:outline-none focus:ring-2 focus:ring-ring shrink-0"
+                >
+                  <option value="all">All categories</option>
+                  {expenseCategories.map((c) => (
+                    <option key={c} value={c}>{tCategory(c)}</option>
+                  ))}
+                </select>
+              </div>
               <div className="h-44 lg:h-64">
                 <ResponsiveContainer width="100%" height="100%">
                   <LineChart data={monthlyExpenses} margin={{ top: 24, right: 16, left: 0, bottom: 0 }}>
@@ -364,11 +383,15 @@ export function Dashboard() {
                       tick={{ fontSize: 11, fill: 'var(--muted-foreground)' }}
                       axisLine={false}
                       tickLine={false}
-                      width={48}
-                      tickFormatter={(v: number) => formatAmount(v)}
+                      width={40}
+                      tickFormatter={(v: number) => {
+                        if (v >= 1000000) return `${(v / 1000000).toFixed(1).replace(/\.0$/, '')}M`;
+                        if (v >= 1000) return `${(v / 1000).toFixed(1).replace(/\.0$/, '')}k`;
+                        return `${v}`;
+                      }}
                     />
                     <Tooltip
-                      formatter={(value: number) => [formatAmount(value), 'Expenses']}
+                      formatter={(value: number) => [formatAmount(value), chartCategory === 'all' ? 'Expenses' : tCategory(chartCategory)]}
                       labelStyle={{ fontSize: 12 }}
                       contentStyle={{
                         backgroundColor: 'var(--card)',
