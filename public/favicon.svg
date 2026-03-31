@@ -1,46 +1,93 @@
-<svg width="100" height="100" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220 175" fill="none">
   <defs>
-    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0%" stop-color="#9de4c8"/>
-      <stop offset="50%" stop-color="#b8d8ee"/>
-      <stop offset="100%" stop-color="#a0c8e8"/>
+    <!-- Teal gradient for left element -->
+    <linearGradient id="lt" x1="0" y1="0" x2="130" y2="175" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#2dd4bf"/>
+      <stop offset="100%" stop-color="#0891b2"/>
     </linearGradient>
-    <linearGradient id="ribbon" x1="20" y1="15" x2="80" y2="85" gradientUnits="userSpaceOnUse">
-      <stop offset="0%" stop-color="#cbc6b2"/>
-      <stop offset="45%" stop-color="#e6e1d2"/>
-      <stop offset="100%" stop-color="#d4cfc0"/>
+    <!-- Blue gradient for right element -->
+    <linearGradient id="rb" x1="110" y1="0" x2="220" y2="175" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#22d3ee"/>
+      <stop offset="100%" stop-color="#1e40af"/>
     </linearGradient>
-    <linearGradient id="shadow-ribbon" x1="20" y1="15" x2="80" y2="85" gradientUnits="userSpaceOnUse">
-      <stop offset="0%" stop-color="#9e9a8c" stop-opacity="0.5"/>
-      <stop offset="100%" stop-color="#9e9a8c" stop-opacity="0.1"/>
-    </linearGradient>
-    <filter id="drop" x="-30%" y="-30%" width="160%" height="160%">
-      <feDropShadow dx="0.5" dy="2" stdDeviation="2.5" flood-color="rgba(0,60,50,0.22)"/>
-    </filter>
   </defs>
 
-  <!-- Background -->
-  <rect width="100" height="100" rx="22" ry="22" fill="url(#bg)"/>
-  <rect width="100" height="100" rx="22" ry="22" fill="white" opacity="0.12"/>
+  <!-- ═══════════════════════════════════════════════ -->
+  <!-- LEFT: Stopwatch / Clock with chart + coin stacks -->
+  <!-- Circle center: (72, 90), radius: 56            -->
+  <!-- ═══════════════════════════════════════════════ -->
 
-  <!-- Depth layer -->
-  <path d="M 26,74 C 9,58 21,50 50,50 C 79,50 91,42 74,26"
-        stroke="url(#shadow-ribbon)" stroke-width="19" stroke-linecap="round" fill="none"/>
+  <!-- Stopwatch crown circle -->
+  <circle cx="72" cy="17" r="6.5" stroke="url(#lt)" stroke-width="4.5"/>
+  <!-- Crown stem connecting to body -->
+  <line x1="72" y1="23" x2="72" y2="34" stroke="url(#lt)" stroke-width="4.5" stroke-linecap="round"/>
 
-  <!-- Main ribbon -->
-  <path d="M 26,74 C 9,58 21,50 50,50 C 79,50 91,42 74,26"
-        stroke="url(#ribbon)" stroke-width="14" stroke-linecap="round" fill="none"
-        filter="url(#drop)"/>
+  <!-- Clock body arc — nearly full circle, gap at top for crown -->
+  <!-- At -100° from horizontal: (62, 35); At -80°: (82, 35) -->
+  <path d="M 62,35 A 56,56 0 1 1 82,35" stroke="url(#lt)" stroke-width="5.5" stroke-linecap="round"/>
 
-  <!-- Highlight -->
-  <path d="M 29,70 C 14,56 24,50 50,50 C 76,50 86,43 71,29"
-        stroke="white" stroke-width="3" stroke-linecap="round" fill="none" opacity="0.35"/>
+  <!-- Tick marks at 9 o'clock and 3 o'clock -->
+  <line x1="20" y1="90" x2="28" y2="90" stroke="url(#lt)" stroke-width="4" stroke-linecap="round"/>
+  <line x1="116" y1="90" x2="124" y2="90" stroke="url(#lt)" stroke-width="4" stroke-linecap="round"/>
 
-  <!-- Top-right arrowhead -->
-  <polygon points="80,20 68,23 71,35" fill="url(#ribbon)" filter="url(#drop)"/>
-  <polygon points="80,20 68,23 71,28" fill="white" opacity="0.3"/>
+  <!-- Rising zigzag chart line -->
+  <polyline points="30,132 44,110 58,120 75,90 89,70"
+    stroke="url(#lt)" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- Arrow shaft -->
+  <line x1="89" y1="70" x2="102" y2="53" stroke="url(#lt)" stroke-width="4.5" stroke-linecap="round"/>
+  <!-- Arrowhead (pointing up-right) -->
+  <polygon points="108,42 98,56 114,58" fill="url(#lt)"/>
 
-  <!-- Bottom-left arrowhead -->
-  <polygon points="20,80 32,77 29,65" fill="url(#ribbon)" filter="url(#drop)"/>
-  <polygon points="20,80 32,77 29,72" fill="white" opacity="0.3"/>
+  <!-- Coin Stack 1 — shortest (4 coins), center x=42 -->
+  <line x1="31" y1="103" x2="31" y2="145" stroke="url(#lt)" stroke-width="3.5" stroke-linecap="round"/>
+  <line x1="53" y1="103" x2="53" y2="145" stroke="url(#lt)" stroke-width="3.5" stroke-linecap="round"/>
+  <ellipse cx="42" cy="108" rx="11" ry="5" stroke="url(#lt)" stroke-width="3.5"/>
+  <ellipse cx="42" cy="116" rx="11" ry="5" stroke="url(#lt)" stroke-width="3.5"/>
+  <ellipse cx="42" cy="124" rx="11" ry="5" stroke="url(#lt)" stroke-width="3.5"/>
+  <ellipse cx="42" cy="132" rx="11" ry="5" stroke="url(#lt)" stroke-width="3.5"/>
+  <ellipse cx="42" cy="140" rx="11" ry="5" stroke="url(#lt)" stroke-width="3.5"/>
+
+  <!-- Coin Stack 2 — medium (6 coins), center x=64 -->
+  <line x1="53" y1="87" x2="53" y2="145" stroke="url(#lt)" stroke-width="3.5" stroke-linecap="round"/>
+  <line x1="75" y1="87" x2="75" y2="145" stroke="url(#lt)" stroke-width="3.5" stroke-linecap="round"/>
+  <ellipse cx="64" cy="92" rx="11" ry="5" stroke="url(#lt)" stroke-width="3.5"/>
+  <ellipse cx="64" cy="100" rx="11" ry="5" stroke="url(#lt)" stroke-width="3.5"/>
+  <ellipse cx="64" cy="108" rx="11" ry="5" stroke="url(#lt)" stroke-width="3.5"/>
+  <ellipse cx="64" cy="116" rx="11" ry="5" stroke="url(#lt)" stroke-width="3.5"/>
+  <ellipse cx="64" cy="124" rx="11" ry="5" stroke="url(#lt)" stroke-width="3.5"/>
+  <ellipse cx="64" cy="132" rx="11" ry="5" stroke="url(#lt)" stroke-width="3.5"/>
+  <ellipse cx="64" cy="140" rx="11" ry="5" stroke="url(#lt)" stroke-width="3.5"/>
+
+  <!-- Coin Stack 3 — tallest (8 coins), center x=86 -->
+  <line x1="75" y1="71" x2="75" y2="145" stroke="url(#lt)" stroke-width="3.5" stroke-linecap="round"/>
+  <line x1="97" y1="71" x2="97" y2="145" stroke="url(#lt)" stroke-width="3.5" stroke-linecap="round"/>
+  <ellipse cx="86" cy="76" rx="11" ry="5" stroke="url(#lt)" stroke-width="3.5"/>
+  <ellipse cx="86" cy="84" rx="11" ry="5" stroke="url(#lt)" stroke-width="3.5"/>
+  <ellipse cx="86" cy="92" rx="11" ry="5" stroke="url(#lt)" stroke-width="3.5"/>
+  <ellipse cx="86" cy="100" rx="11" ry="5" stroke="url(#lt)" stroke-width="3.5"/>
+  <ellipse cx="86" cy="108" rx="11" ry="5" stroke="url(#lt)" stroke-width="3.5"/>
+  <ellipse cx="86" cy="116" rx="11" ry="5" stroke="url(#lt)" stroke-width="3.5"/>
+  <ellipse cx="86" cy="124" rx="11" ry="5" stroke="url(#lt)" stroke-width="3.5"/>
+  <ellipse cx="86" cy="132" rx="11" ry="5" stroke="url(#lt)" stroke-width="3.5"/>
+  <ellipse cx="86" cy="140" rx="11" ry="5" stroke="url(#lt)" stroke-width="3.5"/>
+
+  <!-- ═══════════════════════════════════════════════ -->
+  <!-- RIGHT: Circular arrow + Shopping bag / Wallet  -->
+  <!-- Circle center: (158, 95), radius: 42           -->
+  <!-- ═══════════════════════════════════════════════ -->
+
+  <!-- Circular arrow arc — clockwise, ~275°          -->
+  <!-- Start: lower-left (128, 124); End: upper-right (195, 78) -->
+  <path d="M 128,124 A 42,42 0 1 1 195,78" stroke="url(#rb)" stroke-width="6" stroke-linecap="round"/>
+  <!-- Arrowhead at upper-right, pointing upper-right -->
+  <polygon points="210,64 195,78 208,88" fill="url(#rb)"/>
+
+  <!-- Shopping bag body -->
+  <rect x="139" y="93" width="38" height="28" rx="4" stroke="url(#rb)" stroke-width="4.5"/>
+  <!-- Bag handle (curved arch above body) -->
+  <path d="M 147,93 C 147,77 169,77 169,93" stroke="url(#rb)" stroke-width="4.5" stroke-linecap="round" fill="none"/>
+  <!-- Wallet clasp circle -->
+  <circle cx="158" cy="113" r="4" stroke="url(#rb)" stroke-width="3.5"/>
+  <!-- Clasp pin -->
+  <line x1="158" y1="109" x2="158" y2="105" stroke="url(#rb)" stroke-width="3.5" stroke-linecap="round"/>
 </svg>

@@ -265,7 +265,7 @@ export function Dashboard() {
           )}
 
         {/* Expenses by Category + Top Expenses */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8 items-start">
           {/* Expenses by Category */}
           <div className="bg-card border border-border rounded-xl p-6">
             <h2 className="font-semibold mb-4">{tr('dashboard.expensesByCategory')}</h2>
