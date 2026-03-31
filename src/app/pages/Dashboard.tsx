@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { TrendingUp, TrendingDown, Wallet, Plus } from 'lucide-react';
-import { PieChart, Pie, Cell, Tooltip, LineChart, Line, XAxis, YAxis, CartesianGrid, ResponsiveContainer, ReferenceLine, LabelList } from 'recharts';
+import { Tooltip, LineChart, Line, XAxis, YAxis, CartesianGrid, ResponsiveContainer, ReferenceLine, LabelList } from 'recharts';
 import { useNavigate } from 'react-router';
 import { useTransactions } from '../context/TransactionContext';
 import { AddTransactionModal } from '../components/AddTransactionModal';
@@ -20,7 +20,6 @@ export function Dashboard() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingTransaction, setEditingTransaction] = useState<import('../context/TransactionContext').Transaction | null>(null);
   const [selectedMonth, setSelectedMonth] = useState<string>(getCurrentMonthLabel);
-  const [selectedSlice, setSelectedSlice] = useState<string | null>(null);
   const [chartCategory, setChartCategory] = useState<string>('all');
 
   // Get available months for filters
@@ -175,187 +174,9 @@ export function Dashboard() {
           </div>
         </div>
 
-        {/* Chart and Recent Transactions */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8">
-          {/* Expenses by Category */}
-          <div className="bg-card border border-border rounded-xl p-6">
-            <h2 className="font-semibold mb-4">{tr('dashboard.expensesByCategory')}</h2>
-
-            {chartData.length > 0 ? (() => {
-              const sorted = [...chartData].sort((a, b) => b.value - a.value);
-              const maxValue = sorted[0]?.value ?? 1;
-              return (
-                <>
-                  {/* Compact donut — purely visual, no labels */}
-                  <div
-                    className="relative flex justify-center mb-5"
-                    onClick={(e) => {
-                      // Click outside the SVG (on the wrapper) resets selection
-                      if ((e.target as HTMLElement).closest('svg') === null) setSelectedSlice(null);
-                    }}
-                  >
-                    <PieChart width={148} height={148}>
-                      <Pie
-                        data={sorted}
-                        cx={74}
-                        cy={74}
-                        innerRadius={44}
-                        outerRadius={68}
-                        paddingAngle={2}
-                        dataKey="value"
-                        strokeWidth={0}
-                        cursor="pointer"
-                        onClick={(data) => { if (data?.name) setSelectedSlice(prev => prev === data.name ? null : data.name); }}
-                      >
-                        {sorted.map((entry, i) => {
-                          const isSelected = selectedSlice === entry.name;
-                          const isDimmed = selectedSlice !== null && !isSelected;
-                          return (
-                            <Cell
-                              key={i}
-                              fill={getCategoryConfig(entry.name).hex}
-                              opacity={isDimmed ? 0.25 : 1}
-                            />
-                          );
-                        })}
-                      </Pie>
-                    </PieChart>
-                    <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-                      {selectedSlice ? (() => {
-                        const sliceData = sorted.find(s => s.name === selectedSlice);
-                        const { icon: SliceIcon, hex, bg, text } = getCategoryConfig(selectedSlice);
-                        const slicePct = totalExpenses > 0 ? ((sliceData?.value ?? 0) / totalExpenses * 100).toFixed(0) : '0';
-                        return (
-                          <>
-                            <div className={`w-7 h-7 rounded-lg flex items-center justify-center mb-0.5 ${bg}`}>
-                              <SliceIcon className={`w-3.5 h-3.5 ${text}`} />
-                            </div>
-                            <p className="text-[9px] font-medium leading-tight text-center px-1 max-w-[70px] truncate" style={{ color: hex }}>
-                              {tCategory(selectedSlice)}
-                            </p>
-                            <p className="text-[10px] font-bold leading-tight">{slicePct}%</p>
-                          </>
-                        );
-                      })() : (
-                        <>
-                          <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Total</p>
-                          <p className="text-sm font-bold leading-tight">{formatAmount(totalExpenses)}</p>
-                        </>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Category bars — always shows all categories */}
-                  <div className="space-y-2.5">
-                    {sorted.map(({ name, value }) => {
-                      const pct = totalExpenses > 0 ? value / totalExpenses : 0;
-                      const barPct = maxValue > 0 ? value / maxValue : 0;
-                      const { icon: Icon, hex, bg, text } = getCategoryConfig(name);
-                      const budget = budgets[name];
-                      const hasBudget = budget != null && budget > 0;
-                      const isOverBudget = hasBudget && value >= budget;
-                      const isDimmedBar = selectedSlice !== null && selectedSlice !== name;
-                      return (
-                        <button
-                          key={name}
-                          onClick={() => handleCategoryDrilldown(name)}
-                          className="w-full flex items-center gap-3 group"
-                          style={{ opacity: isDimmedBar ? 0.35 : 1, transition: 'opacity 0.2s' }}
-                        >
-                          {/* Icon */}
-                          <div className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${bg}`}>
-                            <Icon className={`w-3.5 h-3.5 ${text}`} />
-                          </div>
-
-                          {/* Bar + labels — always flex-1, bar always same width */}
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-baseline gap-1.5 mb-1">
-                              {/* Category name — left-aligned, truncates to give room to amount */}
-                              <span className="text-xs font-medium truncate flex-1 min-w-0 text-left">
-                                {tCategory(name)}
-                              </span>
-                              {/* % — fixed small width */}
-                              <span className="text-[10px] text-muted-foreground shrink-0 w-7 text-right">
-                                {(pct * 100).toFixed(0)}%
-                              </span>
-                              {/* Amount — fixed min-width so bars stay consistent */}
-                              <div className="shrink-0 min-w-[5rem] text-right">
-                                <span className={`text-xs font-semibold ${isOverBudget ? 'text-red-500' : ''}`}>
-                                  {formatAmount(value)}
-                                </span>
-                                {hasBudget && (
-                                  <span className="text-[10px] text-muted-foreground block">
-                                    / {formatAmount(budget)}
-                                  </span>
-                                )}
-                              </div>
-                            </div>
-                            {/* Bar always spans full flex-1 width */}
-                            <div className="h-1.5 bg-muted rounded-full overflow-hidden">
-                              <div
-                                className="h-full rounded-full transition-all duration-500"
-                                style={{
-                                  width: `max(3px, ${barPct * 100}%)`,
-                                  backgroundColor: isOverBudget ? '#ef4444' : hex,
-                                }}
-                              />
-                            </div>
-                          </div>
-                        </button>
-                      );
-                    })}
-                  </div>
-                </>
-              );
-            })() : (
-              <div className="h-48 flex items-center justify-center text-sm text-muted-foreground">
-                {tr('dashboard.noExpenseData')}
-              </div>
-            )}
-          </div>
-
-          {/* Top 3 Highest Expenses */}
-          <div className="bg-card border border-border rounded-xl p-6">
-            <h2 className="font-semibold mb-6">Top 5 Expenses</h2>
-            <div className="space-y-3">
-              {top5Expenses.length > 0 ? (
-                top5Expenses.map((transaction, idx) => {
-                  const { icon: Icon, bg, text } = getCategoryConfig(transaction.category);
-                  return (
-                    <button
-                      key={transaction.id}
-                      onClick={() => setEditingTransaction(transaction)}
-                      className="w-full flex items-center gap-4 rounded-lg hover:bg-muted transition-colors px-2 py-2 -mx-2 text-left"
-                    >
-                      <span className="text-xs font-bold text-muted-foreground w-4 shrink-0">#{idx + 1}</span>
-                      <div className={`w-10 h-10 rounded-lg flex items-center justify-center shrink-0 ${bg}`}>
-                        <Icon className={`w-5 h-5 ${text}`} />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="font-medium truncate">{transaction.description}</p>
-                        <p className="text-sm text-muted-foreground">{tCategory(transaction.category)}</p>
-                      </div>
-                      <div className="text-right shrink-0">
-                        <p className="font-semibold text-red-500">-{formatAmount(transaction.amount)}</p>
-                        <p className="text-xs text-muted-foreground">
-                          {new Date(transaction.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-                        </p>
-                      </div>
-                    </button>
-                  );
-                })
-              ) : (
-                <div className="text-center text-muted-foreground py-8 text-sm">
-                  No expenses this period
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-
-          {/* Monthly Expense Evolution */}
-          {monthlyExpenses.length >= 1 && (
-            <div className="bg-card border border-border rounded-xl p-6 mt-6 lg:mt-8">
+        {/* Monthly Expense Evolution */}
+        {monthlyExpenses.length >= 1 && (
+          <div className="bg-card border border-border rounded-xl p-6 mb-6 lg:mb-8">
               <div className="flex items-center justify-between mb-4 gap-3">
                 <h2 className="font-semibold">Monthly Expenses</h2>
                 <select
@@ -442,6 +263,112 @@ export function Dashboard() {
               </div>
             </div>
           )}
+
+        {/* Expenses by Category + Top Expenses */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8">
+          {/* Expenses by Category */}
+          <div className="bg-card border border-border rounded-xl p-6">
+            <h2 className="font-semibold mb-4">{tr('dashboard.expensesByCategory')}</h2>
+            {chartData.length > 0 ? (() => {
+              const sorted = [...chartData].sort((a, b) => b.value - a.value);
+              const maxValue = sorted[0]?.value ?? 1;
+              return (
+                <div className="space-y-2.5">
+                  {sorted.map(({ name, value }) => {
+                    const pct = totalExpenses > 0 ? value / totalExpenses : 0;
+                    const barPct = maxValue > 0 ? value / maxValue : 0;
+                    const { icon: Icon, hex, bg, text } = getCategoryConfig(name);
+                    const budget = budgets[name];
+                    const hasBudget = budget != null && budget > 0;
+                    const isOverBudget = hasBudget && value >= budget;
+                    return (
+                      <button
+                        key={name}
+                        onClick={() => handleCategoryDrilldown(name)}
+                        className="w-full flex items-center gap-3 group"
+                      >
+                        <div className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${bg}`}>
+                          <Icon className={`w-3.5 h-3.5 ${text}`} />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-baseline gap-1.5 mb-1">
+                            <span className="text-xs font-medium truncate flex-1 min-w-0 text-left">
+                              {tCategory(name)}
+                            </span>
+                            <span className="text-[10px] text-muted-foreground shrink-0 w-7 text-right">
+                              {(pct * 100).toFixed(0)}%
+                            </span>
+                            <div className="shrink-0 min-w-[5rem] text-right">
+                              <span className={`text-xs font-semibold ${isOverBudget ? 'text-red-500' : ''}`}>
+                                {formatAmount(value)}
+                              </span>
+                              {hasBudget && (
+                                <span className="text-[10px] text-muted-foreground block">
+                                  / {formatAmount(budget)}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                          <div className="h-1.5 bg-muted rounded-full overflow-hidden">
+                            <div
+                              className="h-full rounded-full transition-all duration-500"
+                              style={{
+                                width: `max(3px, ${barPct * 100}%)`,
+                                backgroundColor: isOverBudget ? '#ef4444' : hex,
+                              }}
+                            />
+                          </div>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              );
+            })() : (
+              <div className="h-48 flex items-center justify-center text-sm text-muted-foreground">
+                {tr('dashboard.noExpenseData')}
+              </div>
+            )}
+          </div>
+
+          {/* Top Expenses */}
+          <div className="bg-card border border-border rounded-xl p-6">
+            <h2 className="font-semibold mb-4">Top Expenses</h2>
+            <div className="space-y-3">
+              {top5Expenses.length > 0 ? (
+                top5Expenses.map((transaction, idx) => {
+                  const { icon: Icon, bg, text } = getCategoryConfig(transaction.category);
+                  return (
+                    <button
+                      key={transaction.id}
+                      onClick={() => setEditingTransaction(transaction)}
+                      className="w-full flex items-center gap-4 rounded-lg hover:bg-muted transition-colors px-2 py-2 -mx-2 text-left"
+                    >
+                      <span className="text-xs font-bold text-muted-foreground w-4 shrink-0">#{idx + 1}</span>
+                      <div className={`w-10 h-10 rounded-lg flex items-center justify-center shrink-0 ${bg}`}>
+                        <Icon className={`w-5 h-5 ${text}`} />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium truncate">{transaction.description}</p>
+                        <p className="text-sm text-muted-foreground">{tCategory(transaction.category)}</p>
+                      </div>
+                      <div className="text-right shrink-0">
+                        <p className="font-semibold text-red-500">-{formatAmount(transaction.amount)}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {new Date(transaction.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                        </p>
+                      </div>
+                    </button>
+                  );
+                })
+              ) : (
+                <div className="text-center text-muted-foreground py-8 text-sm">
+                  No expenses this period
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
       </div>
 
       <AddTransactionModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} />
