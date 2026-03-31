@@ -83,14 +83,14 @@ export function Dashboard() {
       });
   }, [transactions, chartCategory]);
 
-  // Top expenses — show as many as there are expense categories so both cards are the same height
+  // Top 5 highest expenses for the selected period
   const topExpenses = useMemo(
     () =>
       monthFilteredTransactions
         .filter((t) => t.type === 'expense')
         .sort((a, b) => b.amount - a.amount)
-        .slice(0, Math.max(chartData.length, 5)),
-    [monthFilteredTransactions, chartData.length],
+        .slice(0, 5),
+    [monthFilteredTransactions],
   );
 
   const handleCategoryDrilldown = (category: string) => {
@@ -342,7 +342,7 @@ export function Dashboard() {
                     <button
                       key={transaction.id}
                       onClick={() => setEditingTransaction(transaction)}
-                      className="w-full flex items-center gap-3 rounded-lg hover:bg-muted transition-colors px-2 py-1.5 -mx-2 text-left"
+                      className="w-full flex items-center gap-3 rounded-lg hover:bg-muted transition-colors text-left"
                     >
                       <span className="text-[10px] font-bold text-muted-foreground w-4 shrink-0 text-right">#{idx + 1}</span>
                       <div className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${bg}`}>
@@ -350,11 +350,11 @@ export function Dashboard() {
                       </div>
                       <div className="flex-1 min-w-0">
                         <p className="text-xs font-medium truncate">{transaction.description}</p>
-                        <p className="text-[10px] text-muted-foreground">{tCategory(transaction.category)}</p>
+                        <p className="text-xs text-muted-foreground">{tCategory(transaction.category)}</p>
                       </div>
                       <div className="text-right shrink-0 min-w-[5rem]">
                         <p className="text-xs font-semibold text-red-500">-{formatAmount(transaction.amount)}</p>
-                        <p className="text-[10px] text-muted-foreground">
+                        <p className="text-xs text-muted-foreground">
                           {new Date(transaction.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
                         </p>
                       </div>
