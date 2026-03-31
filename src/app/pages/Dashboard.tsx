@@ -83,14 +83,14 @@ export function Dashboard() {
       });
   }, [transactions, chartCategory]);
 
-  // Top 5 highest expenses
-  const top5Expenses = useMemo(
+  // Top expenses — show as many as there are expense categories so both cards are the same height
+  const topExpenses = useMemo(
     () =>
       monthFilteredTransactions
         .filter((t) => t.type === 'expense')
         .sort((a, b) => b.amount - a.amount)
-        .slice(0, 5),
-    [monthFilteredTransactions],
+        .slice(0, Math.max(chartData.length, 5)),
+    [monthFilteredTransactions, chartData.length],
   );
 
   const handleCategoryDrilldown = (category: string) => {
@@ -334,27 +334,27 @@ export function Dashboard() {
           {/* Top Expenses */}
           <div className="bg-card border border-border rounded-xl p-6">
             <h2 className="font-semibold mb-4">Top Expenses</h2>
-            <div className="space-y-3">
-              {top5Expenses.length > 0 ? (
-                top5Expenses.map((transaction, idx) => {
+            <div className="space-y-2.5">
+              {topExpenses.length > 0 ? (
+                topExpenses.map((transaction, idx) => {
                   const { icon: Icon, bg, text } = getCategoryConfig(transaction.category);
                   return (
                     <button
                       key={transaction.id}
                       onClick={() => setEditingTransaction(transaction)}
-                      className="w-full flex items-center gap-4 rounded-lg hover:bg-muted transition-colors px-2 py-2 -mx-2 text-left"
+                      className="w-full flex items-center gap-3 rounded-lg hover:bg-muted transition-colors px-2 py-1.5 -mx-2 text-left"
                     >
-                      <span className="text-xs font-bold text-muted-foreground w-4 shrink-0">#{idx + 1}</span>
-                      <div className={`w-10 h-10 rounded-lg flex items-center justify-center shrink-0 ${bg}`}>
-                        <Icon className={`w-5 h-5 ${text}`} />
+                      <span className="text-[10px] font-bold text-muted-foreground w-4 shrink-0 text-right">#{idx + 1}</span>
+                      <div className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${bg}`}>
+                        <Icon className={`w-3.5 h-3.5 ${text}`} />
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="font-medium truncate">{transaction.description}</p>
-                        <p className="text-sm text-muted-foreground">{tCategory(transaction.category)}</p>
+                        <p className="text-xs font-medium truncate">{transaction.description}</p>
+                        <p className="text-[10px] text-muted-foreground">{tCategory(transaction.category)}</p>
                       </div>
-                      <div className="text-right shrink-0">
-                        <p className="font-semibold text-red-500">-{formatAmount(transaction.amount)}</p>
-                        <p className="text-xs text-muted-foreground">
+                      <div className="text-right shrink-0 min-w-[5rem]">
+                        <p className="text-xs font-semibold text-red-500">-{formatAmount(transaction.amount)}</p>
+                        <p className="text-[10px] text-muted-foreground">
                           {new Date(transaction.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
                         </p>
                       </div>
