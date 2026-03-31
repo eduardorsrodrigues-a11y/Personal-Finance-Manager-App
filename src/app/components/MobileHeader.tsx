@@ -1,5 +1,4 @@
 import { Menu, X, Globe, LogIn, LogOut, ChevronDown, PiggyBank, Languages } from 'lucide-react';
-import { FlowWealthLogo } from './FlowWealthLogo';
 import { useState } from 'react';
 import { Link } from 'react-router';
 import { useCurrency, currencies } from '../context/CurrencyContext';
@@ -34,8 +33,11 @@ export function MobileHeader() {
         </button>
 
         <div className="absolute left-0 right-0 flex justify-center items-center gap-2 pointer-events-none">
-          <FlowWealthLogo size={26} />
-          <span className="text-base font-semibold tracking-tight">Flow Wealth</span>
+          <img src="/logo.png" alt="" className="w-7 h-7 object-contain" />
+          <div>
+            <p className="text-sm font-black uppercase tracking-wide leading-tight text-foreground">Flow Wealth</p>
+            <p className="text-[8px] text-muted-foreground tracking-widest uppercase">Track. Budget. Grow.</p>
+          </div>
         </div>
       </header>
 
@@ -138,9 +140,9 @@ export function MobileHeader() {
               onClick={() => { signInWithGoogle(); closeMenu(); }}
               className="flex items-center gap-3 px-4 py-4 w-full hover:bg-muted transition-colors"
             >
-              <LogIn className="w-5 h-5 text-emerald-500" />
+              <LogIn className="w-5 h-5 text-teal-500" />
               <div className="flex flex-col items-start">
-                <span className="text-sm font-medium text-emerald-500">{t('nav.signIn')}</span>
+                <span className="text-sm font-medium text-teal-500">{t('nav.signIn')}</span>
                 <span className="text-xs text-muted-foreground">{t('nav.dataMigrate')}</span>
               </div>
             </button>
@@ -149,8 +151,8 @@ export function MobileHeader() {
               onClick={() => { signInWithGoogle(); closeMenu(); }}
               className="flex items-center gap-3 px-4 py-4 w-full hover:bg-muted transition-colors"
             >
-              <LogIn className="w-5 h-5 text-emerald-500" />
-              <span className="text-sm font-medium text-emerald-500">{t('nav.signIn')}</span>
+              <LogIn className="w-5 h-5 text-teal-500" />
+              <span className="text-sm font-medium text-teal-500">{t('nav.signIn')}</span>
             </button>
           )}
         </div>

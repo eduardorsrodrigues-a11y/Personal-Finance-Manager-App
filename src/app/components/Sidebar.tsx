@@ -1,5 +1,4 @@
 import { LayoutDashboard, List, PiggyBank, Globe, ChevronDown, LogOut, LogIn, Languages } from 'lucide-react';
-import { FlowWealthLogo } from './FlowWealthLogo';
 import { Link, useLocation } from 'react-router';
 import { useCurrency, currencies } from '../context/CurrencyContext';
 import { useAuth } from '../context/AuthContext';
@@ -24,10 +23,13 @@ export function Sidebar() {
   return (
     <aside className="hidden lg:flex lg:flex-col lg:w-64 lg:border-r lg:border-border bg-sidebar h-screen sticky top-0">
       {/* Logo/Brand */}
-      <div className="p-6 border-b border-sidebar-border">
-        <div className="flex items-center gap-2.5">
-          <FlowWealthLogo size={36} />
-          <span className="font-semibold text-sidebar-foreground tracking-tight">Flow Wealth</span>
+      <div className="p-5 border-b border-sidebar-border">
+        <div className="flex items-center gap-3">
+          <img src="/logo.png" alt="Flow Wealth" className="w-11 h-11 object-contain shrink-0" />
+          <div>
+            <p className="text-base font-black text-white uppercase tracking-wide leading-tight">Flow Wealth</p>
+            <p className="text-[10px] text-teal-300 tracking-[0.18em] uppercase font-medium">Track. Budget. Grow.</p>
+          </div>
         </div>
       </div>
 
@@ -63,9 +65,9 @@ export function Sidebar() {
             onClick={signInWithGoogle}
             className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sidebar-foreground hover:bg-sidebar-accent/50 transition-colors"
           >
-            <LogIn className="w-5 h-5 text-emerald-500" />
+            <LogIn className="w-5 h-5 text-teal-400" />
             <div className="flex flex-col items-start">
-              <span className="text-sm font-medium text-emerald-600">{t('nav.signIn')}</span>
+              <span className="text-sm font-medium text-teal-400">{t('nav.signIn')}</span>
               <span className="text-xs text-muted-foreground">{t('nav.syncToCloud')}</span>
             </div>
           </button>
