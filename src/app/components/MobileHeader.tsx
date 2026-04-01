@@ -33,7 +33,13 @@ export function MobileHeader() {
         </button>
 
         <div className="absolute left-0 right-0 flex justify-center items-center gap-2 pointer-events-none">
-          <img src="/logo.svg" alt="" className="w-7 h-7 object-contain" />
+          <div className="relative w-7 h-7">
+              <div className="absolute top-0 left-0 w-2 h-2 border-t border-l border-teal-400/50" />
+              <div className="absolute top-0 right-0 w-2 h-2 border-t border-r border-teal-400/50" />
+              <div className="absolute bottom-0 left-0 w-2 h-2 border-b border-l border-teal-400/50" />
+              <div className="absolute bottom-0 right-0 w-2 h-2 border-b border-r border-teal-400/50" />
+              <img src="/logo.png" alt="" className="w-full h-full object-contain drop-shadow-[0_1px_3px_rgba(0,0,0,0.2)]" />
+            </div>
           <div>
             <p className="text-sm font-black uppercase tracking-wide leading-tight text-foreground">Flow Wealth</p>
             <p className="text-[8px] text-muted-foreground tracking-widest uppercase">Track. Budget. Grow.</p>

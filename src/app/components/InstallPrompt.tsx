@@ -20,7 +20,13 @@ export function InstallPrompt() {
             {/* Header */}
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-3">
-                <img src="/logo.svg" alt="Flow Wealth" className="w-9 h-9 object-contain shrink-0" />
+                <div className="relative w-9 h-9 shrink-0">
+                    <div className="absolute top-0 left-0 w-2 h-2 border-t border-l border-teal-400/50" />
+                    <div className="absolute top-0 right-0 w-2 h-2 border-t border-r border-teal-400/50" />
+                    <div className="absolute bottom-0 left-0 w-2 h-2 border-b border-l border-teal-400/50" />
+                    <div className="absolute bottom-0 right-0 w-2 h-2 border-b border-r border-teal-400/50" />
+                    <img src="/logo.png" alt="Flow Wealth" className="w-full h-full object-contain drop-shadow-[0_1px_3px_rgba(0,0,0,0.2)]" />
+                  </div>
                 <div>
                   <p className="font-bold text-base">Flow Wealth</p>
                   <p className="text-xs text-muted-foreground">Works offline · No App Store needed</p>
@@ -83,7 +89,13 @@ export function InstallPrompt() {
           <div className="bg-card rounded-t-3xl shadow-2xl p-6 pb-10">
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-3">
-                <img src="/logo.svg" alt="Flow Wealth" className="w-9 h-9 object-contain shrink-0" />
+                <div className="relative w-9 h-9 shrink-0">
+                    <div className="absolute top-0 left-0 w-2 h-2 border-t border-l border-teal-400/50" />
+                    <div className="absolute top-0 right-0 w-2 h-2 border-t border-r border-teal-400/50" />
+                    <div className="absolute bottom-0 left-0 w-2 h-2 border-b border-l border-teal-400/50" />
+                    <div className="absolute bottom-0 right-0 w-2 h-2 border-b border-r border-teal-400/50" />
+                    <img src="/logo.png" alt="Flow Wealth" className="w-full h-full object-contain drop-shadow-[0_1px_3px_rgba(0,0,0,0.2)]" />
+                  </div>
                 <div>
                   <p className="font-bold text-base">Flow Wealth</p>
                   <p className="text-xs text-muted-foreground">Works offline · Installs in seconds</p>
