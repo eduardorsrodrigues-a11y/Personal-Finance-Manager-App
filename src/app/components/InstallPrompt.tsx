@@ -25,7 +25,7 @@ export function InstallPrompt() {
                     <div className="absolute top-0 right-0 w-2 h-2 border-t border-r border-teal-400/50" />
                     <div className="absolute bottom-0 left-0 w-2 h-2 border-b border-l border-teal-400/50" />
                     <div className="absolute bottom-0 right-0 w-2 h-2 border-b border-r border-teal-400/50" />
-                    <img src="/logo.png" alt="Flow Wealth" className="w-full h-full object-contain drop-shadow-[0_1px_3px_rgba(0,0,0,0.2)]" />
+                    <img src="/logo.svg" alt="Flow Wealth" className="w-full h-full object-contain drop-shadow-[0_1px_3px_rgba(0,0,0,0.2)]" />
                   </div>
                 <div>
                   <p className="font-bold text-base">Flow Wealth</p>
@@ -94,7 +94,7 @@ export function InstallPrompt() {
                     <div className="absolute top-0 right-0 w-2 h-2 border-t border-r border-teal-400/50" />
                     <div className="absolute bottom-0 left-0 w-2 h-2 border-b border-l border-teal-400/50" />
                     <div className="absolute bottom-0 right-0 w-2 h-2 border-b border-r border-teal-400/50" />
-                    <img src="/logo.png" alt="Flow Wealth" className="w-full h-full object-contain drop-shadow-[0_1px_3px_rgba(0,0,0,0.2)]" />
+                    <img src="/logo.svg" alt="Flow Wealth" className="w-full h-full object-contain drop-shadow-[0_1px_3px_rgba(0,0,0,0.2)]" />
                   </div>
                 <div>
                   <p className="font-bold text-base">Flow Wealth</p>

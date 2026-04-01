@@ -30,7 +30,7 @@ export function Sidebar() {
               <div className="absolute top-0 right-0 w-2.5 h-2.5 border-t border-r border-teal-300/50" />
               <div className="absolute bottom-0 left-0 w-2.5 h-2.5 border-b border-l border-teal-300/50" />
               <div className="absolute bottom-0 right-0 w-2.5 h-2.5 border-b border-r border-teal-300/50" />
-              <img src="/logo.png" alt="Flow Wealth" className="w-full h-full object-contain drop-shadow-[0_2px_4px_rgba(0,0,0,0.25)]" />
+              <img src="/logo.svg" alt="Flow Wealth" className="w-full h-full object-contain drop-shadow-[0_2px_4px_rgba(0,0,0,0.25)]" />
             </div>
           <div>
             <p className="text-base font-black text-white uppercase tracking-wide leading-tight">Flow Wealth</p>
