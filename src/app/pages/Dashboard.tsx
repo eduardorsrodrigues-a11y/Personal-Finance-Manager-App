@@ -24,6 +24,7 @@ export function Dashboard() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingTransaction, setEditingTransaction] = useState<import('../context/TransactionContext').Transaction | null>(null);
   const [chartCategory, setChartCategory] = useState<string>('all');
+  const [chartIncomeCategory, setChartIncomeCategory] = useState<string>('all');
 
   // Persist selected month across page refreshes
   const [selectedMonth, setSelectedMonth] = useState<string>(
@@ -99,32 +100,45 @@ export function Dashboard() {
   }));
 
 
-  // Categories available in expenses (for chart filter)
+  // Categories available for chart filters
   const expenseCategories = useMemo(
     () => Array.from(new Set(transactions.filter((t) => t.type === 'expense').map((t) => t.category))).sort(),
     [transactions],
   );
+  const incomeCategories = useMemo(
+    () => Array.from(new Set(transactions.filter((t) => t.type === 'income').map((t) => t.category))).sort(),
+    [transactions],
+  );
 
-  // Monthly expense evolution (all transactions, not filtered by month)
-  const monthlyExpenses = useMemo(() => {
-    const map: Record<string, number> = {};
+  // Combined monthly view data (expense + income, all months)
+  const monthlyData = useMemo(() => {
+    const map: Record<string, { expense: number; income: number }> = {};
     transactions
       .filter((t) => t.type === 'expense' && (chartCategory === 'all' || t.category === chartCategory))
       .forEach((t) => {
         const d = new Date(t.date);
         const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-        map[key] = (map[key] || 0) + t.amount;
+        if (!map[key]) map[key] = { expense: 0, income: 0 };
+        map[key].expense += t.amount;
+      });
+    transactions
+      .filter((t) => t.type === 'income' && (chartIncomeCategory === 'all' || t.category === chartIncomeCategory))
+      .forEach((t) => {
+        const d = new Date(t.date);
+        const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+        if (!map[key]) map[key] = { expense: 0, income: 0 };
+        map[key].income += t.amount;
       });
     const now = new Date();
     const currentKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
     return Object.entries(map)
       .sort(([a], [b]) => a.localeCompare(b))
-      .map(([key, value]) => {
+      .map(([key, { expense, income }]) => {
         const [year, month] = key.split('-');
         const label = new Date(Number(year), Number(month) - 1, 1).toLocaleDateString('en-US', { month: 'short', year: '2-digit' });
-        return { key, label, value, isCurrent: key === currentKey };
+        return { key, label, expense, income, isCurrent: key === currentKey };
       });
-  }, [transactions, chartCategory]);
+  }, [transactions, chartCategory, chartIncomeCategory]);
 
   // Top 5 highest expenses for the selected period
   const topExpenses = useMemo(
@@ -217,95 +231,158 @@ export function Dashboard() {
           </div>
         </div>
 
-        {/* Monthly Expense Evolution */}
-        {monthlyExpenses.length >= 1 && (
+        {/* Monthly View */}
+        {monthlyData.length >= 1 && (
           <div className="bg-card border border-border rounded-xl p-6 mb-6 lg:mb-8">
-              <div className="flex items-center justify-between mb-4 gap-3">
-                <h2 className="font-semibold">Monthly Expenses</h2>
+            {/* Header row */}
+            <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
+              <div className="flex items-center gap-4">
+                <h2 className="font-semibold">Monthly View</h2>
+                {/* Legend */}
+                <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                  <span className="flex items-center gap-1.5">
+                    <span className="w-4 h-0.5 rounded-full bg-emerald-500 inline-block" />
+                    Expenses
+                  </span>
+                  <span className="flex items-center gap-1.5">
+                    <span className="w-4 h-0.5 rounded-full bg-red-500 inline-block" />
+                    Income
+                  </span>
+                </div>
+              </div>
+              {/* Filters */}
+              <div className="flex gap-2 flex-wrap">
                 <select
                   value={chartCategory}
                   onChange={(e) => setChartCategory(e.target.value)}
-                  className="px-2 py-1 bg-input-background rounded-lg border border-border text-xs focus:outline-none focus:ring-2 focus:ring-ring shrink-0"
+                  className="px-2 py-1 bg-input-background rounded-lg border border-border text-xs focus:outline-none focus:ring-2 focus:ring-ring"
                 >
-                  <option value="all">All categories</option>
+                  <option value="all">All expenses</option>
                   {expenseCategories.map((c) => (
                     <option key={c} value={c}>{tCategory(c)}</option>
                   ))}
                 </select>
-              </div>
-              <div className="h-44 lg:h-64">
-                <ResponsiveContainer width="100%" height="100%">
-                  <LineChart data={monthlyExpenses} margin={{ top: 24, right: 16, left: 0, bottom: 0 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
-                    <XAxis
-                      dataKey="label"
-                      tick={{ fontSize: 11, fill: 'var(--muted-foreground)' }}
-                      axisLine={false}
-                      tickLine={false}
-                    />
-                    <YAxis
-                      tick={{ fontSize: 11, fill: 'var(--muted-foreground)' }}
-                      axisLine={false}
-                      tickLine={false}
-                      width={40}
-                      tickFormatter={(v: number) => {
-                        if (v >= 1000000) return `${(v / 1000000).toFixed(1).replace(/\.0$/, '')}M`;
-                        if (v >= 1000) return `${(v / 1000).toFixed(1).replace(/\.0$/, '')}k`;
-                        return `${v}`;
-                      }}
-                    />
-                    <Tooltip
-                      formatter={(value: number) => [formatAmount(value), chartCategory === 'all' ? 'Expenses' : tCategory(chartCategory)]}
-                      labelStyle={{ fontSize: 12 }}
-                      contentStyle={{
-                        backgroundColor: 'var(--card)',
-                        border: '1px solid var(--border)',
-                        borderRadius: '8px',
-                        fontSize: '12px',
-                      }}
-                    />
-                    {monthlyExpenses.find(m => m.isCurrent) && (
-                      <ReferenceLine
-                        x={monthlyExpenses.find(m => m.isCurrent)!.label}
-                        stroke="#10b981"
-                        strokeDasharray="4 3"
-                        strokeWidth={1.5}
-                      />
-                    )}
-                    <Line
-                      type="monotone"
-                      dataKey="value"
-                      stroke="#10b981"
-                      strokeWidth={2}
-                      dot={(props: { cx: number; cy: number; payload: { isCurrent: boolean } }) => {
-                        const { cx, cy, payload } = props;
-                        if (payload.isCurrent) {
-                          return <circle key={`dot-current-${cx}`} cx={cx} cy={cy} r={5} fill="#10b981" stroke="var(--card)" strokeWidth={2} />;
-                        }
-                        return <circle key={`dot-${cx}`} cx={cx} cy={cy} r={3} fill="#10b981" stroke="var(--card)" strokeWidth={1.5} />;
-                      }}
-                      activeDot={{ r: 5, fill: '#10b981', stroke: 'var(--card)', strokeWidth: 2 }}
-                    >
-                      <LabelList
-                        dataKey="value"
-                        position="top"
-                        content={(props: { x?: number; y?: number; value?: number; index?: number }) => {
-                          const { x, y, value, index } = props;
-                          const entry = monthlyExpenses[index ?? -1];
-                          if (!entry?.isCurrent) return null;
-                          return (
-                            <text x={x} y={(y ?? 0) - 8} textAnchor="middle" fontSize={11} fill="#10b981" fontWeight={600}>
-                              {formatAmount(value ?? 0)}
-                            </text>
-                          );
-                        }}
-                      />
-                    </Line>
-                  </LineChart>
-                </ResponsiveContainer>
+                <select
+                  value={chartIncomeCategory}
+                  onChange={(e) => setChartIncomeCategory(e.target.value)}
+                  className="px-2 py-1 bg-input-background rounded-lg border border-border text-xs focus:outline-none focus:ring-2 focus:ring-ring"
+                >
+                  <option value="all">All income</option>
+                  {incomeCategories.map((c) => (
+                    <option key={c} value={c}>{tCategory(c)}</option>
+                  ))}
+                </select>
               </div>
             </div>
-          )}
+
+            <div className="h-44 lg:h-64">
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={monthlyData} margin={{ top: 24, right: 16, left: 0, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
+                  <XAxis
+                    dataKey="label"
+                    tick={{ fontSize: 11, fill: 'var(--muted-foreground)' }}
+                    axisLine={false}
+                    tickLine={false}
+                  />
+                  <YAxis
+                    tick={{ fontSize: 11, fill: 'var(--muted-foreground)' }}
+                    axisLine={false}
+                    tickLine={false}
+                    width={40}
+                    tickFormatter={(v: number) => {
+                      if (v >= 1000000) return `${(v / 1000000).toFixed(1).replace(/\.0$/, '')}M`;
+                      if (v >= 1000) return `${(v / 1000).toFixed(1).replace(/\.0$/, '')}k`;
+                      return `${v}`;
+                    }}
+                  />
+                  <Tooltip
+                    formatter={(value: number, name: string) => [
+                      formatAmount(value),
+                      name === 'expense'
+                        ? (chartCategory === 'all' ? 'Expenses' : tCategory(chartCategory))
+                        : (chartIncomeCategory === 'all' ? 'Income' : tCategory(chartIncomeCategory)),
+                    ]}
+                    labelStyle={{ fontSize: 12 }}
+                    contentStyle={{
+                      backgroundColor: 'var(--card)',
+                      border: '1px solid var(--border)',
+                      borderRadius: '8px',
+                      fontSize: '12px',
+                    }}
+                  />
+                  {monthlyData.find(m => m.isCurrent) && (
+                    <ReferenceLine
+                      x={monthlyData.find(m => m.isCurrent)!.label}
+                      stroke="var(--muted-foreground)"
+                      strokeDasharray="4 3"
+                      strokeWidth={1}
+                      opacity={0.5}
+                    />
+                  )}
+
+                  {/* Expense line — green */}
+                  <Line
+                    type="monotone"
+                    dataKey="expense"
+                    stroke="#10b981"
+                    strokeWidth={2}
+                    dot={(props: { cx: number; cy: number; payload: { isCurrent: boolean } }) => {
+                      const { cx, cy, payload } = props;
+                      return payload.isCurrent
+                        ? <circle key={`exp-dot-cur-${cx}`} cx={cx} cy={cy} r={5} fill="#10b981" stroke="var(--card)" strokeWidth={2} />
+                        : <circle key={`exp-dot-${cx}`} cx={cx} cy={cy} r={3} fill="#10b981" stroke="var(--card)" strokeWidth={1.5} />;
+                    }}
+                    activeDot={{ r: 5, fill: '#10b981', stroke: 'var(--card)', strokeWidth: 2 }}
+                  >
+                    <LabelList
+                      dataKey="expense"
+                      position="top"
+                      content={(props: { x?: number; y?: number; value?: number; index?: number }) => {
+                        const { x, y, value, index } = props;
+                        if (!monthlyData[index ?? -1]?.isCurrent) return null;
+                        return (
+                          <text x={x} y={(y ?? 0) - 8} textAnchor="middle" fontSize={11} fill="#10b981" fontWeight={600}>
+                            {formatAmount(value ?? 0)}
+                          </text>
+                        );
+                      }}
+                    />
+                  </Line>
+
+                  {/* Income line — red */}
+                  <Line
+                    type="monotone"
+                    dataKey="income"
+                    stroke="#ef4444"
+                    strokeWidth={2}
+                    dot={(props: { cx: number; cy: number; payload: { isCurrent: boolean } }) => {
+                      const { cx, cy, payload } = props;
+                      return payload.isCurrent
+                        ? <circle key={`inc-dot-cur-${cx}`} cx={cx} cy={cy} r={5} fill="#ef4444" stroke="var(--card)" strokeWidth={2} />
+                        : <circle key={`inc-dot-${cx}`} cx={cx} cy={cy} r={3} fill="#ef4444" stroke="var(--card)" strokeWidth={1.5} />;
+                    }}
+                    activeDot={{ r: 5, fill: '#ef4444', stroke: 'var(--card)', strokeWidth: 2 }}
+                  >
+                    <LabelList
+                      dataKey="income"
+                      position="top"
+                      content={(props: { x?: number; y?: number; value?: number; index?: number }) => {
+                        const { x, y, value, index } = props;
+                        if (!monthlyData[index ?? -1]?.isCurrent) return null;
+                        return (
+                          <text x={x} y={(y ?? 0) - 8} textAnchor="middle" fontSize={11} fill="#ef4444" fontWeight={600}>
+                            {formatAmount(value ?? 0)}
+                          </text>
+                        );
+                      }}
+                    />
+                  </Line>
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+        )}
 
         {/* Expenses by Category + Top Expenses */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8 items-start">
