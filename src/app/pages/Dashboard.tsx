@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
 import { TrendingUp, TrendingDown, Wallet, Plus } from 'lucide-react';
 import { Tooltip, LineChart, Line, XAxis, YAxis, CartesianGrid, ResponsiveContainer, ReferenceLine, LabelList } from 'recharts';
 import { useNavigate } from 'react-router';
@@ -10,32 +10,63 @@ import { useCurrency } from '../context/CurrencyContext';
 import { useBudgets } from '../context/BudgetContext';
 import { getCategoryConfig } from '../utils/categoryConfig';
 import { useLanguage } from '../context/LanguageContext';
+import { useAuth } from '../context/AuthContext';
+
+const MONTH_STORAGE_KEY = 'fw_dashboard_month';
 
 export function Dashboard() {
-  const { transactions } = useTransactions();
+  const { transactions, isLoading } = useTransactions();
   const { formatAmount } = useCurrency();
   const { budgets } = useBudgets();
   const { t: tr, tCategory } = useLanguage();
+  const { user, isGuest } = useAuth();
   const navigate = useNavigate();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingTransaction, setEditingTransaction] = useState<import('../context/TransactionContext').Transaction | null>(null);
-  const [selectedMonth, setSelectedMonth] = useState<string>(getCurrentMonthLabel);
   const [chartCategory, setChartCategory] = useState<string>('all');
 
-  // Get available months for filters — always include current month so the select has a valid option on load
+  // Persist selected month across page refreshes
+  const [selectedMonth, setSelectedMonth] = useState<string>(
+    () => localStorage.getItem(MONTH_STORAGE_KEY) ?? '',
+  );
+  const updateMonth = (month: string) => {
+    setSelectedMonth(month);
+    localStorage.setItem(MONTH_STORAGE_KEY, month);
+  };
+
+  // Detect auth identity changes → reset to most recent month with data on next load
+  const mountedRef = useRef(false);
+  const prevUserKeyRef = useRef<string | null>(null);
+  const pendingResetRef = useRef(false);
+
+  useEffect(() => {
+    const key = user?.id ?? (isGuest ? 'guest' : null);
+    if (!mountedRef.current) {
+      mountedRef.current = true;
+      prevUserKeyRef.current = key;
+      // First load with no stored month → also reset
+      if (!localStorage.getItem(MONTH_STORAGE_KEY)) pendingResetRef.current = true;
+      return;
+    }
+    if (key !== prevUserKeyRef.current) {
+      prevUserKeyRef.current = key;
+      pendingResetRef.current = true;
+    }
+  }, [user, isGuest]);
+
+  // When loading finishes and a reset is pending, jump to most recent month with transactions
+  useEffect(() => {
+    if (isLoading || !pendingResetRef.current) return;
+    pendingResetRef.current = false;
+    const months = getAvailableMonths(transactions);
+    updateMonth(months[0] ?? getCurrentMonthLabel());
+  }, [isLoading, transactions]);
+
+  // Get available months — always include the currently selected month so the select is never mismatched
   const availableMonths = useMemo(() => {
     const months = getAvailableMonths(transactions);
-    const currentMonth = getCurrentMonthLabel();
-    return months.includes(currentMonth) ? months : [currentMonth, ...months];
-  }, [transactions]);
-
-  // Reset to current month whenever transactions finish loading (e.g. after login)
-  const { isLoading } = useTransactions();
-  useEffect(() => {
-    if (!isLoading) {
-      setSelectedMonth(getCurrentMonthLabel());
-    }
-  }, [isLoading]);
+    return selectedMonth && !months.includes(selectedMonth) ? [selectedMonth, ...months] : months;
+  }, [transactions, selectedMonth]);
 
   // Filter transactions by selected month only
   const monthFilteredTransactions = useMemo(
@@ -137,7 +168,7 @@ export function Dashboard() {
             selectedCategory="all"
             onCategoryChange={() => {}}
             selectedMonth={selectedMonth}
-            onMonthChange={setSelectedMonth}
+            onMonthChange={updateMonth}
             availableMonths={availableMonths}
             availableCategories={[]}
             showTypeFilter={false}

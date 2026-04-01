@@ -32,6 +32,10 @@ export function TransactionHistory() {
   const lastScrollY = useRef(0);
 
   useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
+
+  useEffect(() => {
     const handleScroll = () => {
       const y = window.scrollY;
       const delta = y - lastScrollY.current;
