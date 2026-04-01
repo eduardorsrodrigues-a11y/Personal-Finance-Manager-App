@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { TrendingUp, TrendingDown, Wallet, Plus } from 'lucide-react';
 import { Tooltip, LineChart, Line, XAxis, YAxis, CartesianGrid, ResponsiveContainer, ReferenceLine, LabelList } from 'recharts';
 import { useNavigate } from 'react-router';
@@ -22,8 +22,20 @@ export function Dashboard() {
   const [selectedMonth, setSelectedMonth] = useState<string>(getCurrentMonthLabel);
   const [chartCategory, setChartCategory] = useState<string>('all');
 
-  // Get available months for filters
-  const availableMonths = useMemo(() => getAvailableMonths(transactions), [transactions]);
+  // Get available months for filters — always include current month so the select has a valid option on load
+  const availableMonths = useMemo(() => {
+    const months = getAvailableMonths(transactions);
+    const currentMonth = getCurrentMonthLabel();
+    return months.includes(currentMonth) ? months : [currentMonth, ...months];
+  }, [transactions]);
+
+  // Reset to current month whenever transactions finish loading (e.g. after login)
+  const { isLoading } = useTransactions();
+  useEffect(() => {
+    if (!isLoading) {
+      setSelectedMonth(getCurrentMonthLabel());
+    }
+  }, [isLoading]);
 
   // Filter transactions by selected month only
   const monthFilteredTransactions = useMemo(
