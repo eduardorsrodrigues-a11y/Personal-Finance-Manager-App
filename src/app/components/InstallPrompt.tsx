@@ -20,9 +20,7 @@ export function InstallPrompt() {
             {/* Header */}
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-3">
-                <div className="w-9 h-9 shrink-0 rounded-xl border border-teal-400/60 bg-muted flex items-center justify-center shadow-[0_1px_4px_rgba(0,0,0,0.1)] p-1">
-                    <img src="/logo.svg" alt="Flow Wealth" className="w-full h-full object-contain" />
-                  </div>
+                <img src="/logo.png" alt="Flow Wealth" className="w-9 h-9 object-contain shrink-0" />
                 <div>
                   <p className="font-bold text-base">Flow Wealth</p>
                   <p className="text-xs text-muted-foreground">Works offline · No App Store needed</p>
@@ -85,9 +83,7 @@ export function InstallPrompt() {
           <div className="bg-card rounded-t-3xl shadow-2xl p-6 pb-10">
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-3">
-                <div className="w-9 h-9 shrink-0 rounded-xl border border-teal-400/60 bg-muted flex items-center justify-center shadow-[0_1px_4px_rgba(0,0,0,0.1)] p-1">
-                    <img src="/logo.svg" alt="Flow Wealth" className="w-full h-full object-contain" />
-                  </div>
+                <img src="/logo.png" alt="Flow Wealth" className="w-9 h-9 object-contain shrink-0" />
                 <div>
                   <p className="font-bold text-base">Flow Wealth</p>
                   <p className="text-xs text-muted-foreground">Works offline · Installs in seconds</p>

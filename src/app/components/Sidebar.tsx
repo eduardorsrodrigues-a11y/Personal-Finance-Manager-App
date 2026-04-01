@@ -25,9 +25,7 @@ export function Sidebar() {
       {/* Logo/Brand */}
       <div className="p-5 border-b border-sidebar-border">
         <div className="flex items-center gap-3">
-          <div className="w-11 h-11 shrink-0 rounded-xl border border-teal-300/60 bg-white/10 flex items-center justify-center shadow-[0_2px_8px_rgba(0,0,0,0.15)] p-1">
-              <img src="/logo.svg" alt="Flow Wealth" className="w-full h-full object-contain" />
-            </div>
+          <img src="/logo.png" alt="Flow Wealth" className="w-11 h-11 object-contain shrink-0" />
           <div>
             <p className="text-base font-black text-white uppercase tracking-wide leading-tight">Flow Wealth</p>
             <p className="text-[10px] text-teal-300 tracking-[0.18em] uppercase font-medium">Track. Budget. Grow.</p>
