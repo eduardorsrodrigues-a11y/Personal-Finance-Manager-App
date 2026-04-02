@@ -57,7 +57,7 @@ export function Budgets() {
         <div className="px-4 lg:px-8 py-4 lg:py-6">
           <div className="flex items-start justify-between gap-4">
             <div>
-              <h1 className="font-semibold mb-0.5">{t('budgets.title')}</h1>
+              <h1 className="font-semibold">{t('budgets.title')}</h1>
               <p className="text-sm text-muted-foreground">{t('budgets.subtitle')}</p>
             </div>
             <div className="text-right shrink-0">
