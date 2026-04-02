@@ -408,23 +408,23 @@ export function Dashboard() {
                         onClick={() => handleCategoryDrilldown(name)}
                         className="w-full flex items-center gap-3 group"
                       >
-                        <div className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${bg}`}>
-                          <Icon className={`w-3.5 h-3.5 ${text}`} />
+                        <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${bg}`}>
+                          <Icon className={`w-4 h-4 ${text}`} />
                         </div>
                         <div className="flex-1 min-w-0">
                           <div className="flex items-baseline gap-1.5 mb-1">
-                            <span className="text-xs font-medium truncate flex-1 min-w-0 text-left">
+                            <span className="text-sm font-medium truncate flex-1 min-w-0 text-left">
                               {tCategory(name)}
                             </span>
-                            <span className="text-[10px] text-muted-foreground shrink-0 w-7 text-right">
+                            <span className="text-xs text-muted-foreground shrink-0 w-7 text-right">
                               {(pct * 100).toFixed(0)}%
                             </span>
-                            <div className="shrink-0 min-w-[5rem] text-right">
-                              <span className={`text-xs font-semibold ${isOverBudget ? 'text-red-500' : ''}`}>
+                            <div className="shrink-0 min-w-[5.5rem] text-right">
+                              <span className={`text-sm font-semibold ${isOverBudget ? 'text-red-500' : ''}`}>
                                 {formatAmount(value)}
                               </span>
                               {hasBudget && (
-                                <span className="text-[10px] text-muted-foreground block">
+                                <span className="text-xs text-muted-foreground block">
                                   / {formatAmount(budget)}
                                 </span>
                               )}
@@ -465,16 +465,16 @@ export function Dashboard() {
                       onClick={() => setEditingTransaction(transaction)}
                       className="w-full flex items-center gap-3 rounded-lg hover:bg-muted transition-colors text-left"
                     >
-                      <span className="text-[10px] font-bold text-muted-foreground w-4 shrink-0 text-right">#{idx + 1}</span>
-                      <div className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${bg}`}>
-                        <Icon className={`w-3.5 h-3.5 ${text}`} />
+                      <span className="text-xs font-bold text-muted-foreground w-4 shrink-0 text-right">#{idx + 1}</span>
+                      <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${bg}`}>
+                        <Icon className={`w-4 h-4 ${text}`} />
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="text-xs font-medium truncate">{transaction.description}</p>
+                        <p className="text-sm font-medium truncate">{transaction.description}</p>
                         <p className="text-xs text-muted-foreground">{tCategory(transaction.category)}</p>
                       </div>
-                      <div className="text-right shrink-0 min-w-[5rem]">
-                        <p className="text-xs font-semibold text-red-500">-{formatAmount(transaction.amount)}</p>
+                      <div className="text-right shrink-0 min-w-[5.5rem]">
+                        <p className="text-sm font-semibold text-red-500">-{formatAmount(transaction.amount)}</p>
                         <p className="text-xs text-muted-foreground">
                           {new Date(transaction.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
                         </p>
