@@ -63,10 +63,11 @@ export function Dashboard() {
     updateMonth(months[0] ?? getCurrentMonthLabel());
   }, [isLoading, transactions]);
 
-  // Get available months — always include the currently selected month so the select is never mismatched
+  // Get available months — inject selectedMonth only if it's a real month label (not a special value)
   const availableMonths = useMemo(() => {
     const months = getAvailableMonths(transactions);
-    return selectedMonth && !months.includes(selectedMonth) ? [selectedMonth, ...months] : months;
+    const isSpecial = !selectedMonth || selectedMonth === 'all' || selectedMonth === 'this-year';
+    return !isSpecial && !months.includes(selectedMonth) ? [selectedMonth, ...months] : months;
   }, [transactions, selectedMonth]);
 
   // Filter transactions by selected month only
