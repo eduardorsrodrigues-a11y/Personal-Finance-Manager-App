@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
-import { Check } from 'lucide-react';
+import { Check, Sparkles } from 'lucide-react';
+import { SmartBudgetWizard } from '../components/SmartBudgetWizard';
 import { useBudgets } from '../context/BudgetContext';
 import { useCurrency } from '../context/CurrencyContext';
 import { CATEGORY_CONFIG } from '../utils/categoryConfig';
@@ -18,6 +19,7 @@ export function Budgets() {
   const { showToast } = useToast();
   const [drafts, setDrafts] = useState<Record<string, string>>({});
   const [justSaved, setJustSaved] = useState<Record<string, boolean>>({});
+  const [isWizardOpen, setIsWizardOpen] = useState(false);
 
   useEffect(() => {
     if (!loading) {
@@ -60,6 +62,13 @@ export function Budgets() {
               <h1 className="font-semibold">{t('budgets.title')}</h1>
               <p className="text-sm text-muted-foreground">{t('budgets.subtitle')}</p>
             </div>
+            <button
+              onClick={() => setIsWizardOpen(true)}
+              className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-teal-500 hover:bg-teal-600 text-white text-sm font-semibold transition-colors shrink-0"
+            >
+              <Sparkles className="w-4 h-4" />
+              Smart Setup
+            </button>
             <div className="text-right shrink-0">
               <p className="text-sm font-semibold">{setBudgetCount}</p>
               <p className="text-xs text-muted-foreground">of {EXPENSE_CATEGORIES.length} set</p>
@@ -125,6 +134,8 @@ export function Budgets() {
 
         <p className="mt-4 text-xs text-muted-foreground max-w-3xl">{t('budgets.hint')}</p>
       </div>
+
+      <SmartBudgetWizard isOpen={isWizardOpen} onClose={() => setIsWizardOpen(false)} />
     </div>
   );
 }
