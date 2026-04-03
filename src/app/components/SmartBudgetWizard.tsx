@@ -19,7 +19,7 @@ export interface SmartBudgetStored {
   amounts: Record<string, number>;
 }
 
-type WizardStep = 1 | 2 | 3 | 4 | 5 | 'loading' | 'reveal';
+type WizardStep = 1 | 2 | 3 | 4 | 5 | 6 | 'loading' | 'reveal';
 
 interface WizardData {
   income: string;
@@ -231,19 +231,20 @@ export function SmartBudgetWizard({ isOpen, onClose, initialReveal }: Props) {
       if (data.housingSituation !== 'rent-free' && !data.housingAmount) return false;
       return true;
     }
-    if (step === 3) return !!data.dependents;
-    if (step === 4) return !!data.debt;
-    if (step === 5) return !!data.goal;
+    if (step === 3) return true; // utilities/health/gym are optional (0 is valid)
+    if (step === 4) return !!data.dependents;
+    if (step === 5) return !!data.debt;
+    if (step === 6) return !!data.goal;
     return false;
   };
 
   const handleNext = () => {
-    if (step === 5) { setStep('loading'); return; }
+    if (step === 6) { setStep('loading'); return; }
     if (typeof step === 'number') setStep((step + 1) as WizardStep);
   };
 
   const handleBack = () => {
-    if (step === 'reveal') { setStep(5); return; }
+    if (step === 'reveal') { setStep(6); return; }
     if (typeof step === 'number' && step > 1) setStep((step - 1) as WizardStep);
   };
 
@@ -596,21 +597,27 @@ const handleApply = async () => {
           <FixedInput label="Monthly housing payment" symbol={currency.symbol}
             value={data.housingAmount} onChange={v => set('housingAmount', v)} placeholder="e.g. 1200" />
         )}
-        <div>
-          <p className="text-sm font-medium mb-2 mt-2">Other fixed monthly bills <span className="text-muted-foreground font-normal">(enter 0 if not applicable)</span></p>
-          <div className="grid grid-cols-1 gap-2">
-            <FixedInput label="Utilities (electricity, water, internet…)" symbol={currency.symbol} value={data.utilities} onChange={v => set('utilities', v)} />
-            <FixedInput label="Health / Insurance" symbol={currency.symbol} value={data.health} onChange={v => set('health', v)} />
-            <FixedInput label="Gym & Sports memberships" symbol={currency.symbol} value={data.gym} onChange={v => set('gym', v)} />
-          </div>
-          <p className="text-xs text-muted-foreground mt-2 flex items-center gap-1">
-            <Lock className="w-3 h-3" /> These amounts are locked — Smart Allocation won't reduce them automatically.
-          </p>
-        </div>
       </div>
     );
 
     if (step === 3) return (
+      <div className="space-y-4">
+        <div>
+          <p className="text-base font-semibold mb-1">Any other fixed monthly bills?</p>
+          <p className="text-sm text-muted-foreground mb-4">Enter 0 if not applicable</p>
+          <div className="grid grid-cols-1 gap-3">
+            <FixedInput label="Utilities (electricity, water, internet…)" symbol={currency.symbol} value={data.utilities} onChange={v => set('utilities', v)} />
+            <FixedInput label="Health / Insurance" symbol={currency.symbol} value={data.health} onChange={v => set('health', v)} />
+            <FixedInput label="Gym & Sports memberships" symbol={currency.symbol} value={data.gym} onChange={v => set('gym', v)} />
+          </div>
+        </div>
+        <p className="text-xs text-muted-foreground flex items-center gap-1">
+          <Lock className="w-3 h-3" /> These amounts are locked — Smart Allocation won't reduce them automatically.
+        </p>
+      </div>
+    );
+
+    if (step === 4) return (
       <div>
         <p className="text-base font-semibold mb-1">How many dependents do you support?</p>
         <p className="text-sm text-muted-foreground mb-4">Kids, elderly parents, or anyone who relies on you financially</p>
@@ -628,7 +635,7 @@ const handleApply = async () => {
       </div>
     );
 
-    if (step === 4) return (
+    if (step === 5) return (
       <div>
         <p className="text-base font-semibold mb-1">Do you have significant debt?</p>
         <p className="text-sm text-muted-foreground mb-1">Credit cards, student loans, car notes</p>
@@ -648,7 +655,7 @@ const handleApply = async () => {
       </div>
     );
 
-    if (step === 5) return (
+    if (step === 6) return (
       <div>
         <p className="text-base font-semibold mb-1">What is your main financial focus right now?</p>
         <p className="text-sm text-muted-foreground mb-4">This shapes how we prioritise your budget</p>
@@ -672,7 +679,7 @@ const handleApply = async () => {
   };
 
   const isQuestionStep = typeof step === 'number';
-  const stepNum = isQuestionStep ? (step as number) : 5;
+  const stepNum = isQuestionStep ? (step as number) : 6;
   const showProgress = step !== 'loading' && step !== 'reveal';
   const showNav = step !== 'loading' && step !== 'reveal';
 
@@ -693,11 +700,11 @@ const handleApply = async () => {
       {showProgress && (
         <div className="px-4 lg:px-6 pt-4 shrink-0">
           <div className="flex gap-1 mb-1">
-            {[1, 2, 3, 4, 5].map(n => (
+            {[1, 2, 3, 4, 5, 6].map(n => (
               <div key={n} className={`h-1 flex-1 rounded-full transition-colors ${n <= stepNum ? 'bg-teal-500' : 'bg-muted'}`} />
             ))}
           </div>
-          <p className="text-xs text-muted-foreground">Step {stepNum} of 5</p>
+          <p className="text-xs text-muted-foreground">Step {stepNum} of 6</p>
         </div>
       )}
 
@@ -724,7 +731,7 @@ const handleApply = async () => {
               disabled={!canNext()}
               className="flex items-center gap-1.5 px-6 py-2.5 rounded-xl bg-teal-500 hover:bg-teal-600 text-white text-sm font-semibold transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
             >
-              {step === 5 ? <><Sparkles className="w-4 h-4" /> Generate My Budget</> : <>Next <ChevronRight className="w-4 h-4" /></>}
+              {step === 6 ? <><Sparkles className="w-4 h-4" /> Generate My Budget</> : <>Next <ChevronRight className="w-4 h-4" /></>}
             </button>
           </div>
         </div>
