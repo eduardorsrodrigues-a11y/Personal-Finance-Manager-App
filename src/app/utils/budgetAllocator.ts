@@ -148,52 +148,38 @@ export function getBucketMap(allocations: CategoryAllocation[]): Record<string, 
 }
 
 // Phase 4: Smart readjustment engine
-// Returns updated amounts + which category was adjusted and by how much
+// Distributes the delta proportionally (by current allocation) across all
+// eligible fluid categories below the changed one.
 export function rebalance(
   amounts: Record<string, number>,
   changedCategory: string,
   newAmount: number,
-  bucketMap: Record<string, 'needs' | 'wants'>,
+  _bucketMap: Record<string, 'needs' | 'wants'>,
   belowCategories?: Set<string>,
-): { updated: Record<string, number>; adjustedFrom: string; delta: number } | null {
+): { updated: Record<string, number> } | null {
   const delta = newAmount - (amounts[changedCategory] ?? 0);
   if (Math.abs(delta) < 0.5) return null;
 
-  const updated = { ...amounts, [changedCategory]: newAmount };
-  const changedBucket = bucketMap[changedCategory];
-  const otherBucket: 'needs' | 'wants' = changedBucket === 'needs' ? 'wants' : 'needs';
+  // Eligible absorbers: fluid, non-zero, and within the allowed set
+  const candidates = Object.keys(amounts).filter(c =>
+    c !== changedCategory &&
+    !FIXED_CATEGORIES.has(c) &&
+    amounts[c] > 0 &&
+    (!belowCategories || belowCategories.has(c)),
+  );
 
-  const fluidOf = (bucket: 'needs' | 'wants') =>
-    Object.keys(amounts)
-      .filter(c =>
-        c !== changedCategory &&
-        !FIXED_CATEGORIES.has(c) &&
-        bucketMap[c] === bucket &&
-        amounts[c] > 0 &&
-        (!belowCategories || belowCategories.has(c)),
-      )
-      .sort((a, b) => amounts[b] - amounts[a]);
-
-  const candidates = [...fluidOf(changedBucket), ...fluidOf(otherBucket)];
   if (candidates.length === 0) return null;
 
-  let remaining = delta;
-  let primaryAdjusted = '';
+  const totalBase = candidates.reduce((s, c) => s + amounts[c], 0);
+  if (totalBase === 0) return null;
 
+  const updated = { ...amounts, [changedCategory]: newAmount };
+
+  // Each candidate absorbs its proportional share of the delta
   for (const cat of candidates) {
-    if (Math.abs(remaining) < 0.5) break;
-    if (remaining > 0) {
-      const take = Math.min(remaining, updated[cat]);
-      updated[cat] = Math.max(0, updated[cat] - take);
-      remaining -= take;
-      if (!primaryAdjusted && take > 0.5) primaryAdjusted = cat;
-    } else {
-      updated[cat] += Math.abs(remaining);
-      if (!primaryAdjusted) primaryAdjusted = cat;
-      remaining = 0;
-    }
+    const share = delta * (amounts[cat] / totalBase);
+    updated[cat] = Math.max(0, updated[cat] - share);
   }
 
-  if (!primaryAdjusted) return null;
-  return { updated, adjustedFrom: primaryAdjusted, delta };
+  return { updated };
 }
