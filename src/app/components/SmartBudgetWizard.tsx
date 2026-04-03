@@ -251,11 +251,7 @@ export function SmartBudgetWizard({ isOpen, onClose, initialReveal }: Props) {
     for (const [cat, amt] of Object.entries(amounts)) {
       rounded[cat] = Math.round(amt);
     }
-    await setBudgetsAll(rounded);
-    if (result) {
-      const stored: SmartBudgetStored = { result, amounts: rounded };
-      localStorage.setItem(SMART_BUDGET_KEY, JSON.stringify(stored));
-    }
+    await setBudgetsAll(rounded, result?.income);
     showToast('Smart budget applied successfully!');
     onClose();
   };

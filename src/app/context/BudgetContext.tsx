@@ -7,8 +7,9 @@ const GUEST_BUDGETS_KEY = 'expense_manager_guest_budgets';
 
 interface BudgetContextValue {
   budgets: Budgets;
+  smartIncome: number | null;
   setBudgetForCategory: (category: string, amount: number) => Promise<void>;
-  setBudgetsAll: (newBudgets: Budgets) => Promise<void>;
+  setBudgetsAll: (newBudgets: Budgets, income?: number) => Promise<void>;
   loading: boolean;
 }
 
@@ -17,15 +18,20 @@ const BudgetContext = createContext<BudgetContextValue | null>(null);
 export function BudgetProvider({ children }: { children: ReactNode }) {
   const { user, isGuest } = useAuth();
   const [budgets, setBudgets] = useState<Budgets>({});
+  const [smartIncome, setSmartIncome] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
 
   const loadBudgets = useCallback(async () => {
     if (isGuest) {
       try {
         const stored = localStorage.getItem(GUEST_BUDGETS_KEY);
-        setBudgets(stored ? JSON.parse(stored) : {});
+        const all: Record<string, number> = stored ? JSON.parse(stored) : {};
+        const { __smartIncome, ...cats } = all as any;
+        setBudgets(cats);
+        setSmartIncome(__smartIncome ?? null);
       } catch {
         setBudgets({});
+        setSmartIncome(null);
       }
       setLoading(false);
       return;
@@ -37,6 +43,7 @@ export function BudgetProvider({ children }: { children: ReactNode }) {
         if (res.ok) {
           const data = await res.json();
           setBudgets(data.budgets ?? {});
+          setSmartIncome(data.smartIncome ?? null);
         }
       } catch {
         // ignore
@@ -45,8 +52,8 @@ export function BudgetProvider({ children }: { children: ReactNode }) {
       return;
     }
 
-    // Not logged in yet
     setBudgets({});
+    setSmartIncome(null);
     setLoading(false);
   }, [user, isGuest]);
 
@@ -61,7 +68,8 @@ export function BudgetProvider({ children }: { children: ReactNode }) {
       setBudgets(updated);
 
       if (isGuest) {
-        localStorage.setItem(GUEST_BUDGETS_KEY, JSON.stringify(updated));
+        const toStore = smartIncome ? { ...updated, __smartIncome: smartIncome } : updated;
+        localStorage.setItem(GUEST_BUDGETS_KEY, JSON.stringify(toStore));
         return;
       }
 
@@ -70,19 +78,21 @@ export function BudgetProvider({ children }: { children: ReactNode }) {
           method: 'PUT',
           credentials: 'include',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ budgets: updated }),
+          body: JSON.stringify({ budgets: updated, smartIncome }),
         });
       }
     },
-    [budgets, user, isGuest],
+    [budgets, smartIncome, user, isGuest],
   );
 
   const setBudgetsAll = useCallback(
-    async (newBudgets: Budgets) => {
+    async (newBudgets: Budgets, income?: number) => {
       setBudgets(newBudgets);
+      setSmartIncome(income ?? null);
 
       if (isGuest) {
-        localStorage.setItem(GUEST_BUDGETS_KEY, JSON.stringify(newBudgets));
+        const toStore = income ? { ...newBudgets, __smartIncome: income } : newBudgets;
+        localStorage.setItem(GUEST_BUDGETS_KEY, JSON.stringify(toStore));
         return;
       }
 
@@ -91,7 +101,7 @@ export function BudgetProvider({ children }: { children: ReactNode }) {
           method: 'PUT',
           credentials: 'include',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ budgets: newBudgets }),
+          body: JSON.stringify({ budgets: newBudgets, smartIncome: income ?? null }),
         });
       }
     },
@@ -99,7 +109,7 @@ export function BudgetProvider({ children }: { children: ReactNode }) {
   );
 
   return (
-    <BudgetContext.Provider value={{ budgets, setBudgetForCategory, setBudgetsAll, loading }}>
+    <BudgetContext.Provider value={{ budgets, smartIncome, setBudgetForCategory, setBudgetsAll, loading }}>
       {children}
     </BudgetContext.Provider>
   );

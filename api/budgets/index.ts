@@ -27,14 +27,15 @@ export default async function handler(req: any, res: any) {
   }
 
   if (req.method === 'GET') {
-    const budgets = await getBudgets(userId);
-    res.status(200).json({ budgets });
+    const all = await getBudgets(userId) as Record<string, number>;
+    const { __smartIncome, ...budgets } = all;
+    res.status(200).json({ budgets, smartIncome: __smartIncome ?? null });
     return;
   }
 
   if (req.method === 'PUT') {
     const body = await readJsonBody(req);
-    const { budgets } = body ?? {};
+    const { budgets, smartIncome } = body ?? {};
     if (!budgets || typeof budgets !== 'object' || Array.isArray(budgets)) {
       res.status(400).json({ error: 'Invalid budgets payload' });
       return;
@@ -46,7 +47,10 @@ export default async function handler(req: any, res: any) {
         return;
       }
     }
-    await upsertBudgets({ userId, budgets });
+    const toStore = (typeof smartIncome === 'number' && smartIncome > 0)
+      ? { ...budgets, __smartIncome: smartIncome }
+      : budgets;
+    await upsertBudgets({ userId, budgets: toStore });
     res.status(204).end();
     return;
   }
