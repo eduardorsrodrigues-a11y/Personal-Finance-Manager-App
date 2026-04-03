@@ -103,6 +103,14 @@ export function SmartBudgetWizard({ isOpen, onClose, initialReveal }: Props) {
   const [wantsPool, setWantsPool] = useState(0);
   const [fixedAmounts, setFixedAmounts] = useState<Record<string, number>>({});
   const [microAmounts, setMicroAmounts] = useState<Record<string, number>>({});
+  const [microError, setMicroError] = useState('');
+  const microErrorTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const showMicroError = (msg: string) => {
+    setMicroError(msg);
+    if (microErrorTimer.current) clearTimeout(microErrorTimer.current);
+    microErrorTimer.current = setTimeout(() => setMicroError(''), 2500);
+  };
 
   const isReadjustRef = useRef(false);
 
@@ -172,6 +180,7 @@ export function SmartBudgetWizard({ isOpen, onClose, initialReveal }: Props) {
       setWantsPool(0);
       setFixedAmounts({});
       setMicroAmounts({});
+      setMicroError('');
     }
   }, [isOpen]);
 
@@ -471,6 +480,13 @@ export function SmartBudgetWizard({ isOpen, onClose, initialReveal }: Props) {
             <p className="text-xs text-muted-foreground mt-0.5">of {formatAmount(wantsPool)} total</p>
           </div>
 
+          {/* Over-budget error */}
+          {microError && (
+            <div className="mb-4 px-3 py-2 rounded-lg bg-red-50 border border-red-200 dark:bg-red-950/30 dark:border-red-800 text-center">
+              <p className="text-xs font-medium text-red-600 dark:text-red-400">{microError}</p>
+            </div>
+          )}
+
           {/* Per-category sliders — all share wantsPool as the uniform scale */}
           {(() => {
             // Fixed scale for every slider so tick marks are always consistent.
@@ -504,6 +520,10 @@ export function SmartBudgetWizard({ isOpen, onClose, initialReveal }: Props) {
                               value={amt}
                               onChange={e => {
                                 const raw = Math.max(0, Number(e.target.value) || 0);
+                                if (raw > (microAmounts[cat] ?? 0) && microRemaining <= 0) {
+                                  showMicroError('No remaining budget available');
+                                  return;
+                                }
                                 const maxCat = (microAmounts[cat] ?? 0) + Math.max(0, microRemaining);
                                 setMicroAmounts(prev => ({ ...prev, [cat]: Math.min(raw, maxCat) }));
                               }}
@@ -520,6 +540,10 @@ export function SmartBudgetWizard({ isOpen, onClose, initialReveal }: Props) {
                           value={Math.min(amt, sliderMax)}
                           onChange={e => {
                             const raw = Number(e.target.value);
+                            if (raw > (microAmounts[cat] ?? 0) && microRemaining <= 0) {
+                              showMicroError('No remaining budget available');
+                              return;
+                            }
                             const maxCat = (microAmounts[cat] ?? 0) + Math.max(0, microRemaining);
                             setMicroAmounts(prev => ({ ...prev, [cat]: snapToStep(Math.min(raw, maxCat), SLIDER_STEP) }));
                           }}
@@ -697,19 +721,19 @@ export function SmartBudgetWizard({ isOpen, onClose, initialReveal }: Props) {
 
       {/* Navigation (question steps only) */}
       {isQuestionStep && (
-        <div className="px-4 lg:px-6 py-4 border-t border-border bg-card shrink-0">
+        <div className="px-4 lg:px-6 py-5 lg:py-4 border-t border-border bg-card shrink-0">
           <div className="max-w-lg mx-auto flex items-center justify-between gap-3">
             <button
               onClick={handleBack}
               disabled={step === 1}
-              className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl border border-border text-sm font-medium hover:bg-muted transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+              className="flex items-center gap-1.5 px-4 py-3.5 lg:py-2.5 rounded-xl border border-border text-sm font-medium hover:bg-muted transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
             >
               <ChevronLeft className="w-4 h-4" /> Back
             </button>
             <button
               onClick={handleNext}
               disabled={!canNext()}
-              className="flex items-center gap-1.5 px-6 py-2.5 rounded-xl bg-teal-500 hover:bg-teal-600 text-white text-sm font-semibold transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+              className="flex items-center gap-1.5 px-6 py-3.5 lg:py-2.5 rounded-xl bg-teal-500 hover:bg-teal-600 text-white text-sm font-semibold transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
             >
               {step === 5 ? <><Sparkles className="w-4 h-4" /> Generate My Budget</> : <>Next <ChevronRight className="w-4 h-4" /></>}
             </button>
@@ -719,19 +743,19 @@ export function SmartBudgetWizard({ isOpen, onClose, initialReveal }: Props) {
 
       {/* Macro footer */}
       {step === 'macro' && (
-        <div className="px-4 lg:px-6 py-4 border-t border-border bg-card shrink-0">
+        <div className="px-4 lg:px-6 py-5 lg:py-4 border-t border-border bg-card shrink-0">
           <div className="max-w-lg mx-auto flex gap-3">
             {!isReadjustRef.current && (
               <button
                 onClick={handleBack}
-                className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl border border-border text-sm hover:bg-muted transition-colors"
+                className="flex items-center gap-1.5 px-4 py-3.5 lg:py-2.5 rounded-xl border border-border text-sm hover:bg-muted transition-colors"
               >
                 <ChevronLeft className="w-4 h-4" /> Back
               </button>
             )}
             <button
               onClick={handleEnterMicro}
-              className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl bg-teal-500 hover:bg-teal-600 text-white text-sm font-semibold transition-colors"
+              className="flex-1 flex items-center justify-center gap-2 py-3.5 lg:py-2.5 rounded-xl bg-teal-500 hover:bg-teal-600 text-white text-sm font-semibold transition-colors"
             >
               Allocate Wants <ChevronRight className="w-4 h-4" />
             </button>
@@ -741,18 +765,18 @@ export function SmartBudgetWizard({ isOpen, onClose, initialReveal }: Props) {
 
       {/* Micro footer */}
       {step === 'micro' && (
-        <div className="px-4 lg:px-6 py-4 border-t border-border bg-card shrink-0">
+        <div className="px-4 lg:px-6 py-5 lg:py-4 border-t border-border bg-card shrink-0">
           <div className="max-w-lg mx-auto flex gap-3">
             <button
               onClick={handleBack}
-              className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl border border-border text-sm hover:bg-muted transition-colors"
+              className="flex items-center gap-1.5 px-4 py-3.5 lg:py-2.5 rounded-xl border border-border text-sm hover:bg-muted transition-colors"
             >
               <ChevronLeft className="w-4 h-4" /> Back
             </button>
             <button
               onClick={handleApply}
               disabled={applying}
-              className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl bg-teal-500 hover:bg-teal-600 text-white text-sm font-semibold transition-colors disabled:opacity-60"
+              className="flex-1 flex items-center justify-center gap-2 py-3.5 lg:py-2.5 rounded-xl bg-teal-500 hover:bg-teal-600 text-white text-sm font-semibold transition-colors disabled:opacity-60"
             >
               <TrendingUp className="w-4 h-4" />
               {applying ? 'Applying…' : 'Apply Budget'}
