@@ -154,6 +154,7 @@ export function rebalance(
   changedCategory: string,
   newAmount: number,
   bucketMap: Record<string, 'needs' | 'wants'>,
+  belowCategories?: Set<string>,
 ): { updated: Record<string, number>; adjustedFrom: string; delta: number } | null {
   const delta = newAmount - (amounts[changedCategory] ?? 0);
   if (Math.abs(delta) < 0.5) return null;
@@ -164,7 +165,13 @@ export function rebalance(
 
   const fluidOf = (bucket: 'needs' | 'wants') =>
     Object.keys(amounts)
-      .filter(c => c !== changedCategory && !FIXED_CATEGORIES.has(c) && bucketMap[c] === bucket && amounts[c] > 0)
+      .filter(c =>
+        c !== changedCategory &&
+        !FIXED_CATEGORIES.has(c) &&
+        bucketMap[c] === bucket &&
+        amounts[c] > 0 &&
+        (!belowCategories || belowCategories.has(c)),
+      )
       .sort((a, b) => amounts[b] - amounts[a]);
 
   const candidates = [...fluidOf(changedBucket), ...fluidOf(otherBucket)];

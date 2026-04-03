@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
-import { X, ChevronRight, ChevronLeft, Sparkles, Lock, RotateCcw, TrendingUp, PiggyBank } from 'lucide-react';
+import { X, ChevronRight, ChevronLeft, Sparkles, Lock, LockOpen, RotateCcw, TrendingUp, PiggyBank } from 'lucide-react';
 import { useBudgets } from '../context/BudgetContext';
 import { useCurrency } from '../context/CurrencyContext';
 import { useLanguage } from '../context/LanguageContext';
@@ -113,6 +113,7 @@ export function SmartBudgetWizard({ isOpen, onClose, initialReveal }: Props) {
   const [applying, setApplying] = useState(false);
   const [savingsDraft, setSavingsDraft] = useState<number | null>(null);
   const [fixSavings, setFixSavings] = useState(true);
+  const [unlockedFixed, setUnlockedFixed] = useState<Set<string>>(new Set());
 
   const [data, setData] = useState<WizardData>({
     income: '', housingSituation: '', housingAmount: '',
@@ -160,6 +161,7 @@ export function SmartBudgetWizard({ isOpen, onClose, initialReveal }: Props) {
         setApplying(false);
         setComputeError('');
         setFixSavings(true);
+        setUnlockedFixed(new Set());
       }
     } else {
       setStep(1);
@@ -172,6 +174,7 @@ export function SmartBudgetWizard({ isOpen, onClose, initialReveal }: Props) {
       setApplying(false);
       setSavingsDraft(null);
       setFixSavings(true);
+      setUnlockedFixed(new Set());
       dragStartAmounts.current = {};
       inputStartRef.current = {};
     }
@@ -237,9 +240,18 @@ export function SmartBudgetWizard({ isOpen, onClose, initialReveal }: Props) {
     if (typeof step === 'number' && step > 1) setStep((step - 1) as WizardStep);
   };
 
-  // Rebalance using the snapshot from BEFORE the drag/type started
+  const relockIfFixed = (category: string) => {
+    if (FIXED_CATEGORIES.has(category)) {
+      setUnlockedFixed(prev => { const s = new Set(prev); s.delete(category); return s; });
+    }
+  };
+
+  // Rebalance using the snapshot from BEFORE the drag/type started.
+  // Only categories rendered BELOW the changed one are eligible to absorb.
+  // If none are available, savings absorbs the change (no loop).
   const handleCommit = (category: string, newAmount: number, baseAmounts: Record<string, number>) => {
-    if (!result || FIXED_CATEGORIES.has(category)) return;
+    const effectivelyFixed = FIXED_CATEGORIES.has(category) && !unlockedFixed.has(category);
+    if (!result || effectivelyFixed) return;
     const delta = newAmount - (baseAmounts[category] ?? 0);
     if (Math.abs(delta) < 1) return;
 
@@ -249,14 +261,29 @@ export function SmartBudgetWizard({ isOpen, onClose, initialReveal }: Props) {
       return;
     }
 
-    // Fixed-savings mode: rebalance other categories to keep savings constant
+    // Fixed-savings mode: only absorb from categories BELOW this one in display order
+    const displayOrder = [...NEEDS_CATEGORIES, ...WANTS_CATEGORIES];
+    const changedIdx = displayOrder.indexOf(category);
+    const belowCategories = new Set(
+      displayOrder.slice(changedIdx + 1).filter(c => !FIXED_CATEGORIES.has(c)),
+    );
+
+    if (belowCategories.size === 0) {
+      // Nothing below to absorb — fall back to savings absorbing the difference
+      setAmounts(prev => ({ ...prev, [category]: newAmount }));
+      return;
+    }
+
     const bucketMap = getBucketMap(result.allocations);
     const snap = { ...amounts };
-    const res = rebalance(baseAmounts, category, newAmount, bucketMap);
+    const res = rebalance(baseAmounts, category, newAmount, bucketMap, belowCategories);
     if (res) {
       setPrevAmounts(snap);
       setAmounts(res.updated);
       setNotification({ changedCategory: category, adjustedFrom: res.adjustedFrom, delta: res.delta });
+    } else {
+      // No fluid categories below had capacity — savings absorbs
+      setAmounts(prev => ({ ...prev, [category]: newAmount }));
     }
   };
 
@@ -332,7 +359,9 @@ export function SmartBudgetWizard({ isOpen, onClose, initialReveal }: Props) {
             <div className="space-y-6">
               {sectionAllocs.map(alloc => {
                 const { icon: Icon, bg, text } = getCategoryConfig(alloc.category);
-                const isFixed = alloc.fixed;
+                const isNativeFixed = FIXED_CATEGORIES.has(alloc.category);
+                const isUnlocked = unlockedFixed.has(alloc.category);
+                const isFixed = isNativeFixed && !isUnlocked;
                 const amt = amounts[alloc.category] ?? 0;
                 const pct = maxSlider > 0 ? Math.round((amt / maxSlider) * 100) : 0;
 
@@ -349,7 +378,20 @@ export function SmartBudgetWizard({ isOpen, onClose, initialReveal }: Props) {
                       <div className="flex items-center justify-between gap-2 mb-2">
                         <div className="flex items-center gap-1 min-w-0">
                           <span className="text-sm font-medium truncate">{tCategory(alloc.category)}</span>
-                          {isFixed && <Lock className="w-3 h-3 text-muted-foreground shrink-0" />}
+                          {isNativeFixed && (
+                            isUnlocked ? (
+                              <LockOpen className="w-3 h-3 text-teal-500 shrink-0" />
+                            ) : (
+                              <button
+                                type="button"
+                                onClick={() => setUnlockedFixed(prev => new Set([...prev, alloc.category]))}
+                                className="shrink-0 p-0.5 rounded hover:bg-muted transition-colors"
+                                title="Click to temporarily unlock"
+                              >
+                                <Lock className="w-3 h-3 text-muted-foreground" />
+                              </button>
+                            )
+                          )}
                         </div>
                         <div className="flex items-center gap-0.5 shrink-0">
                           <span className="text-xs text-muted-foreground">{currency.symbol}</span>
@@ -372,6 +414,7 @@ export function SmartBudgetWizard({ isOpen, onClose, initialReveal }: Props) {
                               const base = { ...amounts, [alloc.category]: inputStartRef.current[alloc.category] ?? raw };
                               setAmounts(prev => ({ ...prev, [alloc.category]: raw }));
                               handleCommit(alloc.category, raw, base);
+                              relockIfFixed(alloc.category);
                             }}
                             onKeyDown={e => e.key === 'Enter' && (e.target as HTMLInputElement).blur()}
                             className="no-spin w-16 text-right text-sm font-semibold bg-transparent border-b-2 border-border focus:border-teal-500 focus:outline-none disabled:opacity-40"
@@ -392,8 +435,14 @@ export function SmartBudgetWizard({ isOpen, onClose, initialReveal }: Props) {
                         onChange={e => {
                           if (!isFixed) setAmounts(prev => ({ ...prev, [alloc.category]: Number(e.target.value) }));
                         }}
-                        onMouseUp={e => handleCommit(alloc.category, Number((e.target as HTMLInputElement).value), dragStartAmounts.current)}
-                        onTouchEnd={e => handleCommit(alloc.category, Number((e.currentTarget as HTMLInputElement).value), dragStartAmounts.current)}
+                        onMouseUp={e => {
+                          handleCommit(alloc.category, Number((e.target as HTMLInputElement).value), dragStartAmounts.current);
+                          relockIfFixed(alloc.category);
+                        }}
+                        onTouchEnd={e => {
+                          handleCommit(alloc.category, Number((e.currentTarget as HTMLInputElement).value), dragStartAmounts.current);
+                          relockIfFixed(alloc.category);
+                        }}
                         style={{ '--pct': `${pct}` } as React.CSSProperties}
                         className={`smart-slider w-full ${isFixed ? 'opacity-40' : ''}`}
                       />
@@ -511,7 +560,7 @@ export function SmartBudgetWizard({ isOpen, onClose, initialReveal }: Props) {
           {renderSection('✨  Wants', WANTS_CATEGORIES, 'text-purple-600')}
 
           <p className="text-xs text-muted-foreground text-center mt-2">
-            <Lock className="w-3 h-3 inline mr-1" />Fixed amounts cannot be auto-adjusted by Smart Allocation
+            <Lock className="w-3 h-3 inline mr-1" />Tap the lock icon to temporarily unlock a fixed category
           </p>
         </div>
       );
