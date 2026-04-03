@@ -351,6 +351,15 @@ export function SmartBudgetWizard({ isOpen, onClose, initialReveal }: Props) {
                 <p className="text-xs text-muted-foreground">{macroIncome > 0 ? Math.round((macroNeedsActual / macroIncome) * 100) : 0}%</p>
               </div>
             </div>
+            {(() => {
+              const rec = macroIncome * 0.6;
+              const state = macroNeedsActual < rec * 0.97 ? 'low' : macroNeedsActual > rec * 1.03 ? 'high' : 'neutral';
+              const msg   = state === 'low'     ? 'Great job! Keeping fixed costs low gives you a great potential to grow your portfolio.'
+                          : state === 'high'    ? 'We noticed your fixed costs are high, but we will create a plan to improve this.'
+                          :                       'Your essential spending is perfectly balanced.';
+              const color = state === 'low' ? 'text-emerald-600' : state === 'high' ? 'text-amber-600' : 'text-muted-foreground';
+              return <p className={`text-xs mt-3 pt-2.5 border-t border-border/50 ${color}`}>{msg}</p>;
+            })()}
           </div>
 
           {/* Wants card — adjustable slider */}
@@ -391,6 +400,15 @@ export function SmartBudgetWizard({ isOpen, onClose, initialReveal }: Props) {
                 );
               })}
             </div>
+            {(() => {
+              const rec   = macroIncome * 0.2;
+              const state = actualWants < rec * 0.97 ? 'low' : actualWants > rec * 1.03 ? 'high' : 'neutral';
+              const msg   = state === 'low'  ? 'Great discipline! This frees up cash and gives you a great potential to grow your portfolio.'
+                          : state === 'high' ? "You're over the limit. Try scaling back to protect your savings."
+                          :                    'Your lifestyle spending is right on target.';
+              const color = state === 'low' ? 'text-emerald-600' : state === 'high' ? 'text-amber-600' : 'text-muted-foreground';
+              return <p className={`text-xs mt-3 pt-2.5 border-t border-border/50 ${color}`}>{msg}</p>;
+            })()}
           </div>
 
           {/* Savings card — derived */}
@@ -418,6 +436,16 @@ export function SmartBudgetWizard({ isOpen, onClose, initialReveal }: Props) {
                 </p>
               </div>
             </div>
+            {(() => {
+              const rec    = macroIncome * 0.2;
+              const actual = Math.max(0, actualSavings);
+              const state  = actual > rec * 1.03 ? 'high' : actual < rec * 0.97 ? 'low' : 'neutral';
+              const msg    = state === 'high'    ? 'Fantastic! You are saving aggressively.'
+                           : state === 'low'     ? "Savings are a bit low. Try cutting back on 'Wants'."
+                           :                       "Spot on! You're hitting the 20% savings goal.";
+              const color  = state === 'high' ? 'text-emerald-600' : state === 'low' ? 'text-amber-600' : 'text-muted-foreground';
+              return <p className={`text-xs mt-3 pt-2.5 border-t border-border/50 ${color}`}>{msg}</p>;
+            })()}
           </div>
         </div>
       );
