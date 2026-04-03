@@ -334,7 +334,7 @@ export function Budgets() {
                       min={0}
                       value={editingDraft}
                       onChange={e => setEditingDraft(Math.max(0, Number(e.target.value) || 0))}
-                      onKeyDown={e => e.key === 'Enter' && (e.target as HTMLInputElement).blur()}
+                      onKeyDown={e => { if (e.key === 'Enter') handleSaveEdit(); }}
                       style={{ color: editingDraft > 0 ? hex : undefined }}
                       className="no-spin w-24 text-right text-lg font-bold bg-transparent border-b-2 border-border focus:border-teal-500 focus:outline-none"
                     />

@@ -137,6 +137,23 @@ export function SmartBudgetWizard({ isOpen, onClose, initialReveal }: Props) {
   const initialRevealRef = useRef(initialReveal);
   initialRevealRef.current = initialReveal;
 
+  // Enter key → Next / Apply
+  const enterActionRef = useRef<() => void>(() => {});
+  enterActionRef.current = () => {
+    if (typeof step === 'number' && canNext()) handleNext();
+    else if (step === 'reveal' && !applying) handleApply();
+  };
+  useEffect(() => {
+    if (!isOpen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== 'Enter') return;
+      if ((e.target as HTMLElement).tagName === 'TEXTAREA') return;
+      enterActionRef.current();
+    };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [isOpen]);
+
   useEffect(() => {
     if (isOpen) {
       const ir = initialRevealRef.current;
