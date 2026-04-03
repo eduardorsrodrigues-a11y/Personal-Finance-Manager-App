@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
-import { X, ChevronRight, ChevronLeft, Sparkles, Lock, LockOpen, RotateCcw, TrendingUp, PiggyBank } from 'lucide-react';
+import { X, ChevronRight, ChevronLeft, Sparkles, Lock, LockOpen, TrendingUp, PiggyBank } from 'lucide-react';
 import { useBudgets } from '../context/BudgetContext';
 import { useCurrency } from '../context/CurrencyContext';
 import { useLanguage } from '../context/LanguageContext';
@@ -33,11 +33,6 @@ interface WizardData {
   goal: '' | FinancialGoal;
 }
 
-interface Notification {
-  changedCategory: string;
-  adjustedFrom: string;
-  delta: number;
-}
 
 interface Props {
   isOpen: boolean;
@@ -108,8 +103,7 @@ export function SmartBudgetWizard({ isOpen, onClose, initialReveal }: Props) {
   const [computeError, setComputeError] = useState('');
   const [result, setResult] = useState<AllocatorResult | null>(null);
   const [amounts, setAmounts] = useState<Record<string, number>>({});
-  const [prevAmounts, setPrevAmounts] = useState<Record<string, number> | null>(null);
-  const [notification, setNotification] = useState<Notification | null>(null);
+
   const [applying, setApplying] = useState(false);
   const [savingsDraft, setSavingsDraft] = useState<number | null>(null);
   const [fixSavings, setFixSavings] = useState(true);
@@ -155,8 +149,6 @@ export function SmartBudgetWizard({ isOpen, onClose, initialReveal }: Props) {
         setResult(ir.result);
         setAmounts(snapped);
         setStep('reveal');
-        setNotification(null);
-        setPrevAmounts(null);
         setSavingsDraft(null);
         setApplying(false);
         setComputeError('');
@@ -168,8 +160,6 @@ export function SmartBudgetWizard({ isOpen, onClose, initialReveal }: Props) {
       setData({ income: '', housingSituation: '', housingAmount: '', utilities: '', health: '', gym: '', dependents: '', debt: '', goal: '' });
       setResult(null);
       setAmounts({});
-      setPrevAmounts(null);
-      setNotification(null);
       setComputeError('');
       setApplying(false);
       setSavingsDraft(null);
@@ -275,12 +265,9 @@ export function SmartBudgetWizard({ isOpen, onClose, initialReveal }: Props) {
     }
 
     const bucketMap = getBucketMap(result.allocations);
-    const snap = { ...amounts };
     const res = rebalance(baseAmounts, category, newAmount, bucketMap, belowCategories);
     if (res) {
-      setPrevAmounts(snap);
       setAmounts(res.updated);
-      setNotification({ changedCategory: category, adjustedFrom: res.adjustedFrom, delta: res.delta });
     } else {
       // No fluid categories below had capacity — savings absorbs
       setAmounts(prev => ({ ...prev, [category]: newAmount }));
@@ -301,11 +288,7 @@ export function SmartBudgetWizard({ isOpen, onClose, initialReveal }: Props) {
     setAmounts(updated);
   };
 
-  const handleUndo = () => {
-    if (prevAmounts) { setAmounts(prevAmounts); setPrevAmounts(null); setNotification(null); }
-  };
-
-  const handleApply = async () => {
+const handleApply = async () => {
     setApplying(true);
     const rounded: Record<string, number> = {};
     for (const [cat, amt] of Object.entries(amounts)) rounded[cat] = Math.round(amt);
@@ -473,25 +456,6 @@ export function SmartBudgetWizard({ isOpen, onClose, initialReveal }: Props) {
 
       return (
         <div className="pb-4">
-          {/* Notification banner */}
-          {notification && (
-            <div className="mb-4 p-3 bg-teal-50 border border-teal-200 rounded-xl flex items-start gap-3">
-              <div className="flex-1 min-w-0">
-                <p className="text-xs text-teal-800">
-                  <span className="font-semibold">Smart Allocation: </span>
-                  {notification.delta > 0 ? 'Increased' : 'Decreased'} {tCategory(notification.changedCategory)} by {formatAmount(Math.abs(notification.delta))}. Deducted from {tCategory(notification.adjustedFrom)} to balance your budget.
-                </p>
-              </div>
-              <div className="flex gap-1.5 shrink-0">
-                <button onClick={handleUndo} className="flex items-center gap-1 text-xs px-2 py-1 rounded-lg border border-teal-300 text-teal-700 hover:bg-teal-100">
-                  <RotateCcw className="w-3 h-3" /> Undo
-                </button>
-                <button onClick={() => setNotification(null)} className="text-xs px-2 py-1 rounded-lg bg-teal-500 text-white">
-                  OK
-                </button>
-              </div>
-            </div>
-          )}
 
           {/* Fix Savings toggle */}
           <div className="flex items-center justify-between gap-3 px-4 py-3 bg-muted/50 rounded-xl mb-4">
@@ -507,7 +471,7 @@ export function SmartBudgetWizard({ isOpen, onClose, initialReveal }: Props) {
               type="button"
               role="switch"
               aria-checked={fixSavings}
-              onClick={() => { setFixSavings(f => !f); setNotification(null); setPrevAmounts(null); }}
+              onClick={() => setFixSavings(f => !f)}
               className={`relative shrink-0 w-11 h-6 rounded-full transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-ring ${fixSavings ? 'bg-teal-500' : 'bg-muted-foreground/30'}`}
             >
               <span className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${fixSavings ? 'translate-x-5' : 'translate-x-0'}`} />
