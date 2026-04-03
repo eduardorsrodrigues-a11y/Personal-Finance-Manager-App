@@ -178,7 +178,7 @@ export function rebalance(
   // Each candidate absorbs its proportional share of the delta
   for (const cat of candidates) {
     const share = delta * (amounts[cat] / totalBase);
-    updated[cat] = Math.max(0, updated[cat] - share);
+    updated[cat] = Math.round(Math.max(0, updated[cat] - share));
   }
 
   return { updated };
