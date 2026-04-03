@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { Check, Sparkles, ChevronRight, RotateCcw, PiggyBank, TrendingUp, Wallet } from 'lucide-react';
+import { useState } from 'react';
+import { X, Sparkles, ChevronRight, RotateCcw, PiggyBank, TrendingUp, Wallet } from 'lucide-react';
 import { SmartBudgetWizard, type SmartBudgetStored } from '../components/SmartBudgetWizard';
 import { useBudgets } from '../context/BudgetContext';
 import { useCurrency } from '../context/CurrencyContext';
@@ -11,58 +11,31 @@ import {
   type AllocatorResult,
 } from '../utils/budgetAllocator';
 
-const EXPENSE_CATEGORIES = [
-  'Food', 'Groceries', 'Housing', 'Utilities', 'Transportation',
-  'Shopping', 'Health', 'Entertainment', 'Travel', 'Family & Personal', 'Gifts', 'Gym & Sports', 'Other',
-];
-
 const ALL_SMART_CATEGORIES = [...NEEDS_CATEGORIES, ...WANTS_CATEGORIES];
+
+const SLIDER_STEP = 25;
+const TICK_EVERY  = 100;
+
+function snapToStep(value: number, step: number): number {
+  return Math.round(value / step) * step;
+}
 
 export function Budgets() {
   const { budgets, smartIncome, setBudgetForCategory, setBudgetsAll, loading } = useBudgets();
   const { currency, formatAmount } = useCurrency();
   const { t, tCategory } = useLanguage();
   const { showToast } = useToast();
-  const [drafts, setDrafts] = useState<Record<string, string>>({});
-  const [justSaved, setJustSaved] = useState<Record<string, boolean>>({});
+
   const [isWizardOpen, setIsWizardOpen] = useState(false);
   const [wizardInitialReveal, setWizardInitialReveal] = useState<SmartBudgetStored | undefined>(undefined);
 
+  // Single-category edit modal (manual mode)
+  const [editingCategory, setEditingCategory] = useState<string | null>(null);
+  const [editingDraft, setEditingDraft] = useState(0);
+
   const isSmartMode = smartIncome !== null && smartIncome > 0;
 
-  useEffect(() => {
-    if (!loading) {
-      const initial: Record<string, string> = {};
-      for (const cat of EXPENSE_CATEGORIES) {
-        initial[cat] = budgets[cat] != null && budgets[cat] > 0 ? String(budgets[cat]) : '';
-      }
-      setDrafts(initial);
-    }
-  }, [loading, budgets]);
-
-  const handleBlur = async (category: string) => {
-    const raw = drafts[category] ?? '';
-    const amount = raw === '' ? 0 : parseFloat(raw);
-    if (isNaN(amount) || amount < 0) return;
-
-    const current = budgets[category] ?? 0;
-    if (amount === current) return;
-
-    await setBudgetForCategory(category, amount);
-    setJustSaved((s) => ({ ...s, [category]: true }));
-    setTimeout(() => setJustSaved((s) => ({ ...s, [category]: false })), 2000);
-    showToast(
-      amount === 0
-        ? `${tCategory(category)} budget removed`
-        : `${tCategory(category)} budget set to ${formatAmount(amount)}`
-    );
-  };
-
-  const setBudgetCount = EXPENSE_CATEGORIES.filter(
-    (c) => budgets[c] != null && budgets[c] > 0
-  ).length;
-
-  // Build a synthetic AllocatorResult from stored income + current budgets
+  // ── Smart wizard helpers ───────────────────────────────────
   const buildRevealData = (): SmartBudgetStored | undefined => {
     if (!smartIncome) return undefined;
     const totalBudgeted = ALL_SMART_CATEGORIES.reduce((s, c) => s + (budgets[c] ?? 0), 0);
@@ -89,39 +62,57 @@ export function Budgets() {
     return { result, amounts };
   };
 
-  const openWizardFresh = () => {
-    setWizardInitialReveal(undefined);
-    setIsWizardOpen(true);
-  };
+  const openWizardFresh   = () => { setWizardInitialReveal(undefined); setIsWizardOpen(true); };
+  const openWizardReveal  = () => { setWizardInitialReveal(buildRevealData()); setIsWizardOpen(true); };
+  const handleWizardClose = () => { setIsWizardOpen(false); setWizardInitialReveal(undefined); };
+  const clearSmartMode    = async () => { await setBudgetsAll(budgets, undefined); };
 
-  const openWizardReveal = () => {
-    setWizardInitialReveal(buildRevealData());
-    setIsWizardOpen(true);
-  };
-
-  const handleWizardClose = () => {
-    setIsWizardOpen(false);
-    setWizardInitialReveal(undefined);
-  };
-
-  const clearSmartMode = async () => {
-    await setBudgetsAll(budgets, undefined);
-  };
-
-  // Smart budget summary
-  const totalBudgeted = EXPENSE_CATEGORIES.reduce((s, c) => s + (budgets[c] ?? 0), 0);
-  const smartSavings = (smartIncome ?? 0) - totalBudgeted;
+  // Smart budget summary numbers
+  const totalBudgeted   = ALL_SMART_CATEGORIES.reduce((s, c) => s + (budgets[c] ?? 0), 0);
+  const smartSavings    = (smartIncome ?? 0) - totalBudgeted;
   const smartSavingsPct = smartIncome ? (smartSavings / smartIncome) * 100 : 0;
-  const savingsLevel = smartSavingsPct >= 20 ? 'high' : smartSavingsPct >= 10 ? 'medium' : 'low';
-  const savingsColor = { high: 'text-emerald-600', medium: 'text-amber-600', low: 'text-red-500' }[savingsLevel];
+  const savingsLevel    = smartSavingsPct >= 20 ? 'high' : smartSavingsPct >= 10 ? 'medium' : 'low';
+  const savingsColor    = { high: 'text-emerald-600', medium: 'text-amber-600', low: 'text-red-500' }[savingsLevel];
 
-  // ── Smart budget category row ──────────────────────────────
+  // ── Manual edit modal helpers ──────────────────────────────
+  const openEdit = (name: string) => {
+    setEditingDraft(budgets[name] ?? 0);
+    setEditingCategory(name);
+  };
+  const closeEdit = () => setEditingCategory(null);
+
+  const handleSaveEdit = async () => {
+    if (!editingCategory) return;
+    const amount = Math.round(editingDraft);
+    await setBudgetForCategory(editingCategory, amount);
+    showToast(
+      amount === 0
+        ? `${tCategory(editingCategory)} budget removed`
+        : `${tCategory(editingCategory)} budget set to ${formatAmount(amount)}`,
+    );
+    closeEdit();
+  };
+
+  // Slider max: at least 2000, or 3× current budget rounded to nearest 100
+  const editMaxSlider = editingCategory
+    ? Math.max(Math.ceil(((budgets[editingCategory] ?? 0) * 3) / 100) * 100, 2000)
+    : 2000;
+
+  const editTicks: number[] = [];
+  for (let v = 0; v <= editMaxSlider; v += TICK_EVERY) editTicks.push(v);
+
+  // ── Shared row & section renderers ────────────────────────
+  const renderSectionHeader = (emoji: string, label: string, color: string) => (
+    <div className="px-4 py-2 bg-muted/50 border-b border-border">
+      <p className={`text-xs font-semibold uppercase tracking-wider ${color}`}>{emoji}  {label}</p>
+    </div>
+  );
+
   const renderSmartRow = (name: string) => {
     const { icon: Icon, bg, text, hex } = CATEGORY_CONFIG[name];
     const amount = budgets[name] ?? 0;
     const pctOfIncome = smartIncome ? (amount / smartIncome) * 100 : 0;
     const isSet = amount > 0;
-
     return (
       <button
         key={name}
@@ -144,22 +135,40 @@ export function Budgets() {
           </div>
         </div>
         <div className="text-right shrink-0">
-          {isSet ? (
-            <span className="text-sm font-semibold" style={{ color: hex }}>{formatAmount(amount)}</span>
-          ) : (
-            <span className="text-xs text-muted-foreground">{t('budgets.noLimit')}</span>
-          )}
+          {isSet
+            ? <span className="text-sm font-semibold" style={{ color: hex }}>{formatAmount(amount)}</span>
+            : <span className="text-xs text-muted-foreground">{t('budgets.noLimit')}</span>}
         </div>
         <ChevronRight className="w-4 h-4 text-muted-foreground shrink-0" />
       </button>
     );
   };
 
-  const renderSectionHeader = (emoji: string, label: string, color: string) => (
-    <div className="px-4 py-2 bg-muted/50 border-b border-border">
-      <p className={`text-xs font-semibold uppercase tracking-wider ${color}`}>{emoji}  {label}</p>
-    </div>
-  );
+  const renderManualRow = (name: string) => {
+    const { icon: Icon, bg, text, hex } = CATEGORY_CONFIG[name];
+    const amount = budgets[name] ?? 0;
+    const isSet = amount > 0;
+    return (
+      <button
+        key={name}
+        onClick={() => openEdit(name)}
+        className="w-full flex items-center gap-3 px-4 py-3.5 hover:bg-muted/50 transition-colors text-left"
+      >
+        <div className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ${bg}`}>
+          <Icon className={`w-4 h-4 ${text}`} />
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-medium truncate">{tCategory(name)}</p>
+        </div>
+        <div className="text-right shrink-0">
+          {isSet
+            ? <span className="text-sm font-semibold" style={{ color: hex }}>{formatAmount(amount)}</span>
+            : <span className="text-xs text-muted-foreground">{t('budgets.noLimit')}</span>}
+        </div>
+        <ChevronRight className="w-4 h-4 text-muted-foreground shrink-0" />
+      </button>
+    );
+  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -261,55 +270,24 @@ export function Budgets() {
             </button>
           </div>
         ) : (
-          /* ── Normal Budget View ──────────────────────────── */
-          <>
-            <div className="bg-card border border-border rounded-xl overflow-hidden">
-              <div className="grid grid-cols-1 lg:grid-cols-2 lg:divide-x lg:divide-border">
-              {EXPENSE_CATEGORIES.map((name) => {
-                const { icon: Icon, bg, text, hex } = CATEGORY_CONFIG[name];
-                const isSet = budgets[name] != null && budgets[name] > 0;
-                return (
-                  <div key={name} className="flex items-center gap-3 px-4 py-3 border-b border-border last:border-b-0">
-                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${bg}`}>
-                      <Icon className={`w-4 h-4 ${text}`} />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium truncate">{tCategory(name)}</p>
-                      <p className="text-xs">
-                        {isSet ? (
-                          <span style={{ color: hex }}>{formatAmount(budgets[name]!)}/mo</span>
-                        ) : (
-                          <span className="text-muted-foreground">{t('budgets.noLimit')}</span>
-                        )}
-                      </p>
-                    </div>
-                    <div className="relative shrink-0">
-                      <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs text-muted-foreground pointer-events-none">
-                        {currency.symbol}
-                      </span>
-                      <input
-                        type="number"
-                        inputMode="decimal"
-                        min="0"
-                        step="1"
-                        placeholder={t('budgets.noLimit')}
-                        value={drafts[name] ?? ''}
-                        onChange={(e) => setDrafts((d) => ({ ...d, [name]: e.target.value }))}
-                        onBlur={() => handleBlur(name)}
-                        onKeyDown={(e) => e.key === 'Enter' && (e.target as HTMLInputElement).blur()}
-                        className="w-32 rounded-lg border border-border bg-input-background pl-7 pr-3 py-1.5 text-sm text-right focus:outline-none focus:ring-2 focus:ring-ring"
-                      />
-                    </div>
-                    <div className={`w-5 shrink-0 transition-opacity duration-300 ${justSaved[name] ? 'opacity-100' : 'opacity-0'}`}>
-                      <Check className="w-4 h-4 text-emerald-500" />
-                    </div>
-                  </div>
-                );
-              })}
+          /* ── Manual Budget View ──────────────────────────── */
+          <div className="space-y-4">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+              <div className="bg-card border border-border rounded-xl overflow-hidden">
+                {renderSectionHeader('🏠', 'Needs', 'text-blue-600')}
+                <div className="divide-y divide-border">
+                  {NEEDS_CATEGORIES.map(name => renderManualRow(name))}
+                </div>
+              </div>
+              <div className="bg-card border border-border rounded-xl overflow-hidden">
+                {renderSectionHeader('✨', 'Wants', 'text-purple-600')}
+                <div className="divide-y divide-border">
+                  {WANTS_CATEGORIES.map(name => renderManualRow(name))}
+                </div>
               </div>
             </div>
-            <p className="mt-4 text-xs text-muted-foreground">{t('budgets.hint')}</p>
-          </>
+            <p className="text-xs text-muted-foreground">{t('budgets.hint')}</p>
+          </div>
         )}
       </div>
 
@@ -318,6 +296,102 @@ export function Budgets() {
         onClose={handleWizardClose}
         initialReveal={wizardInitialReveal}
       />
+
+      {/* ── Single-category edit modal ─────────────────────── */}
+      {editingCategory && (() => {
+        const { icon: Icon, bg, text, hex } = CATEGORY_CONFIG[editingCategory];
+        const pct = editMaxSlider > 0 ? Math.round((editingDraft / editMaxSlider) * 100) : 0;
+        return (
+          <div
+            className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40"
+            onClick={closeEdit}
+          >
+            <div
+              className="bg-card w-full max-w-md rounded-t-2xl sm:rounded-2xl shadow-xl overflow-hidden"
+              onClick={e => e.stopPropagation()}
+            >
+              {/* Modal header */}
+              <div className="flex items-center justify-between px-5 py-4 border-b border-border">
+                <div className="flex items-center gap-3">
+                  <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${bg}`}>
+                    <Icon className={`w-4 h-4 ${text}`} />
+                  </div>
+                  <p className="font-semibold text-sm">{tCategory(editingCategory)}</p>
+                </div>
+                <button onClick={closeEdit} className="p-1.5 rounded-lg text-muted-foreground hover:bg-muted transition-colors">
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              {/* Slider + input */}
+              <div className="px-5 py-5">
+                {/* Amount input */}
+                <div className="flex items-center justify-between gap-2 mb-4">
+                  <p className="text-sm text-muted-foreground">Monthly limit</p>
+                  <div className="flex items-center gap-1">
+                    <span className="text-xs text-muted-foreground">{currency.symbol}</span>
+                    <input
+                      type="number"
+                      inputMode="decimal"
+                      min={0}
+                      value={editingDraft}
+                      onChange={e => setEditingDraft(Math.max(0, Number(e.target.value) || 0))}
+                      onKeyDown={e => e.key === 'Enter' && (e.target as HTMLInputElement).blur()}
+                      style={{ color: editingDraft > 0 ? hex : undefined }}
+                      className="no-spin w-24 text-right text-lg font-bold bg-transparent border-b-2 border-border focus:border-teal-500 focus:outline-none"
+                    />
+                  </div>
+                </div>
+
+                {/* Slider */}
+                <input
+                  type="range"
+                  min={0}
+                  max={editMaxSlider}
+                  step={SLIDER_STEP}
+                  value={Math.min(editingDraft, editMaxSlider)}
+                  onChange={e => setEditingDraft(Number(e.target.value))}
+                  style={{ '--pct': `${pct}` } as React.CSSProperties}
+                  className="smart-slider w-full"
+                />
+
+                {/* Tick marks */}
+                <div className="relative h-3 mt-0.5" style={{ marginInline: '11px' }}>
+                  {editTicks.map(tick => {
+                    const tickPct = editMaxSlider > 0 ? (tick / editMaxSlider) * 100 : 0;
+                    return (
+                      <div key={tick} className="absolute top-1 -translate-x-1/2" style={{ left: `${tickPct}%` }}>
+                        <div className={`w-1.5 h-1.5 rounded-full ${tick <= editingDraft ? 'bg-teal-400' : 'bg-muted-foreground/25'}`} />
+                      </div>
+                    );
+                  })}
+                </div>
+
+                <div className="flex items-center justify-between mt-1">
+                  <span className="text-xs text-muted-foreground">{formatAmount(0)}</span>
+                  <span className="text-xs text-muted-foreground">{formatAmount(editMaxSlider)}</span>
+                </div>
+              </div>
+
+              {/* Actions */}
+              <div className="flex gap-3 px-5 pb-5">
+                <button
+                  onClick={() => setEditingDraft(0)}
+                  className="px-4 py-2.5 rounded-xl border border-border text-sm text-muted-foreground hover:bg-muted transition-colors"
+                >
+                  Remove limit
+                </button>
+                <button
+                  onClick={handleSaveEdit}
+                  className="flex-1 py-2.5 rounded-xl bg-teal-500 hover:bg-teal-600 text-white text-sm font-semibold transition-colors"
+                >
+                  Save
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
     </div>
   );
 }
