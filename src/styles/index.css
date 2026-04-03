@@ -9,3 +9,56 @@
 .animate-fade-in-up {
   animation: fade-in-up 0.2s ease-out forwards;
 }
+
+/* ── Smart budget range sliders ────────────────────────────── */
+.smart-slider {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 8px;
+  border-radius: 9999px;
+  outline: none;
+  cursor: pointer;
+  background: linear-gradient(
+    to right,
+    #10b981 calc(var(--pct, 0) * 1%),
+    #e2e8f0 calc(var(--pct, 0) * 1%)
+  );
+}
+.smart-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: #10b981;
+  cursor: pointer;
+  border: 3px solid white;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
+}
+.smart-slider::-moz-range-thumb {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: #10b981;
+  cursor: pointer;
+  border: 3px solid white;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
+}
+.smart-slider:disabled {
+  cursor: not-allowed;
+  background: linear-gradient(
+    to right,
+    #9ca3af calc(var(--pct, 0) * 1%),
+    #e2e8f0 calc(var(--pct, 0) * 1%)
+  );
+}
+.smart-slider:disabled::-webkit-slider-thumb {
+  background: #9ca3af;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+.smart-slider:disabled::-moz-range-thumb {
+  background: #9ca3af;
+  cursor: not-allowed;
+  box-shadow: none;
+}

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { X, ChevronRight, ChevronLeft, Sparkles, Lock, RotateCcw, TrendingUp, PiggyBank } from 'lucide-react';
 import { useBudgets } from '../context/BudgetContext';
 import { useCurrency } from '../context/CurrencyContext';
@@ -11,6 +11,13 @@ import {
   type AllocatorInputs, type HousingSituation, type Dependents,
   type DebtLevel, type FinancialGoal, type AllocatorResult,
 } from '../utils/budgetAllocator';
+
+export const SMART_BUDGET_KEY = 'mmm_smart_budget';
+
+export interface SmartBudgetStored {
+  result: AllocatorResult;
+  amounts: Record<string, number>;
+}
 
 type WizardStep = 1 | 2 | 3 | 4 | 5 | 'loading' | 'reveal';
 
@@ -35,6 +42,7 @@ interface Notification {
 interface Props {
   isOpen: boolean;
   onClose: () => void;
+  initialReveal?: SmartBudgetStored;
 }
 
 // ── Small helpers ──────────────────────────────────────────────
@@ -82,8 +90,8 @@ function FixedInput({ label, symbol, value, onChange, placeholder = '0' }: {
 
 // ── Main component ─────────────────────────────────────────────
 
-export function SmartBudgetWizard({ isOpen, onClose }: Props) {
-  const { setBudgetForCategory } = useBudgets();
+export function SmartBudgetWizard({ isOpen, onClose, initialReveal }: Props) {
+  const { setBudgetsAll } = useBudgets();
   const { currency, formatAmount } = useCurrency();
   const { tCategory } = useLanguage();
   const { showToast } = useToast();
@@ -95,6 +103,7 @@ export function SmartBudgetWizard({ isOpen, onClose }: Props) {
   const [prevAmounts, setPrevAmounts] = useState<Record<string, number> | null>(null);
   const [notification, setNotification] = useState<Notification | null>(null);
   const [applying, setApplying] = useState(false);
+  const [savingsDraft, setSavingsDraft] = useState<number | null>(null);
 
   const [data, setData] = useState<WizardData>({
     income: '',
@@ -108,9 +117,25 @@ export function SmartBudgetWizard({ isOpen, onClose }: Props) {
     goal: '',
   });
 
-  // Reset when closed
+  // Use a ref so the effect only reads initialReveal on open, not on every prop change
+  const initialRevealRef = useRef(initialReveal);
+  initialRevealRef.current = initialReveal;
+
   useEffect(() => {
-    if (!isOpen) {
+    if (isOpen) {
+      const ir = initialRevealRef.current;
+      if (ir) {
+        setResult(ir.result);
+        setAmounts(ir.amounts);
+        setStep('reveal');
+        setNotification(null);
+        setPrevAmounts(null);
+        setSavingsDraft(null);
+        setApplying(false);
+        setComputeError('');
+      }
+      // else: step stays at 1 (default)
+    } else {
       setStep(1);
       setData({ income: '', housingSituation: '', housingAmount: '', utilities: '', health: '', gym: '', dependents: '', debt: '', goal: '' });
       setResult(null);
@@ -119,6 +144,7 @@ export function SmartBudgetWizard({ isOpen, onClose }: Props) {
       setNotification(null);
       setComputeError('');
       setApplying(false);
+      setSavingsDraft(null);
     }
   }, [isOpen]);
 
@@ -194,14 +220,41 @@ export function SmartBudgetWizard({ isOpen, onClose }: Props) {
     }
   };
 
+  // Proportionally redistribute across fluid categories when savings target changes
+  const adjustForSavings = (newSavings: number) => {
+    if (!result) return;
+    const fixedTotal = result.allocations
+      .filter(a => a.fixed)
+      .reduce((s, a) => s + (amounts[a.category] ?? 0), 0);
+    const currentFluidTotal = result.allocations
+      .filter(a => !a.fixed)
+      .reduce((s, a) => s + (amounts[a.category] ?? 0), 0);
+    const targetFluidTotal = Math.max(0, result.income - Math.max(0, newSavings) - fixedTotal);
+
+    if (currentFluidTotal === 0) return;
+
+    const ratio = targetFluidTotal / currentFluidTotal;
+    const updated = { ...amounts };
+    result.allocations.filter(a => !a.fixed).forEach(a => {
+      updated[a.category] = Math.max(0, Math.round((amounts[a.category] ?? 0) * ratio));
+    });
+    setAmounts(updated);
+  };
+
   const handleUndo = () => {
     if (prevAmounts) { setAmounts(prevAmounts); setPrevAmounts(null); setNotification(null); }
   };
 
   const handleApply = async () => {
     setApplying(true);
-    for (const [category, amount] of Object.entries(amounts)) {
-      await setBudgetForCategory(category, Math.round(amount));
+    const rounded: Record<string, number> = {};
+    for (const [cat, amt] of Object.entries(amounts)) {
+      rounded[cat] = Math.round(amt);
+    }
+    await setBudgetsAll(rounded);
+    if (result) {
+      const stored: SmartBudgetStored = { result, amounts: rounded };
+      localStorage.setItem(SMART_BUDGET_KEY, JSON.stringify(stored));
     }
     showToast('Smart budget applied successfully!');
     onClose();
@@ -210,6 +263,8 @@ export function SmartBudgetWizard({ isOpen, onClose }: Props) {
   // Live savings from current slider state
   const totalAllocated = Object.values(amounts).reduce((s, a) => s + a, 0);
   const liveSavings = (result?.income ?? 0) - totalAllocated;
+  const displayedSavings = savingsDraft !== null ? savingsDraft : Math.max(0, liveSavings);
+  const displayedSavingsPct = result ? (displayedSavings / result.income) * 100 : 0;
   const liveSavingsPct = result ? (liveSavings / result.income) * 100 : 0;
   const liveSavingsLevel = liveSavingsPct >= 20 ? 'high' : liveSavingsPct >= 10 ? 'medium' : 'low';
 
@@ -249,21 +304,22 @@ export function SmartBudgetWizard({ isOpen, onClose }: Props) {
         const sectionAllocs = result.allocations.filter(a => categories.includes(a.category));
         return (
           <div className="mb-6">
-            <p className={`text-xs font-semibold uppercase tracking-wider mb-3 ${accent}`}>{title}</p>
-            <div className="space-y-3">
+            <p className={`text-xs font-semibold uppercase tracking-wider mb-4 ${accent}`}>{title}</p>
+            <div className="space-y-5">
               {sectionAllocs.map(alloc => {
                 const { icon: Icon, bg, text } = getCategoryConfig(alloc.category);
                 const isFixed = alloc.fixed;
                 const amt = amounts[alloc.category] ?? 0;
+                const pct = maxSlider > 0 ? Math.round((amt / maxSlider) * 100) : 0;
                 return (
                   <div key={alloc.category} className="flex items-center gap-3">
-                    <div className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${bg}`}>
-                      <Icon className={`w-3.5 h-3.5 ${text}`} />
+                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${bg}`}>
+                      <Icon className={`w-4 h-4 ${text}`} />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-1 mb-1">
-                        <span className="text-xs font-medium truncate">{tCategory(alloc.category)}</span>
-                        {isFixed && <Lock className="w-2.5 h-2.5 text-muted-foreground shrink-0" />}
+                      <div className="flex items-center gap-1 mb-2">
+                        <span className="text-sm font-medium truncate">{tCategory(alloc.category)}</span>
+                        {isFixed && <Lock className="w-3 h-3 text-muted-foreground shrink-0" />}
                       </div>
                       <input
                         type="range"
@@ -277,10 +333,11 @@ export function SmartBudgetWizard({ isOpen, onClose }: Props) {
                         }}
                         onMouseUp={e => handleSliderCommit(alloc.category, Number((e.target as HTMLInputElement).value))}
                         onTouchEnd={e => handleSliderCommit(alloc.category, Number((e.currentTarget as HTMLInputElement).value))}
-                        className={`w-full h-1.5 rounded-full appearance-none outline-none cursor-pointer accent-teal-500 ${isFixed ? 'opacity-40 cursor-not-allowed' : ''}`}
+                        style={{ '--pct': `${pct}` } as React.CSSProperties}
+                        className={`smart-slider w-full ${isFixed ? 'opacity-50' : ''}`}
                       />
                     </div>
-                    <span className="text-xs font-semibold shrink-0 min-w-[4rem] text-right">{formatAmount(amt)}</span>
+                    <span className="text-sm font-semibold shrink-0 min-w-[4.5rem] text-right">{formatAmount(amt)}</span>
                   </div>
                 );
               })}
@@ -288,6 +345,8 @@ export function SmartBudgetWizard({ isOpen, onClose }: Props) {
           </div>
         );
       };
+
+      const savingsPct = Math.round(Math.max(0, displayedSavingsPct));
 
       return (
         <div className="pb-4">
@@ -311,19 +370,39 @@ export function SmartBudgetWizard({ isOpen, onClose }: Props) {
             </div>
           )}
 
-          {/* Savings card */}
-          <div className={`p-4 rounded-xl border-2 mb-5 ${savingsColors[liveSavingsLevel]}`}>
-            <div className="flex items-center justify-between">
+          {/* Savings card with adjustable slider */}
+          <div className={`p-4 rounded-xl border-2 mb-6 ${savingsColors[liveSavingsLevel]}`}>
+            <div className="flex items-center justify-between mb-1">
               <div>
                 <div className="flex items-center gap-1.5 mb-0.5">
                   <PiggyBank className="w-3.5 h-3.5" />
                   <p className="text-xs font-semibold uppercase tracking-wide">{savingsLabels[liveSavingsLevel]}</p>
                 </div>
-                <p className="text-lg font-bold">{formatAmount(Math.max(0, liveSavings))}<span className="text-xs font-normal">/mo</span></p>
+                <p className="text-xl font-bold">{formatAmount(Math.max(0, displayedSavings))}<span className="text-xs font-normal opacity-75">/mo</span></p>
               </div>
-              <p className="text-3xl font-black">{Math.max(0, liveSavingsPct).toFixed(0)}%</p>
+              <p className="text-4xl font-black">{savingsPct}%</p>
             </div>
-            <p className="text-xs mt-1 opacity-75">of income set aside for savings & future goals</p>
+            <p className="text-xs mb-3 opacity-70">Drag to adjust savings — spending categories rebalance automatically</p>
+            <input
+              type="range"
+              min={0}
+              max={result.income}
+              step={10}
+              value={savingsDraft ?? Math.max(0, liveSavings)}
+              onChange={e => setSavingsDraft(Number(e.target.value))}
+              onMouseUp={e => {
+                const val = Number((e.target as HTMLInputElement).value);
+                adjustForSavings(val);
+                setSavingsDraft(null);
+              }}
+              onTouchEnd={e => {
+                const val = Number((e.currentTarget as HTMLInputElement).value);
+                adjustForSavings(val);
+                setSavingsDraft(null);
+              }}
+              style={{ '--pct': `${savingsPct}` } as React.CSSProperties}
+              className="smart-slider w-full"
+            />
           </div>
 
           {/* Budget breakdown */}
@@ -532,9 +611,11 @@ export function SmartBudgetWizard({ isOpen, onClose }: Props) {
       {step === 'reveal' && (
         <div className="px-4 lg:px-6 py-4 border-t border-border bg-card shrink-0">
           <div className="max-w-lg mx-auto flex gap-3">
-            <button onClick={handleBack} className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl border border-border text-sm hover:bg-muted transition-colors">
-              <ChevronLeft className="w-4 h-4" /> Back
-            </button>
+            {!initialReveal && (
+              <button onClick={handleBack} className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl border border-border text-sm hover:bg-muted transition-colors">
+                <ChevronLeft className="w-4 h-4" /> Back
+              </button>
+            )}
             <button
               onClick={handleApply}
               disabled={applying}

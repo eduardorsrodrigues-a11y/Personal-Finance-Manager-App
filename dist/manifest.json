@@ -1,7 +1,7 @@
 {
-  "name": "Flow Wealth",
-  "short_name": "Flow Wealth",
-  "description": "Track your income, expenses, and budgets with Flow Wealth.",
+  "name": "MyMoneyMate",
+  "short_name": "MyMoneyMate",
+  "description": "Track your income, expenses, and budgets with MyMoneyMate.",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#ffffff",

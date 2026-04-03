@@ -8,6 +8,7 @@ const GUEST_BUDGETS_KEY = 'expense_manager_guest_budgets';
 interface BudgetContextValue {
   budgets: Budgets;
   setBudgetForCategory: (category: string, amount: number) => Promise<void>;
+  setBudgetsAll: (newBudgets: Budgets) => Promise<void>;
   loading: boolean;
 }
 
@@ -76,8 +77,29 @@ export function BudgetProvider({ children }: { children: ReactNode }) {
     [budgets, user, isGuest],
   );
 
+  const setBudgetsAll = useCallback(
+    async (newBudgets: Budgets) => {
+      setBudgets(newBudgets);
+
+      if (isGuest) {
+        localStorage.setItem(GUEST_BUDGETS_KEY, JSON.stringify(newBudgets));
+        return;
+      }
+
+      if (user) {
+        await fetch('/api/budgets', {
+          method: 'PUT',
+          credentials: 'include',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ budgets: newBudgets }),
+        });
+      }
+    },
+    [user, isGuest],
+  );
+
   return (
-    <BudgetContext.Provider value={{ budgets, setBudgetForCategory, loading }}>
+    <BudgetContext.Provider value={{ budgets, setBudgetForCategory, setBudgetsAll, loading }}>
       {children}
     </BudgetContext.Provider>
   );
