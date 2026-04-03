@@ -260,7 +260,6 @@ export function Budgets() {
               </div>
             </div>
 
-            <p className="text-xs text-muted-foreground">{t('budgets.hint')}</p>
 
             <button
               onClick={clearSmartMode}
@@ -286,7 +285,6 @@ export function Budgets() {
                 </div>
               </div>
             </div>
-            <p className="text-xs text-muted-foreground">{t('budgets.hint')}</p>
           </div>
         )}
       </div>
