@@ -187,10 +187,6 @@ export function Budgets() {
                 Smart Setup
               </button>
             )}
-            <div className="text-right shrink-0">
-              <p className="text-sm font-semibold">{setBudgetCount}</p>
-              <p className="text-xs text-muted-foreground">of {EXPENSE_CATEGORIES.length} set</p>
-            </div>
           </div>
         </div>
       </header>
@@ -200,7 +196,7 @@ export function Budgets() {
           <p className="text-sm text-muted-foreground">{t('budgets.loading')}</p>
         ) : isSmartMode ? (
           /* ── Smart Budget View ───────────────────────────── */
-          <div className="max-w-3xl space-y-4">
+          <div className="space-y-4">
             {/* Summary card */}
             <div className="bg-card border border-border rounded-xl p-4">
               <div className="flex items-center gap-2 mb-3">
@@ -239,19 +235,19 @@ export function Budgets() {
               </div>
             </div>
 
-            {/* Needs */}
-            <div className="bg-card border border-border rounded-xl overflow-hidden">
-              {renderSectionHeader('🏠', 'Needs', 'text-blue-600')}
-              <div className="divide-y divide-border">
-                {NEEDS_CATEGORIES.map(name => renderSmartRow(name))}
+            {/* Needs + Wants — side by side on desktop */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+              <div className="bg-card border border-border rounded-xl overflow-hidden">
+                {renderSectionHeader('🏠', 'Needs', 'text-blue-600')}
+                <div className="divide-y divide-border">
+                  {NEEDS_CATEGORIES.map(name => renderSmartRow(name))}
+                </div>
               </div>
-            </div>
-
-            {/* Wants */}
-            <div className="bg-card border border-border rounded-xl overflow-hidden">
-              {renderSectionHeader('✨', 'Wants', 'text-purple-600')}
-              <div className="divide-y divide-border">
-                {WANTS_CATEGORIES.map(name => renderSmartRow(name))}
+              <div className="bg-card border border-border rounded-xl overflow-hidden">
+                {renderSectionHeader('✨', 'Wants', 'text-purple-600')}
+                <div className="divide-y divide-border">
+                  {WANTS_CATEGORIES.map(name => renderSmartRow(name))}
+                </div>
               </div>
             </div>
 
@@ -267,12 +263,13 @@ export function Budgets() {
         ) : (
           /* ── Normal Budget View ──────────────────────────── */
           <>
-            <div className="bg-card border border-border rounded-xl divide-y divide-border max-w-3xl">
+            <div className="bg-card border border-border rounded-xl overflow-hidden">
+              <div className="grid grid-cols-1 lg:grid-cols-2 lg:divide-x lg:divide-border">
               {EXPENSE_CATEGORIES.map((name) => {
                 const { icon: Icon, bg, text, hex } = CATEGORY_CONFIG[name];
                 const isSet = budgets[name] != null && budgets[name] > 0;
                 return (
-                  <div key={name} className="flex items-center gap-3 px-4 py-3">
+                  <div key={name} className="flex items-center gap-3 px-4 py-3 border-b border-border last:border-b-0">
                     <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${bg}`}>
                       <Icon className={`w-4 h-4 ${text}`} />
                     </div>
@@ -309,8 +306,9 @@ export function Budgets() {
                   </div>
                 );
               })}
+              </div>
             </div>
-            <p className="mt-4 text-xs text-muted-foreground max-w-3xl">{t('budgets.hint')}</p>
+            <p className="mt-4 text-xs text-muted-foreground">{t('budgets.hint')}</p>
           </>
         )}
       </div>
