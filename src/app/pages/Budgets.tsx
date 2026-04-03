@@ -41,6 +41,8 @@ export function Budgets() {
     const totalBudgeted = ALL_SMART_CATEGORIES.reduce((s, c) => s + (budgets[c] ?? 0), 0);
     const savings = smartIncome - totalBudgeted;
     const savingsPct = smartIncome > 0 ? (savings / smartIncome) * 100 : 0;
+    const needsActual = NEEDS_CATEGORIES.reduce((s, c) => s + (budgets[c] ?? 0), 0);
+    const wantsPool   = WANTS_CATEGORIES.reduce((s, c) => s + (budgets[c] ?? 0), 0);
     const result: AllocatorResult = {
       income: smartIncome,
       allocations: ALL_SMART_CATEGORIES.map(cat => ({
@@ -53,9 +55,11 @@ export function Budgets() {
       savings,
       savingsPct,
       savingsLevel: savingsPct >= 20 ? 'high' : savingsPct >= 10 ? 'medium' : 'low',
-      needsPct: 50,
-      wantsPct: 30,
+      needsPct: 60,
+      wantsPct: 20,
       futurePct: 20,
+      needsActual,
+      wantsPool,
     };
     const amounts: Record<string, number> = {};
     for (const cat of ALL_SMART_CATEGORIES) amounts[cat] = budgets[cat] ?? 0;

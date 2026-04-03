@@ -1,17 +1,14 @@
 export type HousingSituation = 'renting' | 'mortgage' | 'family' | 'rent-free';
-export type Dependents = 'none' | '1-2' | '3+';
-export type DebtLevel = 'none' | 'very-little' | 'manageable' | 'high';
-export type FinancialGoal = 'emergency-fund' | 'paying-debt' | 'investing' | 'wealth-building' | 'tracking';
+export type FinancialGoal = 'save' | 'tracking' | 'grow-portfolio' | 'pay-debt';
 
 export interface AllocatorInputs {
   income: number;
   housing: number;
   utilities: number;
   health: number;
-  gym: number;
+  groceries: number;
+  debt: number;           // exact monthly amount
   housingSituation: HousingSituation;
-  dependents: Dependents;
-  debt: DebtLevel;
   goal: FinancialGoal;
 }
 
@@ -28,96 +25,56 @@ export interface AllocatorResult {
   savings: number;
   savingsPct: number;
   savingsLevel: 'high' | 'medium' | 'low';
-  needsPct: number;
-  wantsPct: number;
-  futurePct: number;
+  needsPct: number;     // recommended (60)
+  wantsPct: number;     // recommended (20)
+  futurePct: number;    // recommended (20)
+  needsActual: number;  // sum of user-provided fixed inputs
+  wantsPool: number;    // actual wants pool (income − needsActual, capped at 20%)
   income: number;
   error?: string;
 }
 
-export const FIXED_CATEGORIES = new Set(['Housing', 'Utilities', 'Health', 'Gym & Sports']);
+export const FIXED_CATEGORIES = new Set(['Housing', 'Debt Payments', 'Utilities', 'Health', 'Groceries']);
 
-// Display order for the reveal
-export const NEEDS_CATEGORIES = ['Housing', 'Utilities', 'Health', 'Groceries', 'Transportation', 'Family & Personal'];
-export const WANTS_CATEGORIES = ['Food', 'Shopping', 'Entertainment', 'Travel', 'Gifts', 'Gym & Sports', 'Other'];
-
-const NEEDS_FLUID_WEIGHTS: Record<string, number> = {
-  Groceries: 0.4,
-  Transportation: 0.4,
-  'Family & Personal': 0.2,
-};
-
-const WANTS_FLUID_WEIGHTS: Record<string, number> = {
-  Food: 0.3,
-  Shopping: 0.2,
-  Entertainment: 0.2,
-  Travel: 0.1,
-  Gifts: 0.1,
-  Other: 0.1,
-};
+// Display order
+export const NEEDS_CATEGORIES = ['Housing', 'Debt Payments', 'Utilities', 'Health', 'Groceries'];
+export const WANTS_CATEGORIES = ['Food', 'Shopping', 'Entertainment', 'Travel', 'Gifts', 'Gym & Sports', 'Transportation', 'Family & Personal', 'Other'];
 
 export function computeBudget(inputs: AllocatorInputs): AllocatorResult {
-  const { income, housing, utilities, health, gym, housingSituation, dependents, debt, goal } = inputs;
+  const { income, housing, utilities, health, groceries, debt } = inputs;
 
   // Phase 1: Validation
-  const totalFixed = housing + utilities + health + gym;
-  if (totalFixed > income) {
+  const needsActual = housing + debt + utilities + health + groceries;
+  if (needsActual > income) {
     return {
       allocations: [], savings: 0, savingsPct: 0, savingsLevel: 'low',
-      needsPct: 50, wantsPct: 30, futurePct: 20, income,
-      error: `Your fixed monthly contracts (${totalFixed.toFixed(2)}) exceed your take-home pay (${income.toFixed(2)}). Please review and adjust your fixed amounts to continue.`,
+      needsPct: 60, wantsPct: 20, futurePct: 20,
+      needsActual, wantsPool: 0, income,
+      error: `Your fixed monthly expenses (${needsActual.toFixed(2)}) exceed your take-home pay (${income.toFixed(2)}). Please review and adjust your inputs to continue.`,
     };
   }
 
-  // Phase 2: Macro allocation — 50/30/20 baseline + modifiers
-  let needsPct = 50, wantsPct = 30, futurePct = 20;
+  // Phase 2: 60/20/20 recommended baseline (fixed, no modifiers)
+  const needsPct = 60;
+  const wantsPct = 20;
+  const futurePct = 20;
 
-  if (housingSituation === 'rent-free') { needsPct -= 15; wantsPct += 5; futurePct += 10; }
-  if (dependents === '1-2')             { needsPct += 10; wantsPct -= 5; futurePct -= 5; }
-  else if (dependents === '3+')         { needsPct += 15; wantsPct -= 10; futurePct -= 5; }
-  if (debt === 'high')                  { wantsPct -= 10; futurePct += 10; }
-  if (goal === 'tracking')              { needsPct += 15; wantsPct -= 10; futurePct -= 5; }
-  else if (goal === 'emergency-fund')   { wantsPct -= 5; futurePct += 5; }
+  // Phase 3: Actual allocation
+  // Wants pool is capped at 20% of income; whatever is left goes to savings
+  const wantsPool = Math.min(income - needsActual, income * (wantsPct / 100));
+  const savings = income - needsActual - wantsPool;
+  const savingsPct = income > 0 ? (savings / income) * 100 : 0;
 
-  // Clamp & normalize to 100
-  needsPct = Math.max(0, needsPct);
-  wantsPct = Math.max(0, wantsPct);
-  futurePct = Math.max(0, futurePct);
-  const macroSum = needsPct + wantsPct + futurePct;
-  needsPct = (needsPct / macroSum) * 100;
-  wantsPct = (wantsPct / macroSum) * 100;
-  futurePct = (futurePct / macroSum) * 100;
-
-  let needsBudget = income * (needsPct / 100);
-  let wantsBudget = income * (wantsPct / 100);
-  const futureBudget = income * (futurePct / 100);
-
-  // Phase 3A: Needs bucket
-  const fixedNeedsTotal = housing + utilities + health;
-  let remainingNeeds = needsBudget - fixedNeedsTotal;
-  if (remainingNeeds < 0) {
-    wantsBudget += remainingNeeds; // borrow deficit from wants
-    remainingNeeds = 0;
-  }
-
+  // Fixed needs with exact user-provided amounts; wants all start at 0
   const allocMap: Record<string, CategoryAllocation> = {};
+  allocMap['Housing']       = { category: 'Housing',       amount: housing,   pct: p(housing,   income), fixed: true,  bucket: 'needs' };
+  allocMap['Debt Payments'] = { category: 'Debt Payments', amount: debt,      pct: p(debt,      income), fixed: true,  bucket: 'needs' };
+  allocMap['Utilities']     = { category: 'Utilities',     amount: utilities, pct: p(utilities, income), fixed: true,  bucket: 'needs' };
+  allocMap['Health']        = { category: 'Health',        amount: health,    pct: p(health,    income), fixed: true,  bucket: 'needs' };
+  allocMap['Groceries']     = { category: 'Groceries',     amount: groceries, pct: p(groceries, income), fixed: true,  bucket: 'needs' };
 
-  allocMap['Housing']   = { category: 'Housing',   amount: housing,   pct: p(housing,   income), fixed: true,  bucket: 'needs' };
-  allocMap['Utilities'] = { category: 'Utilities', amount: utilities, pct: p(utilities, income), fixed: true,  bucket: 'needs' };
-  allocMap['Health']    = { category: 'Health',    amount: health,    pct: p(health,    income), fixed: true,  bucket: 'needs' };
-
-  for (const [cat, w] of Object.entries(NEEDS_FLUID_WEIGHTS)) {
-    const amount = Math.max(0, Math.round(remainingNeeds * w));
-    allocMap[cat] = { category: cat, amount, pct: p(amount, income), fixed: false, bucket: 'needs' };
-  }
-
-  // Phase 3B: Wants bucket
-  const remainingWants = Math.max(0, wantsBudget - gym);
-  allocMap['Gym & Sports'] = { category: 'Gym & Sports', amount: gym, pct: p(gym, income), fixed: true, bucket: 'wants' };
-
-  for (const [cat, w] of Object.entries(WANTS_FLUID_WEIGHTS)) {
-    const amount = Math.max(0, Math.round(remainingWants * w));
-    allocMap[cat] = { category: cat, amount, pct: p(amount, income), fixed: false, bucket: 'wants' };
+  for (const cat of WANTS_CATEGORIES) {
+    allocMap[cat] = { category: cat, amount: 0, pct: 0, fixed: false, bucket: 'wants' };
   }
 
   const allocations: CategoryAllocation[] = [
@@ -125,16 +82,13 @@ export function computeBudget(inputs: AllocatorInputs): AllocatorResult {
     ...WANTS_CATEGORIES.map(c => allocMap[c]).filter(Boolean),
   ];
 
-  // Phase 3C: Savings
-  const savings = futureBudget;
-  const savingsPct = income > 0 ? (savings / income) * 100 : 0;
-
   return {
     allocations,
     savings,
     savingsPct,
     savingsLevel: savingsPct >= 20 ? 'high' : savingsPct >= 10 ? 'medium' : 'low',
     needsPct, wantsPct, futurePct,
+    needsActual, wantsPool,
     income,
   };
 }
@@ -147,9 +101,7 @@ export function getBucketMap(allocations: CategoryAllocation[]): Record<string, 
   return Object.fromEntries(allocations.map(a => [a.category, a.bucket]));
 }
 
-// Phase 4: Smart readjustment engine
-// Distributes the delta proportionally (by current allocation) across all
-// eligible fluid categories below the changed one.
+// Kept for potential external use; no longer used inside the wizard
 export function rebalance(
   amounts: Record<string, number>,
   changedCategory: string,
@@ -160,7 +112,6 @@ export function rebalance(
   const delta = newAmount - (amounts[changedCategory] ?? 0);
   if (Math.abs(delta) < 0.5) return null;
 
-  // Eligible absorbers: fluid, non-zero, and within the allowed set
   const candidates = Object.keys(amounts).filter(c =>
     c !== changedCategory &&
     !FIXED_CATEGORIES.has(c) &&
@@ -174,8 +125,6 @@ export function rebalance(
   if (totalBase === 0) return null;
 
   const updated = { ...amounts, [changedCategory]: newAmount };
-
-  // Each candidate absorbs its proportional share of the delta
   for (const cat of candidates) {
     const share = delta * (amounts[cat] / totalBase);
     updated[cat] = Math.round(Math.max(0, updated[cat] - share));
