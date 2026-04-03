@@ -47,12 +47,8 @@ interface Props {
 
 // ── Step helpers ───────────────────────────────────────────────
 
-/** Returns a "nice" step size that yields ~8–12 tick marks for the given max. */
-function computeStep(max: number): number {
-  const niceSteps = [10, 25, 50, 100, 200, 250, 500, 1000];
-  const target = max / 10;
-  return niceSteps.find(s => s >= target) ?? 1000;
-}
+const SLIDER_STEP = 25;   // slider snaps every 25
+const TICK_EVERY  = 100;  // visible tick marks every 100
 
 function snapToStep(value: number, step: number): number {
   return Math.round(value / step) * step;
@@ -126,23 +122,21 @@ export function SmartBudgetWizard({ isOpen, onClose, initialReveal }: Props) {
   const dragStartAmounts = useRef<Record<string, number>>({});
   const inputStartRef = useRef<Record<string, number>>({});
 
-  // Derive slider step from result
+  // Derive slider bounds from result
   const maxSlider = result ? Math.round(result.income * 0.7) : 0;
-  const sliderStep = computeStep(maxSlider);
   const categoryTicks = useMemo(() => {
     if (!maxSlider) return [];
     const t: number[] = [];
-    for (let v = 0; v <= maxSlider; v += sliderStep) t.push(v);
+    for (let v = 0; v <= maxSlider; v += TICK_EVERY) t.push(v);
     return t;
-  }, [maxSlider, sliderStep]);
+  }, [maxSlider]);
 
-  const savingsStep = result ? computeStep(result.income) : 50;
   const savingsTicks = useMemo(() => {
     if (!result) return [];
     const t: number[] = [];
-    for (let v = 0; v <= result.income; v += savingsStep) t.push(v);
+    for (let v = 0; v <= result.income; v += TICK_EVERY) t.push(v);
     return t;
-  }, [result, savingsStep]);
+  }, [result]);
 
   const initialRevealRef = useRef(initialReveal);
   initialRevealRef.current = initialReveal;
@@ -152,10 +146,9 @@ export function SmartBudgetWizard({ isOpen, onClose, initialReveal }: Props) {
       const ir = initialRevealRef.current;
       if (ir) {
         const ms = Math.round(ir.result.income * 0.7);
-        const ss = computeStep(ms);
         const snapped: Record<string, number> = {};
         for (const [cat, amt] of Object.entries(ir.amounts)) {
-          snapped[cat] = snapToStep(Math.min(ms, Math.max(0, amt)), ss);
+          snapped[cat] = snapToStep(Math.min(ms, Math.max(0, amt)), SLIDER_STEP);
         }
         setResult(ir.result);
         setAmounts(snapped);
@@ -202,10 +195,9 @@ export function SmartBudgetWizard({ isOpen, onClose, initialReveal }: Props) {
         setStep(2);
       } else {
         const ms = Math.round(computed.income * 0.7);
-        const ss = computeStep(ms);
         const init: Record<string, number> = {};
         for (const a of computed.allocations) {
-          init[a.category] = snapToStep(Math.round(a.amount), ss);
+          init[a.category] = snapToStep(Math.round(a.amount), SLIDER_STEP);
         }
         setResult(computed);
         setAmounts(init);
@@ -266,7 +258,7 @@ export function SmartBudgetWizard({ isOpen, onClose, initialReveal }: Props) {
     const ratio = targetFluidTotal / currentFluidTotal;
     const updated = { ...amounts };
     result.allocations.filter(a => !a.fixed).forEach(a => {
-      updated[a.category] = snapToStep(Math.max(0, Math.round((amounts[a.category] ?? 0) * ratio)), sliderStep);
+      updated[a.category] = snapToStep(Math.max(0, Math.round((amounts[a.category] ?? 0) * ratio)), SLIDER_STEP);
     });
     setAmounts(updated);
   };
@@ -366,10 +358,9 @@ export function SmartBudgetWizard({ isOpen, onClose, initialReveal }: Props) {
                             onBlur={e => {
                               if (isFixed) return;
                               const raw = Math.max(0, Math.min(maxSlider, Number(e.target.value) || 0));
-                              const snapped = snapToStep(raw, sliderStep);
-                              const base = { ...amounts, [alloc.category]: inputStartRef.current[alloc.category] ?? snapped };
-                              setAmounts(prev => ({ ...prev, [alloc.category]: snapped }));
-                              handleCommit(alloc.category, snapped, base);
+                              const base = { ...amounts, [alloc.category]: inputStartRef.current[alloc.category] ?? raw };
+                              setAmounts(prev => ({ ...prev, [alloc.category]: raw }));
+                              handleCommit(alloc.category, raw, base);
                             }}
                             onKeyDown={e => e.key === 'Enter' && (e.target as HTMLInputElement).blur()}
                             className="no-spin w-16 text-right text-sm font-semibold bg-transparent border-b-2 border-border focus:border-teal-500 focus:outline-none disabled:opacity-40"
@@ -382,7 +373,7 @@ export function SmartBudgetWizard({ isOpen, onClose, initialReveal }: Props) {
                         type="range"
                         min={0}
                         max={maxSlider}
-                        step={sliderStep}
+                        step={SLIDER_STEP}
                         value={amt}
                         disabled={isFixed}
                         onMouseDown={() => { dragStartAmounts.current = { ...amounts }; }}
@@ -461,7 +452,7 @@ export function SmartBudgetWizard({ isOpen, onClose, initialReveal }: Props) {
               type="range"
               min={0}
               max={result.income}
-              step={savingsStep}
+              step={SLIDER_STEP}
               value={savingsDraft ?? Math.max(0, liveSavings)}
               onChange={e => setSavingsDraft(Number(e.target.value))}
               onMouseUp={e => { adjustForSavings(Number((e.target as HTMLInputElement).value)); setSavingsDraft(null); }}
