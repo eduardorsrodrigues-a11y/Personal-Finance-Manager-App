@@ -471,72 +471,78 @@ export function SmartBudgetWizard({ isOpen, onClose, initialReveal }: Props) {
             <p className="text-xs text-muted-foreground mt-0.5">of {formatAmount(wantsPool)} total</p>
           </div>
 
-          {/* Per-category sliders */}
-          <div className="space-y-6">
-            {WANTS_CATEGORIES.map(cat => {
-              const { icon: Icon, bg, text } = getCategoryConfig(cat);
-              const amt     = microAmounts[cat] ?? 0;
-              const maxCat  = amt + Math.max(0, microRemaining);
-              const sliderMax = Math.max(SLIDER_STEP, Math.ceil(maxCat / SLIDER_STEP) * SLIDER_STEP);
-              const pct     = sliderMax > 0 ? Math.round((amt / sliderMax) * 100) : 0;
+          {/* Per-category sliders — all share wantsPool as the uniform scale */}
+          {(() => {
+            // Fixed scale for every slider so tick marks are always consistent.
+            // Clamping in onChange prevents exceeding the pool; the max attribute
+            // never changes, which keeps the visual scale identical across categories.
+            const sliderMax = Math.max(SLIDER_STEP, Math.ceil(wantsPool / SLIDER_STEP) * SLIDER_STEP);
+            const catTicks: number[] = [];
+            for (let v = 0; v <= sliderMax; v += TICK_EVERY) catTicks.push(v);
 
-              const catTicks: number[] = [];
-              for (let v = 0; v <= sliderMax; v += TICK_EVERY) catTicks.push(v);
+            return (
+              <div className="space-y-6">
+                {WANTS_CATEGORIES.map(cat => {
+                  const { icon: Icon, bg, text } = getCategoryConfig(cat);
+                  const amt = microAmounts[cat] ?? 0;
+                  const pct = sliderMax > 0 ? Math.round((amt / sliderMax) * 100) : 0;
 
-              return (
-                <div key={cat} className="flex items-start gap-3">
-                  <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 mt-0.5 ${bg}`}>
-                    <Icon className={`w-4 h-4 ${text}`} />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center justify-between gap-2 mb-2">
-                      <span className="text-sm font-medium truncate">{tCategory(cat)}</span>
-                      <div className="flex items-center gap-0.5 shrink-0">
-                        <span className="text-xs text-muted-foreground">{currency.symbol}</span>
+                  return (
+                    <div key={cat} className="flex items-start gap-3">
+                      <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 mt-0.5 ${bg}`}>
+                        <Icon className={`w-4 h-4 ${text}`} />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center justify-between gap-2 mb-2">
+                          <span className="text-sm font-medium truncate">{tCategory(cat)}</span>
+                          <div className="flex items-center gap-0.5 shrink-0">
+                            <span className="text-xs text-muted-foreground">{currency.symbol}</span>
+                            <input
+                              type="number"
+                              inputMode="decimal"
+                              min={0}
+                              value={amt}
+                              onChange={e => {
+                                const raw = Math.max(0, Number(e.target.value) || 0);
+                                const maxCat = (microAmounts[cat] ?? 0) + Math.max(0, microRemaining);
+                                setMicroAmounts(prev => ({ ...prev, [cat]: Math.min(raw, maxCat) }));
+                              }}
+                              onKeyDown={e => e.key === 'Enter' && (e.target as HTMLInputElement).blur()}
+                              className="no-spin w-16 text-right text-sm font-semibold bg-transparent border-b-2 border-border focus:border-teal-500 focus:outline-none"
+                            />
+                          </div>
+                        </div>
                         <input
-                          type="number"
-                          inputMode="decimal"
+                          type="range"
                           min={0}
-                          value={amt}
+                          max={sliderMax}
+                          step={SLIDER_STEP}
+                          value={Math.min(amt, sliderMax)}
                           onChange={e => {
-                            const raw = Math.max(0, Number(e.target.value) || 0);
-                            const max = (microAmounts[cat] ?? 0) + Math.max(0, microRemaining);
-                            setMicroAmounts(prev => ({ ...prev, [cat]: Math.min(raw, max) }));
+                            const raw = Number(e.target.value);
+                            const maxCat = (microAmounts[cat] ?? 0) + Math.max(0, microRemaining);
+                            setMicroAmounts(prev => ({ ...prev, [cat]: snapToStep(Math.min(raw, maxCat), SLIDER_STEP) }));
                           }}
-                          onKeyDown={e => e.key === 'Enter' && (e.target as HTMLInputElement).blur()}
-                          className="no-spin w-16 text-right text-sm font-semibold bg-transparent border-b-2 border-border focus:border-teal-500 focus:outline-none"
+                          style={{ '--pct': `${pct}` } as React.CSSProperties}
+                          className="smart-slider w-full"
                         />
+                        <div className="relative h-3" style={{ marginInline: '11px' }}>
+                          {catTicks.map(tick => {
+                            const tickPct = sliderMax > 0 ? (tick / sliderMax) * 100 : 0;
+                            return (
+                              <div key={tick} className="absolute top-1 -translate-x-1/2" style={{ left: `${tickPct}%` }}>
+                                <div className={`w-1.5 h-1.5 rounded-full ${tick <= amt ? 'bg-teal-400' : 'bg-muted-foreground/25'}`} />
+                              </div>
+                            );
+                          })}
+                        </div>
                       </div>
                     </div>
-                    <input
-                      type="range"
-                      min={0}
-                      max={sliderMax}
-                      step={SLIDER_STEP}
-                      value={amt}
-                      onChange={e => {
-                        const raw = Number(e.target.value);
-                        const max = (microAmounts[cat] ?? 0) + Math.max(0, microRemaining);
-                        setMicroAmounts(prev => ({ ...prev, [cat]: snapToStep(Math.min(raw, max), SLIDER_STEP) }));
-                      }}
-                      style={{ '--pct': `${pct}` } as React.CSSProperties}
-                      className="smart-slider w-full"
-                    />
-                    <div className="relative h-3" style={{ marginInline: '11px' }}>
-                      {catTicks.map(tick => {
-                        const tickPct = sliderMax > 0 ? (tick / sliderMax) * 100 : 0;
-                        return (
-                          <div key={tick} className="absolute top-1 -translate-x-1/2" style={{ left: `${tickPct}%` }}>
-                            <div className={`w-1.5 h-1.5 rounded-full ${tick <= amt ? 'bg-teal-400' : 'bg-muted-foreground/25'}`} />
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
+                  );
+                })}
+              </div>
+            );
+          })()}
         </div>
       );
     }
