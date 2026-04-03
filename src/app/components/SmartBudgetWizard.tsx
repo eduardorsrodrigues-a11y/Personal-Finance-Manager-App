@@ -112,6 +112,7 @@ export function SmartBudgetWizard({ isOpen, onClose, initialReveal }: Props) {
   const [notification, setNotification] = useState<Notification | null>(null);
   const [applying, setApplying] = useState(false);
   const [savingsDraft, setSavingsDraft] = useState<number | null>(null);
+  const [fixSavings, setFixSavings] = useState(true);
 
   const [data, setData] = useState<WizardData>({
     income: '', housingSituation: '', housingAmount: '',
@@ -158,6 +159,7 @@ export function SmartBudgetWizard({ isOpen, onClose, initialReveal }: Props) {
         setSavingsDraft(null);
         setApplying(false);
         setComputeError('');
+        setFixSavings(true);
       }
     } else {
       setStep(1);
@@ -169,6 +171,7 @@ export function SmartBudgetWizard({ isOpen, onClose, initialReveal }: Props) {
       setComputeError('');
       setApplying(false);
       setSavingsDraft(null);
+      setFixSavings(true);
       dragStartAmounts.current = {};
       inputStartRef.current = {};
     }
@@ -239,6 +242,14 @@ export function SmartBudgetWizard({ isOpen, onClose, initialReveal }: Props) {
     if (!result || FIXED_CATEGORIES.has(category)) return;
     const delta = newAmount - (baseAmounts[category] ?? 0);
     if (Math.abs(delta) < 1) return;
+
+    if (!fixSavings) {
+      // Free mode: only update this category; savings absorbs the change
+      setAmounts(prev => ({ ...prev, [category]: newAmount }));
+      return;
+    }
+
+    // Fixed-savings mode: rebalance other categories to keep savings constant
     const bucketMap = getBucketMap(result.allocations);
     const snap = { ...amounts };
     const res = rebalance(baseAmounts, category, newAmount, bucketMap);
@@ -432,6 +443,27 @@ export function SmartBudgetWizard({ isOpen, onClose, initialReveal }: Props) {
               </div>
             </div>
           )}
+
+          {/* Fix Savings toggle */}
+          <div className="flex items-center justify-between gap-3 px-4 py-3 bg-muted/50 rounded-xl mb-4">
+            <div className="min-w-0">
+              <p className="text-sm font-medium">Fix Savings Amount</p>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                {fixSavings
+                  ? 'Other categories auto-adjust to keep savings constant'
+                  : 'Savings adjusts freely when you change a category'}
+              </p>
+            </div>
+            <button
+              type="button"
+              role="switch"
+              aria-checked={fixSavings}
+              onClick={() => { setFixSavings(f => !f); setNotification(null); setPrevAmounts(null); }}
+              className={`relative shrink-0 w-11 h-6 rounded-full transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-ring ${fixSavings ? 'bg-teal-500' : 'bg-muted-foreground/30'}`}
+            >
+              <span className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${fixSavings ? 'translate-x-5' : 'translate-x-0'}`} />
+            </button>
+          </div>
 
           {/* Savings card with slider */}
           <div className={`p-4 rounded-xl border-2 mb-6 ${savingsColors[liveSavingsLevel]}`}>
