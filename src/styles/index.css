@@ -10,6 +10,11 @@
   animation: fade-in-up 0.2s ease-out forwards;
 }
 
+/* ── Hide number input spinners ────────────────────────────── */
+.no-spin::-webkit-inner-spin-button,
+.no-spin::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+.no-spin { -moz-appearance: textfield; }
+
 /* ── Smart budget range sliders ────────────────────────────── */
 .smart-slider {
   -webkit-appearance: none;

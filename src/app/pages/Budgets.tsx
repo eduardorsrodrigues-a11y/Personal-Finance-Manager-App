@@ -237,9 +237,6 @@ export function Budgets() {
                   </p>
                 </div>
               </div>
-              <p className="text-xs text-muted-foreground mt-3">
-                Tap any category to open the smart allocator and rebalance.
-              </p>
             </div>
 
             {/* Needs */}
@@ -295,6 +292,7 @@ export function Budgets() {
                       </span>
                       <input
                         type="number"
+                        inputMode="decimal"
                         min="0"
                         step="1"
                         placeholder={t('budgets.noLimit')}

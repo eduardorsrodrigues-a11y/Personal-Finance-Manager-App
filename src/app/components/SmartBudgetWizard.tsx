@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { X, ChevronRight, ChevronLeft, Sparkles, Lock, RotateCcw, TrendingUp, PiggyBank } from 'lucide-react';
 import { useBudgets } from '../context/BudgetContext';
 import { useCurrency } from '../context/CurrencyContext';
@@ -45,6 +45,19 @@ interface Props {
   initialReveal?: SmartBudgetStored;
 }
 
+// ── Step helpers ───────────────────────────────────────────────
+
+/** Returns a "nice" step size that yields ~8–12 tick marks for the given max. */
+function computeStep(max: number): number {
+  const niceSteps = [10, 25, 50, 100, 200, 250, 500, 1000];
+  const target = max / 10;
+  return niceSteps.find(s => s >= target) ?? 1000;
+}
+
+function snapToStep(value: number, step: number): number {
+  return Math.round(value / step) * step;
+}
+
 // ── Small helpers ──────────────────────────────────────────────
 
 function OptionCard({ label, description, selected, onClick }: {
@@ -55,9 +68,7 @@ function OptionCard({ label, description, selected, onClick }: {
       type="button"
       onClick={onClick}
       className={`w-full text-left px-4 py-3 rounded-xl border-2 transition-all ${
-        selected
-          ? 'border-teal-500 bg-teal-500/5'
-          : 'border-border hover:border-teal-300'
+        selected ? 'border-teal-500 bg-teal-500/5' : 'border-border hover:border-teal-300'
       }`}
     >
       <p className="text-sm font-medium">{label}</p>
@@ -76,12 +87,13 @@ function FixedInput({ label, symbol, value, onChange, placeholder = '0' }: {
         <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground pointer-events-none">{symbol}</span>
         <input
           type="number"
+          inputMode="decimal"
           min="0"
           step="1"
           value={value}
           onChange={e => onChange(e.target.value)}
           placeholder={placeholder}
-          className="w-full pl-7 pr-3 py-2 rounded-lg border border-border bg-input-background text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+          className="no-spin w-full pl-7 pr-3 py-2 rounded-lg border border-border bg-input-background text-sm focus:outline-none focus:ring-2 focus:ring-ring"
         />
       </div>
     </div>
@@ -106,18 +118,32 @@ export function SmartBudgetWizard({ isOpen, onClose, initialReveal }: Props) {
   const [savingsDraft, setSavingsDraft] = useState<number | null>(null);
 
   const [data, setData] = useState<WizardData>({
-    income: '',
-    housingSituation: '',
-    housingAmount: '',
-    utilities: '',
-    health: '',
-    gym: '',
-    dependents: '',
-    debt: '',
-    goal: '',
+    income: '', housingSituation: '', housingAmount: '',
+    utilities: '', health: '', gym: '', dependents: '', debt: '', goal: '',
   });
 
-  // Use a ref so the effect only reads initialReveal on open, not on every prop change
+  // Refs for correct rebalancing (amounts may already be updated before commit fires)
+  const dragStartAmounts = useRef<Record<string, number>>({});
+  const inputStartRef = useRef<Record<string, number>>({});
+
+  // Derive slider step from result
+  const maxSlider = result ? Math.round(result.income * 0.7) : 0;
+  const sliderStep = computeStep(maxSlider);
+  const categoryTicks = useMemo(() => {
+    if (!maxSlider) return [];
+    const t: number[] = [];
+    for (let v = 0; v <= maxSlider; v += sliderStep) t.push(v);
+    return t;
+  }, [maxSlider, sliderStep]);
+
+  const savingsStep = result ? computeStep(result.income) : 50;
+  const savingsTicks = useMemo(() => {
+    if (!result) return [];
+    const t: number[] = [];
+    for (let v = 0; v <= result.income; v += savingsStep) t.push(v);
+    return t;
+  }, [result, savingsStep]);
+
   const initialRevealRef = useRef(initialReveal);
   initialRevealRef.current = initialReveal;
 
@@ -125,8 +151,14 @@ export function SmartBudgetWizard({ isOpen, onClose, initialReveal }: Props) {
     if (isOpen) {
       const ir = initialRevealRef.current;
       if (ir) {
+        const ms = Math.round(ir.result.income * 0.7);
+        const ss = computeStep(ms);
+        const snapped: Record<string, number> = {};
+        for (const [cat, amt] of Object.entries(ir.amounts)) {
+          snapped[cat] = snapToStep(Math.min(ms, Math.max(0, amt)), ss);
+        }
         setResult(ir.result);
-        setAmounts(ir.amounts);
+        setAmounts(snapped);
         setStep('reveal');
         setNotification(null);
         setPrevAmounts(null);
@@ -134,7 +166,6 @@ export function SmartBudgetWizard({ isOpen, onClose, initialReveal }: Props) {
         setApplying(false);
         setComputeError('');
       }
-      // else: step stays at 1 (default)
     } else {
       setStep(1);
       setData({ income: '', housingSituation: '', housingAmount: '', utilities: '', health: '', gym: '', dependents: '', debt: '', goal: '' });
@@ -145,6 +176,8 @@ export function SmartBudgetWizard({ isOpen, onClose, initialReveal }: Props) {
       setComputeError('');
       setApplying(false);
       setSavingsDraft(null);
+      dragStartAmounts.current = {};
+      inputStartRef.current = {};
     }
   }, [isOpen]);
 
@@ -168,9 +201,13 @@ export function SmartBudgetWizard({ isOpen, onClose, initialReveal }: Props) {
         setComputeError(computed.error);
         setStep(2);
       } else {
-        setResult(computed);
+        const ms = Math.round(computed.income * 0.7);
+        const ss = computeStep(ms);
         const init: Record<string, number> = {};
-        for (const a of computed.allocations) init[a.category] = Math.round(a.amount);
+        for (const a of computed.allocations) {
+          init[a.category] = snapToStep(Math.round(a.amount), ss);
+        }
+        setResult(computed);
         setAmounts(init);
         setStep('reveal');
       }
@@ -180,10 +217,8 @@ export function SmartBudgetWizard({ isOpen, onClose, initialReveal }: Props) {
 
   if (!isOpen) return null;
 
-  const set = (key: keyof WizardData, value: string) =>
-    setData(d => ({ ...d, [key]: value }));
+  const set = (key: keyof WizardData, value: string) => setData(d => ({ ...d, [key]: value }));
 
-  // Validation per step
   const canNext = (): boolean => {
     if (step === 1) return parseFloat(data.income) > 0;
     if (step === 2) {
@@ -207,12 +242,14 @@ export function SmartBudgetWizard({ isOpen, onClose, initialReveal }: Props) {
     if (typeof step === 'number' && step > 1) setStep((step - 1) as WizardStep);
   };
 
-  // Slider committed (on mouse/touch release)
-  const handleSliderCommit = (category: string, newAmount: number) => {
+  // Rebalance using the snapshot from BEFORE the drag/type started
+  const handleCommit = (category: string, newAmount: number, baseAmounts: Record<string, number>) => {
     if (!result || FIXED_CATEGORIES.has(category)) return;
+    const delta = newAmount - (baseAmounts[category] ?? 0);
+    if (Math.abs(delta) < 1) return;
     const bucketMap = getBucketMap(result.allocations);
     const snap = { ...amounts };
-    const res = rebalance(amounts, category, newAmount, bucketMap);
+    const res = rebalance(baseAmounts, category, newAmount, bucketMap);
     if (res) {
       setPrevAmounts(snap);
       setAmounts(res.updated);
@@ -220,23 +257,16 @@ export function SmartBudgetWizard({ isOpen, onClose, initialReveal }: Props) {
     }
   };
 
-  // Proportionally redistribute across fluid categories when savings target changes
   const adjustForSavings = (newSavings: number) => {
     if (!result) return;
-    const fixedTotal = result.allocations
-      .filter(a => a.fixed)
-      .reduce((s, a) => s + (amounts[a.category] ?? 0), 0);
-    const currentFluidTotal = result.allocations
-      .filter(a => !a.fixed)
-      .reduce((s, a) => s + (amounts[a.category] ?? 0), 0);
+    const fixedTotal = result.allocations.filter(a => a.fixed).reduce((s, a) => s + (amounts[a.category] ?? 0), 0);
+    const currentFluidTotal = result.allocations.filter(a => !a.fixed).reduce((s, a) => s + (amounts[a.category] ?? 0), 0);
     const targetFluidTotal = Math.max(0, result.income - Math.max(0, newSavings) - fixedTotal);
-
     if (currentFluidTotal === 0) return;
-
     const ratio = targetFluidTotal / currentFluidTotal;
     const updated = { ...amounts };
     result.allocations.filter(a => !a.fixed).forEach(a => {
-      updated[a.category] = Math.max(0, Math.round((amounts[a.category] ?? 0) * ratio));
+      updated[a.category] = snapToStep(Math.max(0, Math.round((amounts[a.category] ?? 0) * ratio)), sliderStep);
     });
     setAmounts(updated);
   };
@@ -248,15 +278,13 @@ export function SmartBudgetWizard({ isOpen, onClose, initialReveal }: Props) {
   const handleApply = async () => {
     setApplying(true);
     const rounded: Record<string, number> = {};
-    for (const [cat, amt] of Object.entries(amounts)) {
-      rounded[cat] = Math.round(amt);
-    }
+    for (const [cat, amt] of Object.entries(amounts)) rounded[cat] = Math.round(amt);
     await setBudgetsAll(rounded, result?.income);
     showToast('Smart budget applied successfully!');
     onClose();
   };
 
-  // Live savings from current slider state
+  // Live savings
   const totalAllocated = Object.values(amounts).reduce((s, a) => s + a, 0);
   const liveSavings = (result?.income ?? 0) - totalAllocated;
   const displayedSavings = savingsDraft !== null ? savingsDraft : Math.max(0, liveSavings);
@@ -269,11 +297,7 @@ export function SmartBudgetWizard({ isOpen, onClose, initialReveal }: Props) {
     medium: 'bg-amber-50 border-amber-300 text-amber-700',
     low: 'bg-red-50 border-red-300 text-red-700',
   };
-  const savingsLabels = {
-    high: 'High Savings',
-    medium: 'Medium Savings',
-    low: 'Low Savings',
-  };
+  const savingsLabels = { high: 'High Savings', medium: 'Medium Savings', low: 'Low Savings' };
 
   // ── Render helpers ───────────────────────────────────────────
 
@@ -294,46 +318,100 @@ export function SmartBudgetWizard({ isOpen, onClose, initialReveal }: Props) {
     }
 
     if (step === 'reveal' && result) {
-      const maxSlider = Math.round(result.income * 0.7);
+      const savingsPct = Math.round(Math.max(0, displayedSavingsPct));
+      const savingsPctForSlider = Math.round(Math.max(0, displayedSavings) / result.income * 100);
 
       const renderSection = (title: string, categories: string[], accent: string) => {
         const sectionAllocs = result.allocations.filter(a => categories.includes(a.category));
         return (
           <div className="mb-6">
             <p className={`text-xs font-semibold uppercase tracking-wider mb-4 ${accent}`}>{title}</p>
-            <div className="space-y-5">
+            <div className="space-y-6">
               {sectionAllocs.map(alloc => {
                 const { icon: Icon, bg, text } = getCategoryConfig(alloc.category);
                 const isFixed = alloc.fixed;
                 const amt = amounts[alloc.category] ?? 0;
                 const pct = maxSlider > 0 ? Math.round((amt / maxSlider) * 100) : 0;
+
                 return (
-                  <div key={alloc.category} className="flex items-center gap-3">
-                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${bg}`}>
+                  <div key={alloc.category} className="flex items-start gap-3">
+                    {/* Icon */}
+                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 mt-0.5 ${bg}`}>
                       <Icon className={`w-4 h-4 ${text}`} />
                     </div>
+
+                    {/* Content: name + input row, then slider */}
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-1 mb-2">
-                        <span className="text-sm font-medium truncate">{tCategory(alloc.category)}</span>
-                        {isFixed && <Lock className="w-3 h-3 text-muted-foreground shrink-0" />}
+                      {/* Name + editable amount */}
+                      <div className="flex items-center justify-between gap-2 mb-2">
+                        <div className="flex items-center gap-1 min-w-0">
+                          <span className="text-sm font-medium truncate">{tCategory(alloc.category)}</span>
+                          {isFixed && <Lock className="w-3 h-3 text-muted-foreground shrink-0" />}
+                        </div>
+                        <div className="flex items-center gap-0.5 shrink-0">
+                          <span className="text-xs text-muted-foreground">{currency.symbol}</span>
+                          <input
+                            type="number"
+                            inputMode="decimal"
+                            min={0}
+                            max={maxSlider}
+                            value={amt}
+                            disabled={isFixed}
+                            onFocus={() => { inputStartRef.current[alloc.category] = amt; }}
+                            onChange={e => {
+                              if (isFixed) return;
+                              const v = Math.max(0, Math.min(maxSlider, Number(e.target.value) || 0));
+                              setAmounts(prev => ({ ...prev, [alloc.category]: v }));
+                            }}
+                            onBlur={e => {
+                              if (isFixed) return;
+                              const raw = Math.max(0, Math.min(maxSlider, Number(e.target.value) || 0));
+                              const snapped = snapToStep(raw, sliderStep);
+                              const base = { ...amounts, [alloc.category]: inputStartRef.current[alloc.category] ?? snapped };
+                              setAmounts(prev => ({ ...prev, [alloc.category]: snapped }));
+                              handleCommit(alloc.category, snapped, base);
+                            }}
+                            onKeyDown={e => e.key === 'Enter' && (e.target as HTMLInputElement).blur()}
+                            className="no-spin w-16 text-right text-sm font-semibold bg-transparent border-b-2 border-border focus:border-teal-500 focus:outline-none disabled:opacity-40"
+                          />
+                        </div>
                       </div>
+
+                      {/* Slider */}
                       <input
                         type="range"
                         min={0}
                         max={maxSlider}
-                        step={1}
+                        step={sliderStep}
                         value={amt}
                         disabled={isFixed}
+                        onMouseDown={() => { dragStartAmounts.current = { ...amounts }; }}
+                        onTouchStart={() => { dragStartAmounts.current = { ...amounts }; }}
                         onChange={e => {
                           if (!isFixed) setAmounts(prev => ({ ...prev, [alloc.category]: Number(e.target.value) }));
                         }}
-                        onMouseUp={e => handleSliderCommit(alloc.category, Number((e.target as HTMLInputElement).value))}
-                        onTouchEnd={e => handleSliderCommit(alloc.category, Number((e.currentTarget as HTMLInputElement).value))}
+                        onMouseUp={e => handleCommit(alloc.category, Number((e.target as HTMLInputElement).value), dragStartAmounts.current)}
+                        onTouchEnd={e => handleCommit(alloc.category, Number((e.currentTarget as HTMLInputElement).value), dragStartAmounts.current)}
                         style={{ '--pct': `${pct}` } as React.CSSProperties}
-                        className={`smart-slider w-full ${isFixed ? 'opacity-50' : ''}`}
+                        className={`smart-slider w-full ${isFixed ? 'opacity-40' : ''}`}
                       />
+
+                      {/* Tick marks */}
+                      <div className="relative h-3" style={{ marginInline: '11px' }}>
+                        {categoryTicks.map(tick => {
+                          const tickPct = maxSlider > 0 ? (tick / maxSlider) * 100 : 0;
+                          return (
+                            <div
+                              key={tick}
+                              className="absolute top-1 -translate-x-1/2"
+                              style={{ left: `${tickPct}%` }}
+                            >
+                              <div className={`w-1.5 h-1.5 rounded-full ${tick <= amt ? 'bg-teal-400' : 'bg-muted-foreground/25'}`} />
+                            </div>
+                          );
+                        })}
+                      </div>
                     </div>
-                    <span className="text-sm font-semibold shrink-0 min-w-[4.5rem] text-right">{formatAmount(amt)}</span>
                   </div>
                 );
               })}
@@ -341,8 +419,6 @@ export function SmartBudgetWizard({ isOpen, onClose, initialReveal }: Props) {
           </div>
         );
       };
-
-      const savingsPct = Math.round(Math.max(0, displayedSavingsPct));
 
       return (
         <div className="pb-4">
@@ -366,7 +442,7 @@ export function SmartBudgetWizard({ isOpen, onClose, initialReveal }: Props) {
             </div>
           )}
 
-          {/* Savings card with adjustable slider */}
+          {/* Savings card with slider */}
           <div className={`p-4 rounded-xl border-2 mb-6 ${savingsColors[liveSavingsLevel]}`}>
             <div className="flex items-center justify-between mb-1">
               <div>
@@ -374,7 +450,9 @@ export function SmartBudgetWizard({ isOpen, onClose, initialReveal }: Props) {
                   <PiggyBank className="w-3.5 h-3.5" />
                   <p className="text-xs font-semibold uppercase tracking-wide">{savingsLabels[liveSavingsLevel]}</p>
                 </div>
-                <p className="text-xl font-bold">{formatAmount(Math.max(0, displayedSavings))}<span className="text-xs font-normal opacity-75">/mo</span></p>
+                <p className="text-xl font-bold">
+                  {formatAmount(Math.max(0, displayedSavings))}<span className="text-xs font-normal opacity-75">/mo</span>
+                </p>
               </div>
               <p className="text-4xl font-black">{savingsPct}%</p>
             </div>
@@ -383,22 +461,26 @@ export function SmartBudgetWizard({ isOpen, onClose, initialReveal }: Props) {
               type="range"
               min={0}
               max={result.income}
-              step={10}
+              step={savingsStep}
               value={savingsDraft ?? Math.max(0, liveSavings)}
               onChange={e => setSavingsDraft(Number(e.target.value))}
-              onMouseUp={e => {
-                const val = Number((e.target as HTMLInputElement).value);
-                adjustForSavings(val);
-                setSavingsDraft(null);
-              }}
-              onTouchEnd={e => {
-                const val = Number((e.currentTarget as HTMLInputElement).value);
-                adjustForSavings(val);
-                setSavingsDraft(null);
-              }}
-              style={{ '--pct': `${savingsPct}` } as React.CSSProperties}
+              onMouseUp={e => { adjustForSavings(Number((e.target as HTMLInputElement).value)); setSavingsDraft(null); }}
+              onTouchEnd={e => { adjustForSavings(Number((e.currentTarget as HTMLInputElement).value)); setSavingsDraft(null); }}
+              style={{ '--pct': `${savingsPctForSlider}` } as React.CSSProperties}
               className="smart-slider w-full"
             />
+            {/* Savings tick marks */}
+            <div className="relative h-3 mt-0.5" style={{ marginInline: '11px' }}>
+              {savingsTicks.map(tick => {
+                const tickPct = result.income > 0 ? (tick / result.income) * 100 : 0;
+                const activeVal = savingsDraft ?? Math.max(0, liveSavings);
+                return (
+                  <div key={tick} className="absolute top-1 -translate-x-1/2" style={{ left: `${tickPct}%` }}>
+                    <div className={`w-1.5 h-1.5 rounded-full ${tick <= activeVal ? 'opacity-60 bg-current' : 'bg-current opacity-20'}`} />
+                  </div>
+                );
+              })}
+            </div>
           </div>
 
           {/* Budget breakdown */}
@@ -412,7 +494,6 @@ export function SmartBudgetWizard({ isOpen, onClose, initialReveal }: Props) {
       );
     }
 
-    // Step 1: Income
     if (step === 1) return (
       <div className="space-y-4">
         <div>
@@ -421,11 +502,14 @@ export function SmartBudgetWizard({ isOpen, onClose, initialReveal }: Props) {
           <div className="relative">
             <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">{currency.symbol}</span>
             <input
-              type="number" min="0" step="1"
+              type="number"
+              inputMode="decimal"
+              min="0"
+              step="1"
               value={data.income}
               onChange={e => set('income', e.target.value)}
               placeholder="e.g. 3500"
-              className="w-full pl-9 pr-4 py-3 rounded-xl border border-border bg-input-background text-lg font-semibold focus:outline-none focus:ring-2 focus:ring-ring"
+              className="no-spin w-full pl-9 pr-4 py-3 rounded-xl border border-border bg-input-background text-lg font-semibold focus:outline-none focus:ring-2 focus:ring-ring"
               autoFocus
             />
           </div>
@@ -434,7 +518,6 @@ export function SmartBudgetWizard({ isOpen, onClose, initialReveal }: Props) {
       </div>
     );
 
-    // Step 2: Housing + Fixed costs
     if (step === 2) return (
       <div className="space-y-4">
         {computeError && (
@@ -456,12 +539,10 @@ export function SmartBudgetWizard({ isOpen, onClose, initialReveal }: Props) {
             ))}
           </div>
         </div>
-
         {data.housingSituation && data.housingSituation !== 'rent-free' && (
           <FixedInput label="Monthly housing payment" symbol={currency.symbol}
             value={data.housingAmount} onChange={v => set('housingAmount', v)} placeholder="e.g. 1200" />
         )}
-
         <div>
           <p className="text-sm font-medium mb-2 mt-2">Other fixed monthly bills <span className="text-muted-foreground font-normal">(enter 0 if not applicable)</span></p>
           <div className="grid grid-cols-1 gap-2">
@@ -476,7 +557,6 @@ export function SmartBudgetWizard({ isOpen, onClose, initialReveal }: Props) {
       </div>
     );
 
-    // Step 3: Dependents
     if (step === 3) return (
       <div>
         <p className="text-base font-semibold mb-1">How many dependents do you support?</p>
@@ -495,7 +575,6 @@ export function SmartBudgetWizard({ isOpen, onClose, initialReveal }: Props) {
       </div>
     );
 
-    // Step 4: Debt
     if (step === 4) return (
       <div>
         <p className="text-base font-semibold mb-1">Do you have significant debt?</p>
@@ -516,7 +595,6 @@ export function SmartBudgetWizard({ isOpen, onClose, initialReveal }: Props) {
       </div>
     );
 
-    // Step 5: Goal
     if (step === 5) return (
       <div>
         <p className="text-base font-semibold mb-1">What is your main financial focus right now?</p>
@@ -593,11 +671,7 @@ export function SmartBudgetWizard({ isOpen, onClose, initialReveal }: Props) {
               disabled={!canNext()}
               className="flex items-center gap-1.5 px-6 py-2.5 rounded-xl bg-teal-500 hover:bg-teal-600 text-white text-sm font-semibold transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
             >
-              {step === 5 ? (
-                <><Sparkles className="w-4 h-4" /> Generate My Budget</>
-              ) : (
-                <>Next <ChevronRight className="w-4 h-4" /></>
-              )}
+              {step === 5 ? <><Sparkles className="w-4 h-4" /> Generate My Budget</> : <>Next <ChevronRight className="w-4 h-4" /></>}
             </button>
           </div>
         </div>
