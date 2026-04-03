@@ -341,7 +341,7 @@ export function SmartBudgetWizard({ isOpen, onClose, initialReveal }: Props) {
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <p className="text-xs text-muted-foreground mb-0.5">Recommended</p>
+                <p className="text-xs text-muted-foreground mb-0.5">Max Recommended</p>
                 <p className="text-lg font-bold text-blue-600">{formatAmount(macroIncome * 0.6)}</p>
                 <p className="text-xs text-muted-foreground">60%</p>
               </div>
@@ -370,7 +370,7 @@ export function SmartBudgetWizard({ isOpen, onClose, initialReveal }: Props) {
             </div>
             <div className="grid grid-cols-2 gap-4 mb-4">
               <div>
-                <p className="text-xs text-muted-foreground mb-0.5">Recommended</p>
+                <p className="text-xs text-muted-foreground mb-0.5">Max Recommended</p>
                 <p className="text-lg font-bold text-purple-600">{formatAmount(macroIncome * 0.2)}</p>
                 <p className="text-xs text-muted-foreground">20%</p>
               </div>
@@ -422,7 +422,7 @@ export function SmartBudgetWizard({ isOpen, onClose, initialReveal }: Props) {
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <p className="text-xs text-muted-foreground mb-0.5">Recommended</p>
+                <p className="text-xs text-muted-foreground mb-0.5">Min Recommended</p>
                 <p className="text-lg font-bold text-emerald-600">{formatAmount(macroIncome * 0.2)}</p>
                 <p className="text-xs text-muted-foreground">20%</p>
               </div>
