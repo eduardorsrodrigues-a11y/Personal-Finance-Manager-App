@@ -61,6 +61,7 @@ export function Dashboard() {
       const tag = (e.target as HTMLElement).tagName;
       if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
       if (e.key === 'n' || e.key === 'N') {
+        e.preventDefault();
         setEditingTransaction(null);
         setIsModalOpen(true);
       }

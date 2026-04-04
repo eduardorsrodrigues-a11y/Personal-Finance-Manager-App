@@ -41,6 +41,7 @@ export function TransactionHistory() {
       const tag = (e.target as HTMLElement).tagName;
       if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
       if (e.key === 'n' || e.key === 'N') {
+        e.preventDefault();
         setModalMode('add');
         setEditingTransaction(null);
         setIsModalOpen(true);
