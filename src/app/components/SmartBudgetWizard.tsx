@@ -335,9 +335,9 @@ export function SmartBudgetWizard({ isOpen, onClose, initialReveal }: Props) {
               <div className="h-full bg-emerald-500 transition-all" style={{ width: `${savingsBarPct}%` }} />
             </div>
             <div className="flex gap-4 mt-2 text-xs text-muted-foreground">
-              <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-full bg-blue-500" /> Needs</div>
-              <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-full bg-purple-500" /> Wants</div>
-              <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-full bg-emerald-500" /> Savings</div>
+              <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-full bg-blue-500" /> Needs <span className="font-semibold text-foreground">{Math.round(needsBarPct)}%</span></div>
+              <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-full bg-purple-500" /> Wants <span className="font-semibold text-foreground">{Math.round(wantsBarPct)}%</span></div>
+              <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-full bg-emerald-500" /> Savings <span className="font-semibold text-foreground">{Math.round(savingsBarPct)}%</span></div>
             </div>
           </div>
 
@@ -387,7 +387,23 @@ export function SmartBudgetWizard({ isOpen, onClose, initialReveal }: Props) {
               </div>
               <div>
                 <p className="text-xs text-muted-foreground mb-0.5">Actual</p>
-                <p className="text-lg font-bold">{formatAmount(actualWants)}</p>
+                <div className="flex items-baseline gap-1">
+                  <span className="text-sm text-muted-foreground">{currency.symbol}</span>
+                  <input
+                    type="number"
+                    inputMode="decimal"
+                    min={0}
+                    max={Math.round(macroIncome * maxWantsPct / 100)}
+                    value={actualWants}
+                    onChange={e => {
+                      const raw = Math.max(0, Number(e.target.value) || 0);
+                      const pct = macroIncome > 0 ? Math.min(maxWantsPct, Math.round((raw / macroIncome) * 100)) : 0;
+                      setMacroWantsPct(pct);
+                    }}
+                    onKeyDown={e => e.key === 'Enter' && (e.target as HTMLInputElement).blur()}
+                    className="no-spin w-20 text-lg font-bold bg-transparent border-b-2 border-border focus:border-purple-500 focus:outline-none"
+                  />
+                </div>
                 <p className="text-xs text-muted-foreground">{macroWantsPct}%</p>
               </div>
             </div>
