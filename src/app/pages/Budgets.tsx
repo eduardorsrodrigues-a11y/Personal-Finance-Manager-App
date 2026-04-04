@@ -13,9 +13,10 @@ import {
 
 const ALL_SMART_CATEGORIES = [...NEEDS_CATEGORIES, ...WANTS_CATEGORIES];
 
-const SLIDER_STEP = 25;
-const TICK_EVERY  = 100;
-const ANNUAL_TICK = 1200;
+const SLIDER_STEP        = 25;
+const ANNUAL_SLIDER_STEP = 600;   // ~€50/mo increments on annual slider
+const TICK_EVERY         = 100;
+const ANNUAL_TICK        = 1200;
 
 function snapToStep(value: number, step: number): number {
   return Math.round(value / step) * step;
@@ -138,8 +139,9 @@ export function Budgets() {
   const annualEditMin = editingCategory && editingIsAnnual ? (budgets[editingCategory] ?? 0) * 12 : 0;
   const annualEditMax = editingCategory && editingIsAnnual
     ? isSmartMode
-      ? Math.max(annualIncome, annualEditMin + SLIDER_STEP)
-      : Math.max(Math.ceil((Math.max(annualEditMin, editingDraft) * 3) / 1200) * 1200, annualEditMin + 2400)
+      // Max = income×12 minus what ALL OTHER categories are already using
+      ? Math.max(annualIncome - (totalAnnualBudgeted - annualAmountFor(editingCategory)), annualEditMin)
+      : Math.max(Math.ceil((Math.max(annualEditMin, annualAmountFor(editingCategory)) * 3) / ANNUAL_TICK) * ANNUAL_TICK, annualEditMin + 2400)
     : 2400;
 
   const annualEditTicks: number[] = [];
@@ -556,7 +558,7 @@ export function Budgets() {
                         value={editingDraft}
                         onChange={e => {
                           const raw = Number(e.target.value) || 0;
-                          const clamped = isSmartMode ? Math.min(raw, annualIncome) : raw;
+                          const clamped = isSmartMode ? Math.min(raw, annualEditMax) : raw;
                           setEditingDraft(Math.max(annualEditMin, clamped));
                         }}
                         onKeyDown={e => { if (e.key === 'Enter') handleSaveEdit(); }}
@@ -567,17 +569,17 @@ export function Budgets() {
                   </div>
                   <p className="text-xs text-muted-foreground mb-4">
                     = {formatAmount(Math.round(editingDraft / 12))}/mo &nbsp;·&nbsp; min {formatAmount(annualEditMin)}/yr
-                    {isSmartMode && <> &nbsp;·&nbsp; max {formatAmount(annualIncome)}/yr</>}
+                    {isSmartMode && <> &nbsp;·&nbsp; max {formatAmount(annualEditMax)}/yr</>}
                   </p>
                   <input
                     type="range"
                     min={annualEditMin}
                     max={sliderMax}
-                    step={SLIDER_STEP}
+                    step={ANNUAL_SLIDER_STEP}
                     value={sliderValue}
                     onChange={e => {
                       const raw = Number(e.target.value);
-                      const snapped = raw <= annualEditMin ? annualEditMin : snapToStep(raw, SLIDER_STEP);
+                      const snapped = raw <= annualEditMin ? annualEditMin : snapToStep(raw, ANNUAL_SLIDER_STEP);
                       setEditingDraft(snapped);
                     }}
                     style={{ '--pct': `${pct}` } as React.CSSProperties}
