@@ -6,6 +6,7 @@ import { useTransactions } from '../context/TransactionContext';
 import { AddTransactionModal } from '../components/AddTransactionModal';
 import { TransactionFilters } from '../components/TransactionFilters';
 import { getAvailableMonths, filterTransactionsByMonth, getCurrentMonthLabel } from '../utils/dateUtils';
+import { AnnualGrid } from '../components/AnnualGrid';
 import { useCurrency } from '../context/CurrencyContext';
 import { useBudgets } from '../context/BudgetContext';
 import { getCategoryConfig } from '../utils/categoryConfig';
@@ -511,6 +512,8 @@ export function Dashboard() {
             </div>
           </div>
         </div>
+
+        {selectedMonth === 'this-year' && <AnnualGrid />}
       </div>
 
       <AddTransactionModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} />
