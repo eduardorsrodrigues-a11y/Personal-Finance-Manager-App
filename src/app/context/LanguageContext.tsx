@@ -30,12 +30,12 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
     localStorage.setItem(LANGUAGE_KEY, code);
   }, []);
 
-  const isRTL = language === 'ar';
+  const isRTL = false;
 
   useEffect(() => {
-    document.documentElement.dir = isRTL ? 'rtl' : 'ltr';
+    document.documentElement.dir = 'ltr';
     document.documentElement.lang = language;
-  }, [language, isRTL]);
+  }, [language]);
 
   const t = useCallback(
     (key: string): string => getNestedValue(translations[language] as unknown as Record<string, any>, key),

@@ -8,18 +8,9 @@ interface Currency {
 }
 
 export const currencies: Currency[] = [
-  { code: 'USD', symbol: '$', name: 'US Dollar' },
-  { code: 'EUR', symbol: '€', name: 'Euro' },
-  { code: 'GBP', symbol: '£', name: 'British Pound' },
-  { code: 'JPY', symbol: '¥', name: 'Japanese Yen' },
-  { code: 'CAD', symbol: 'C$', name: 'Canadian Dollar' },
-  { code: 'AUD', symbol: 'A$', name: 'Australian Dollar' },
-  { code: 'CHF', symbol: 'CHF', name: 'Swiss Franc' },
-  { code: 'CNY', symbol: '¥', name: 'Chinese Yuan' },
-  { code: 'INR', symbol: '₹', name: 'Indian Rupee' },
-  { code: 'MXN', symbol: 'Mex$', name: 'Mexican Peso' },
-  { code: 'BRL', symbol: 'R$', name: 'Brazilian Real' },
-  { code: 'ZAR', symbol: 'R', name: 'South African Rand' },
+  { code: 'USD', symbol: '$',  name: 'US Dollar' },
+  { code: 'EUR', symbol: '€',  name: 'Euro' },
+  { code: 'GBP', symbol: '£',  name: 'British Pound' },
 ];
 
 const GUEST_CURRENCY_KEY = 'expense_manager_guest_currency';
