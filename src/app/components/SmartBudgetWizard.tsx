@@ -137,11 +137,6 @@ export function SmartBudgetWizard({ isOpen, onClose, initialReveal }: Props) {
     return () => document.removeEventListener('keydown', onKey);
   }, [isOpen]);
 
-  // Clear micro error once user frees up budget
-  useEffect(() => {
-    if (microRemaining > 0) setMicroError('');
-  }, [microRemaining]);
-
   // Open / close effect
   useEffect(() => {
     if (isOpen) {
@@ -289,6 +284,11 @@ export function SmartBudgetWizard({ isOpen, onClose, initialReveal }: Props) {
   // Micro derived values
   const microAllocated = Object.values(microAmounts).reduce((s, a) => s + a, 0);
   const microRemaining = wantsPool - microAllocated;
+
+  // Clear micro error once user frees up budget (must be after microRemaining is declared)
+  useEffect(() => {
+    if (microRemaining > 0) setMicroError('');
+  }, [microRemaining]);
 
   const isQuestionStep = typeof step === 'number';
   const stepNum = isQuestionStep ? (step as number) : 5;
