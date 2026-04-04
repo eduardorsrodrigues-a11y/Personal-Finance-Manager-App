@@ -106,6 +106,10 @@ export function SmartBudgetWizard({ isOpen, onClose, initialReveal }: Props) {
   const [microAmounts, setMicroAmounts] = useState<Record<string, number>>({});
   const [microError, setMicroError] = useState('');
 
+  // Derived early so it can be used in useEffect dependency arrays before the early return
+  const microAllocated = Object.values(microAmounts).reduce((s, a) => s + a, 0);
+  const microRemaining = wantsPool - microAllocated;
+
   const showMicroError = (msg: string) => setMicroError(msg);
 
   const isReadjustRef = useRef(false);
@@ -217,6 +221,11 @@ export function SmartBudgetWizard({ isOpen, onClose, initialReveal }: Props) {
     return () => clearTimeout(timer);
   }, [step]);
 
+  // Clear micro error once user frees up budget (must be before early return to keep hook count stable)
+  useEffect(() => {
+    if (microRemaining > 0) setMicroError('');
+  }, [microRemaining]);
+
   if (!isOpen) return null;
 
   const set = (key: keyof WizardData, value: string) => setData(d => ({ ...d, [key]: value }));
@@ -280,15 +289,6 @@ export function SmartBudgetWizard({ isOpen, onClose, initialReveal }: Props) {
   const maxWantsPct = macroIncome > 0 ? Math.floor(((macroIncome - macroNeedsActual) / macroIncome) * 100) : 20;
   const actualWants = Math.round(macroIncome * macroWantsPct / 100);
   const actualSavings = macroIncome - macroNeedsActual - actualWants;
-
-  // Micro derived values
-  const microAllocated = Object.values(microAmounts).reduce((s, a) => s + a, 0);
-  const microRemaining = wantsPool - microAllocated;
-
-  // Clear micro error once user frees up budget (must be after microRemaining is declared)
-  useEffect(() => {
-    if (microRemaining > 0) setMicroError('');
-  }, [microRemaining]);
 
   const isQuestionStep = typeof step === 'number';
   const stepNum = isQuestionStep ? (step as number) : 5;
