@@ -404,7 +404,7 @@ export function SmartBudgetWizard({ isOpen, onClose, initialReveal }: Props) {
                     className="no-spin w-20 text-lg font-bold bg-transparent border-b-2 border-border focus:border-purple-500 focus:outline-none"
                   />
                 </div>
-                <p className="text-xs text-muted-foreground">{macroWantsPct}%</p>
+                <p className="text-xs text-muted-foreground">{Math.round(macroWantsPct)}%</p>
               </div>
             </div>
             <input
