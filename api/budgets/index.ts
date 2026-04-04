@@ -27,29 +27,35 @@ export default async function handler(req: any, res: any) {
   }
 
   if (req.method === 'GET') {
-    const all = await getBudgets(userId) as Record<string, number>;
-    const { __smartIncome, ...budgets } = all;
-    res.status(200).json({ budgets, smartIncome: __smartIncome ?? null });
+    const all = await getBudgets(userId) as Record<string, any>;
+    const { __smartIncome, __annualBudgets, ...budgets } = all;
+    res.status(200).json({
+      budgets,
+      smartIncome: __smartIncome ?? null,
+      annualBudgets: __annualBudgets ?? {},
+    });
     return;
   }
 
   if (req.method === 'PUT') {
     const body = await readJsonBody(req);
-    const { budgets, smartIncome } = body ?? {};
+    const { budgets, smartIncome, annualBudgets } = body ?? {};
     if (!budgets || typeof budgets !== 'object' || Array.isArray(budgets)) {
       res.status(400).json({ error: 'Invalid budgets payload' });
       return;
     }
-    // Ensure all values are non-negative numbers
+    // Ensure all category values are non-negative numbers
     for (const [key, val] of Object.entries(budgets)) {
       if (typeof val !== 'number' || val < 0) {
         res.status(400).json({ error: `Invalid budget amount for category: ${key}` });
         return;
       }
     }
-    const toStore = (typeof smartIncome === 'number' && smartIncome > 0)
-      ? { ...budgets, __smartIncome: smartIncome }
-      : budgets;
+    const toStore: Record<string, any> = { ...budgets };
+    if (typeof smartIncome === 'number' && smartIncome > 0) toStore.__smartIncome = smartIncome;
+    if (annualBudgets && typeof annualBudgets === 'object' && !Array.isArray(annualBudgets)) {
+      toStore.__annualBudgets = annualBudgets;
+    }
     await upsertBudgets({ userId, budgets: toStore });
     res.status(204).end();
     return;
