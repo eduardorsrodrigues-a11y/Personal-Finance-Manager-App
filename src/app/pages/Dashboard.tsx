@@ -17,7 +17,7 @@ const MONTH_STORAGE_KEY = 'fw_dashboard_month';
 export function Dashboard() {
   const { transactions, isLoading } = useTransactions();
   const { formatAmount } = useCurrency();
-  const { budgets } = useBudgets();
+  const { budgets, annualBudgets } = useBudgets();
   const { t: tr, tCategory } = useLanguage();
   const { user, isGuest } = useAuth();
   const navigate = useNavigate();
@@ -414,7 +414,13 @@ export function Dashboard() {
                     const pct = totalExpenses > 0 ? value / totalExpenses : 0;
                     const barPct = maxValue > 0 ? value / maxValue : 0;
                     const { icon: Icon, hex, bg, text } = getCategoryConfig(name);
-                    const budget = budgets[name];
+                    const isAllTime = !selectedMonth || selectedMonth === 'all';
+                    const isThisYear = selectedMonth === 'this-year';
+                    const budget = isAllTime
+                      ? undefined
+                      : isThisYear
+                        ? (annualBudgets[name] || (budgets[name] ?? 0) * 12) || undefined
+                        : budgets[name];
                     const hasBudget = budget != null && budget > 0;
                     const isOverBudget = hasBudget && value >= budget;
                     return (
@@ -440,7 +446,7 @@ export function Dashboard() {
                               </span>
                               {hasBudget && (
                                 <span className="text-xs text-muted-foreground block">
-                                  / {formatAmount(budget)}
+                                  / {formatAmount(budget!)}{isThisYear ? '/yr' : ''}
                                 </span>
                               )}
                             </div>
