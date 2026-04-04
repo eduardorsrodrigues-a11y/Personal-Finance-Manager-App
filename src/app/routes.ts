@@ -5,6 +5,7 @@ import { TransactionHistory } from "./pages/TransactionHistory";
 import { Budgets } from "./pages/Budgets";
 import { Root } from "./pages/Root";
 import { Login } from "./pages/Login";
+import { ErrorPage } from "./pages/ErrorPage";
 import { RequireAccess } from "./context/AuthContext";
 
 // Both authenticated users and guests can access these routes
@@ -18,6 +19,7 @@ export const router = createBrowserRouter([
   {
     path: "/",
     Component: Root,
+    ErrorBoundary: ErrorPage,
     children: [
       { index: true, Component: ProtectedDashboard },
       { path: "transactions", Component: ProtectedTransactions },
