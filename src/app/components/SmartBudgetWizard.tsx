@@ -397,7 +397,7 @@ export function SmartBudgetWizard({ isOpen, onClose, initialReveal }: Props) {
                     value={actualWants}
                     onChange={e => {
                       const raw = Math.max(0, Number(e.target.value) || 0);
-                      const pct = macroIncome > 0 ? Math.min(maxWantsPct, Math.round((raw / macroIncome) * 100)) : 0;
+                      const pct = macroIncome > 0 ? Math.min(maxWantsPct, (raw / macroIncome) * 100) : 0;
                       setMacroWantsPct(pct);
                     }}
                     onKeyDown={e => e.key === 'Enter' && (e.target as HTMLInputElement).blur()}
