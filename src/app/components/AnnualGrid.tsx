@@ -142,6 +142,7 @@ export function AnnualGrid() {
     const txns = getCellTxns(cat, monthIdx, type).sort((a, b) => b.amount - a.amount);
     if (txns.length === 0) return;
     const monthLabel = monthIdx !== null ? MONTHS[monthIdx] : 'Year total';
+    setTooltip(null);
     setDrilldown({ label: `${tCategory(cat)} · ${monthLabel}`, transactions: txns });
   };
 
