@@ -484,12 +484,16 @@ export function SmartBudgetWizard({ isOpen, onClose, initialReveal }: Props) {
         <div className="pb-4">
           {/* Remaining counter — sticky so it stays visible while scrolling */}
           <div className={`sticky top-0 z-10 mb-6 p-3 rounded-xl border-2 text-center shadow-sm ${
+            microError          ? 'border-red-400    bg-red-50/80    dark:bg-red-950/30'      :
             microRemaining === 0 ? 'border-emerald-400 bg-emerald-50/80 dark:bg-emerald-950/30' :
             microRemaining > 0  ? 'border-teal-300   bg-teal-50/80   dark:bg-teal-950/30'    :
                                   'border-red-300    bg-red-50/80    dark:bg-red-950/30'
           }`}>
-            <p className="text-xs text-muted-foreground">Remaining to allocate</p>
+            <p className={`text-xs font-medium ${microError ? 'text-red-500 dark:text-red-400' : 'text-muted-foreground'}`}>
+              {microError ? microError : microRemaining === 0 ? 'All budget allocated' : 'Remaining to allocate'}
+            </p>
             <p className={`text-2xl font-bold ${
+              microError          ? 'text-red-500'    :
               microRemaining === 0 ? 'text-emerald-600' :
               microRemaining > 0  ? 'text-teal-600'    : 'text-red-500'
             }`}>
@@ -497,13 +501,6 @@ export function SmartBudgetWizard({ isOpen, onClose, initialReveal }: Props) {
             </p>
             <p className="text-xs text-muted-foreground mt-0.5">of {formatAmount(wantsPool)} total</p>
           </div>
-
-          {/* Over-budget error */}
-          {microError && (
-            <div className="mb-4 px-3 py-2 rounded-lg bg-red-50 border border-red-200 dark:bg-red-950/30 dark:border-red-800 text-center">
-              <p className="text-xs font-medium text-red-600 dark:text-red-400">{microError}</p>
-            </div>
-          )}
 
           {/* Per-category sliders — all share wantsPool as the uniform scale */}
           {(() => {
