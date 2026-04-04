@@ -1,4 +1,5 @@
-import { useMemo } from 'react';
+import { useMemo, useState, useEffect } from 'react';
+import { Maximize2, Minimize2, X } from 'lucide-react';
 import { useTransactions } from '../context/TransactionContext';
 import { useBudgets } from '../context/BudgetContext';
 import { useCurrency } from '../context/CurrencyContext';
@@ -30,6 +31,14 @@ export function AnnualGrid() {
   const { budgets, annualBudgets } = useBudgets();
   const { formatAmount } = useCurrency();
   const { tCategory } = useLanguage();
+  const [fullscreen, setFullscreen] = useState(false);
+
+  useEffect(() => {
+    if (!fullscreen) return;
+    const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') setFullscreen(false); };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [fullscreen]);
 
   const currentYear = new Date().getFullYear();
 
@@ -142,145 +151,166 @@ export function AnnualGrid() {
     );
   }
 
-  return (
-    <div className="hidden lg:block bg-card border border-border rounded-xl overflow-hidden mt-6 lg:mt-8">
-      <div className="px-6 py-4 border-b border-border">
+  // ── Shared table (used in both inline and fullscreen) ──────
+  const tableContent = (
+    <div className="overflow-x-auto overflow-y-auto flex-1">
+      <table className="border-collapse" style={{ minWidth: '900px', width: '100%' }}>
+        <thead className="sticky top-0 z-20">
+          <tr className="border-b border-border bg-muted/20">
+            <th className={`${sticky} bg-muted/30 text-muted-foreground font-semibold`} style={{ minWidth: 140 }}>
+              Category
+            </th>
+            {MONTHS.map(m => (
+              <th key={m} className={`${data} font-semibold text-muted-foreground bg-muted/20`} style={{ minWidth: 80 }}>
+                {m}
+              </th>
+            ))}
+            <th className={`${yearCol} font-bold text-foreground`} style={{ minWidth: 90 }}>
+              Year
+            </th>
+          </tr>
+        </thead>
+
+        <tbody className="divide-y divide-border/30">
+          {/* ═══ SECTION A: EARNINGS ═══ */}
+          <SectionRow label="Earnings" />
+          {incCats.map(cat => (
+            <tr key={cat} className="hover:bg-muted/15 transition-colors">
+              <td className={sticky}>{tCategory(cat)}</td>
+              {MONTHS.map((_, i) => (
+                <td key={i} className={data}>{fmt(I(cat, i))}</td>
+              ))}
+              <td className={yearCol}>{fmt(Itot(cat))}</td>
+            </tr>
+          ))}
+          <TotalRow label="Total Income" getMo={moIncTotal} getYr={yrIncTotal} />
+
+          {/* ═══ SECTION B: EXPENSES ═══ */}
+          <SectionRow label="Expenses" />
+          {expCats.map(cat => {
+            const mBudget = (budgets[cat] ?? 0) > 0 ? budgets[cat] : undefined;
+            const aBudget = mBudget
+              ? ((annualBudgets[cat] ?? 0) > 0 ? annualBudgets[cat] : mBudget * 12)
+              : undefined;
+            const yrTot = Etot(cat);
+            return (
+              <tr key={cat} className="hover:bg-muted/15 transition-colors">
+                <td className={sticky}>{tCategory(cat)}</td>
+                {MONTHS.map((_, i) => {
+                  const val = E(cat, i);
+                  return (
+                    <td key={i} className={`${data} ${cellBg(val, mBudget, false)}`}>
+                      {fmt(val)}
+                    </td>
+                  );
+                })}
+                <td className={`${yearCol} ${cellBg(yrTot, aBudget, false)}`}>
+                  {fmt(yrTot)}
+                </td>
+              </tr>
+            );
+          })}
+          <TotalRow label="Total Expenses" getMo={moExpTotal} getYr={yrExpTotal} />
+
+          {/* ═══ SECTION C: METRICS ═══ */}
+          <SectionRow label="Metrics" />
+          <tr className="hover:bg-muted/15 transition-colors">
+            <td className={sticky}>Savings Amount</td>
+            {MONTHS.map((_, i) => {
+              const sal = moSalary(i); const exp = moExpTotal(i);
+              return <td key={i} className={data}>{fmtSigned(sal - exp, sal > 0 || exp > 0)}</td>;
+            })}
+            <td className={yearCol}>{fmtSigned(yrSalary - yrExpTotal, yrSalary > 0 || yrExpTotal > 0)}</td>
+          </tr>
+          <tr className="hover:bg-muted/15 transition-colors">
+            <td className={sticky}>Savings Rate</td>
+            {MONTHS.map((_, i) => (
+              <td key={i} className={data}>{fmtRate(moSalary(i) - moExpTotal(i), moSalary(i))}</td>
+            ))}
+            <td className={yearCol}>{fmtRate(yrSalary - yrExpTotal, yrSalary)}</td>
+          </tr>
+          <tr className="hover:bg-muted/15 transition-colors">
+            <td className={sticky}>Total Savings</td>
+            {MONTHS.map((_, i) => {
+              const inc = moIncTotal(i); const exp = moExpTotal(i);
+              return <td key={i} className={data}>{fmtSigned(inc - exp, inc > 0 || exp > 0)}</td>;
+            })}
+            <td className={yearCol}>{fmtSigned(yrIncTotal - yrExpTotal, yrIncTotal > 0 || yrExpTotal > 0)}</td>
+          </tr>
+          <tr className="hover:bg-muted/15 transition-colors">
+            <td className={sticky}>Total Savings Rate</td>
+            {MONTHS.map((_, i) => (
+              <td key={i} className={data}>{fmtRate(moIncTotal(i) - moExpTotal(i), moIncTotal(i))}</td>
+            ))}
+            <td className={yearCol}>{fmtRate(yrIncTotal - yrExpTotal, yrIncTotal)}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  );
+
+  // ── Shared header ────────────────────────────────────────
+  const header = (
+    <div className="flex items-center justify-between px-6 py-4 border-b border-border shrink-0">
+      <div>
         <h2 className="font-semibold">Annual Overview — {currentYear}</h2>
         <p className="text-xs text-muted-foreground mt-0.5">
-          Monthly columns compared against monthly budget · Year column compared against annual budget
+          Monthly columns vs. monthly budget · Year column vs. annual budget
         </p>
       </div>
+      <button
+        onClick={() => setFullscreen(f => !f)}
+        className="p-2 rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+        title={fullscreen ? 'Exit full screen' : 'Full screen'}
+      >
+        {fullscreen ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
+      </button>
+    </div>
+  );
 
-      {!hasAnyData ? (
-        <div className="px-6 py-12 text-center text-sm text-muted-foreground">
-          No transactions recorded for {currentYear} yet.
+  const noDataMsg = (
+    <div className="px-6 py-12 text-center text-sm text-muted-foreground">
+      No transactions recorded for {currentYear} yet.
+    </div>
+  );
+
+  // ── Fullscreen modal ─────────────────────────────────────
+  if (fullscreen) {
+    return (
+      <>
+        {/* Backdrop */}
+        <div
+          className="fixed inset-0 z-40 bg-black/50 backdrop-blur-sm"
+          onClick={() => setFullscreen(false)}
+        />
+        {/* Panel */}
+        <div className="fixed inset-4 lg:inset-6 z-50 bg-card border border-border rounded-2xl shadow-2xl flex flex-col overflow-hidden">
+          <div className="flex items-center justify-between px-6 py-4 border-b border-border shrink-0">
+            <div>
+              <h2 className="font-semibold">Annual Overview — {currentYear}</h2>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Monthly columns vs. monthly budget · Year column vs. annual budget
+              </p>
+            </div>
+            <button
+              onClick={() => setFullscreen(false)}
+              className="p-2 rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+              title="Exit full screen"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+          {hasAnyData ? tableContent : noDataMsg}
         </div>
-      ) : (
-        <div className="overflow-x-auto">
-          <table className="border-collapse" style={{ minWidth: '900px', width: '100%' }}>
+      </>
+    );
+  }
 
-            {/* ── Column headers ── */}
-            <thead>
-              <tr className="border-b border-border bg-muted/20">
-                <th className={`${sticky} bg-muted/20 text-muted-foreground font-semibold`} style={{ minWidth: 140 }}>
-                  Category
-                </th>
-                {MONTHS.map(m => (
-                  <th key={m} className={`${data} font-semibold text-muted-foreground`} style={{ minWidth: 80 }}>
-                    {m}
-                  </th>
-                ))}
-                <th className={`${yearCol} font-bold text-foreground`} style={{ minWidth: 90 }}>
-                  Year
-                </th>
-              </tr>
-            </thead>
-
-            <tbody className="divide-y divide-border/30">
-
-              {/* ═══ SECTION A: EARNINGS ═══ */}
-              <SectionRow label="Earnings" />
-              {incCats.map(cat => (
-                <tr key={cat} className="hover:bg-muted/15 transition-colors">
-                  <td className={sticky}>{tCategory(cat)}</td>
-                  {MONTHS.map((_, i) => (
-                    <td key={i} className={data}>{fmt(I(cat, i))}</td>
-                  ))}
-                  <td className={yearCol}>{fmt(Itot(cat))}</td>
-                </tr>
-              ))}
-              <TotalRow label="Total Income" getMo={moIncTotal} getYr={yrIncTotal} />
-
-              {/* ═══ SECTION B: EXPENSES ═══ */}
-              <SectionRow label="Expenses" />
-              {expCats.map(cat => {
-                const mBudget = (budgets[cat] ?? 0) > 0 ? budgets[cat] : undefined;
-                const aBudget = mBudget
-                  ? ((annualBudgets[cat] ?? 0) > 0 ? annualBudgets[cat] : mBudget * 12)
-                  : undefined;
-                const yrTot = Etot(cat);
-                return (
-                  <tr key={cat} className="hover:bg-muted/15 transition-colors">
-                    <td className={sticky}>{tCategory(cat)}</td>
-                    {MONTHS.map((_, i) => {
-                      const val = E(cat, i);
-                      return (
-                        <td key={i} className={`${data} ${cellBg(val, mBudget, false)}`}>
-                          {fmt(val)}
-                        </td>
-                      );
-                    })}
-                    <td className={`${yearCol} ${cellBg(yrTot, aBudget, false)}`}>
-                      {fmt(yrTot)}
-                    </td>
-                  </tr>
-                );
-              })}
-              <TotalRow label="Total Expenses" getMo={moExpTotal} getYr={yrExpTotal} />
-
-              {/* ═══ SECTION C: METRICS ═══ */}
-              <SectionRow label="Metrics" />
-
-              {/* Savings Amount = Salary+MealAllowance income − total expenses */}
-              <tr className="hover:bg-muted/15 transition-colors">
-                <td className={sticky}>Savings Amount</td>
-                {MONTHS.map((_, i) => {
-                  const sal = moSalary(i);
-                  const exp = moExpTotal(i);
-                  return (
-                    <td key={i} className={data}>
-                      {fmtSigned(sal - exp, sal > 0 || exp > 0)}
-                    </td>
-                  );
-                })}
-                <td className={yearCol}>
-                  {fmtSigned(yrSalary - yrExpTotal, yrSalary > 0 || yrExpTotal > 0)}
-                </td>
-              </tr>
-
-              {/* Savings Rate = Savings Amount / Salary income */}
-              <tr className="hover:bg-muted/15 transition-colors">
-                <td className={sticky}>Savings Rate</td>
-                {MONTHS.map((_, i) => (
-                  <td key={i} className={data}>
-                    {fmtRate(moSalary(i) - moExpTotal(i), moSalary(i))}
-                  </td>
-                ))}
-                <td className={yearCol}>{fmtRate(yrSalary - yrExpTotal, yrSalary)}</td>
-              </tr>
-
-              {/* Total Savings = All income − total expenses */}
-              <tr className="hover:bg-muted/15 transition-colors">
-                <td className={sticky}>Total Savings</td>
-                {MONTHS.map((_, i) => {
-                  const inc = moIncTotal(i);
-                  const exp = moExpTotal(i);
-                  return (
-                    <td key={i} className={data}>
-                      {fmtSigned(inc - exp, inc > 0 || exp > 0)}
-                    </td>
-                  );
-                })}
-                <td className={yearCol}>
-                  {fmtSigned(yrIncTotal - yrExpTotal, yrIncTotal > 0 || yrExpTotal > 0)}
-                </td>
-              </tr>
-
-              {/* Total Savings Rate = Total Savings / All income */}
-              <tr className="hover:bg-muted/15 transition-colors">
-                <td className={sticky}>Total Savings Rate</td>
-                {MONTHS.map((_, i) => (
-                  <td key={i} className={data}>
-                    {fmtRate(moIncTotal(i) - moExpTotal(i), moIncTotal(i))}
-                  </td>
-                ))}
-                <td className={yearCol}>{fmtRate(yrIncTotal - yrExpTotal, yrIncTotal)}</td>
-              </tr>
-
-            </tbody>
-          </table>
-        </div>
-      )}
+  // ── Inline card ──────────────────────────────────────────
+  return (
+    <div className="hidden lg:block bg-card border border-border rounded-xl overflow-hidden mt-6 lg:mt-8">
+      {header}
+      {hasAnyData ? tableContent : noDataMsg}
     </div>
   );
 }
