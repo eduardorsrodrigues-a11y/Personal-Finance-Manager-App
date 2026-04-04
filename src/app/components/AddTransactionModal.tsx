@@ -174,6 +174,30 @@ export function AddTransactionModal({
                 required
               />
             </div>
+            <div className="flex gap-2 mt-2">
+              {[
+                { label: 'Last Month', getValue: () => { const d = new Date(); d.setDate(0); return d.toISOString().split('T')[0]; } },
+                { label: 'Yesterday',  getValue: () => { const d = new Date(); d.setDate(d.getDate() - 1); return d.toISOString().split('T')[0]; } },
+                { label: 'Today',      getValue: () => new Date().toISOString().split('T')[0] },
+              ].map(({ label, getValue }) => {
+                const val = getValue();
+                const active = date === val;
+                return (
+                  <button
+                    key={label}
+                    type="button"
+                    onClick={() => setDate(val)}
+                    className={`px-2.5 py-1 rounded-full text-xs transition-colors border ${
+                      active
+                        ? 'bg-muted border-border text-foreground font-medium'
+                        : 'border-transparent text-muted-foreground hover:text-foreground hover:bg-muted/60'
+                    }`}
+                  >
+                    {label}
+                  </button>
+                );
+              })}
+            </div>
           </div>
 
           {/* Category */}

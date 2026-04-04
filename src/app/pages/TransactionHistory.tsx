@@ -35,6 +35,21 @@ export function TransactionHistory() {
     window.scrollTo(0, 0);
   }, []);
 
+  // 'N' keyboard shortcut → open new transaction modal
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      const tag = (e.target as HTMLElement).tagName;
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
+      if (e.key === 'n' || e.key === 'N') {
+        setModalMode('add');
+        setEditingTransaction(null);
+        setIsModalOpen(true);
+      }
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, []);
+
   useEffect(() => {
     const handleScroll = () => {
       const y = window.scrollY;
