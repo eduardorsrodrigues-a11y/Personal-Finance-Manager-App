@@ -538,7 +538,7 @@ export function SmartBudgetWizard({ isOpen, onClose, initialReveal }: Props) {
                           type="range"
                           min={0}
                           max={sliderMax}
-                          step={SLIDER_STEP}
+                          step={1}
                           value={Math.min(amt, sliderMax)}
                           onChange={e => {
                             const raw = Number(e.target.value);
@@ -547,7 +547,9 @@ export function SmartBudgetWizard({ isOpen, onClose, initialReveal }: Props) {
                               return;
                             }
                             const maxCat = (microAmounts[cat] ?? 0) + Math.max(0, microRemaining);
-                            setMicroAmounts(prev => ({ ...prev, [cat]: snapToStep(Math.min(raw, maxCat), SLIDER_STEP) }));
+                            const clamped = Math.min(raw, maxCat);
+                            const snapped = clamped >= maxCat ? maxCat : snapToStep(clamped, SLIDER_STEP);
+                            setMicroAmounts(prev => ({ ...prev, [cat]: snapped }));
                           }}
                           style={{ '--pct': `${pct}` } as React.CSSProperties}
                           className="smart-slider w-full"

@@ -243,11 +243,11 @@ export function Dashboard() {
                 <div className="flex items-center gap-3 text-xs text-muted-foreground">
                   <span className="flex items-center gap-1.5">
                     <span className="w-4 h-0.5 rounded-full bg-emerald-500 inline-block" />
-                    Expenses
+                    Income
                   </span>
                   <span className="flex items-center gap-1.5">
                     <span className="w-4 h-0.5 rounded-full bg-red-500 inline-block" />
-                    Income
+                    Expenses
                   </span>
                 </div>
               </div>
@@ -322,22 +322,22 @@ export function Dashboard() {
                     />
                   )}
 
-                  {/* Expense line — green */}
+                  {/* Income line — green */}
                   <Line
                     type="monotone"
-                    dataKey="expense"
+                    dataKey="income"
                     stroke="#10b981"
                     strokeWidth={2}
                     dot={(props: { cx: number; cy: number; payload: { isCurrent: boolean } }) => {
                       const { cx, cy, payload } = props;
                       return payload.isCurrent
-                        ? <circle key={`exp-dot-cur-${cx}`} cx={cx} cy={cy} r={5} fill="#10b981" stroke="var(--card)" strokeWidth={2} />
-                        : <circle key={`exp-dot-${cx}`} cx={cx} cy={cy} r={3} fill="#10b981" stroke="var(--card)" strokeWidth={1.5} />;
+                        ? <circle key={`inc-dot-cur-${cx}`} cx={cx} cy={cy} r={5} fill="#10b981" stroke="var(--card)" strokeWidth={2} />
+                        : <circle key={`inc-dot-${cx}`} cx={cx} cy={cy} r={3} fill="#10b981" stroke="var(--card)" strokeWidth={1.5} />;
                     }}
                     activeDot={{ r: 5, fill: '#10b981', stroke: 'var(--card)', strokeWidth: 2 }}
                   >
                     <LabelList
-                      dataKey="expense"
+                      dataKey="income"
                       position="top"
                       content={(props: { x?: number; y?: number; value?: number; index?: number }) => {
                         const { x, y, value, index } = props;
@@ -351,22 +351,22 @@ export function Dashboard() {
                     />
                   </Line>
 
-                  {/* Income line — red */}
+                  {/* Expense line — red */}
                   <Line
                     type="monotone"
-                    dataKey="income"
+                    dataKey="expense"
                     stroke="#ef4444"
                     strokeWidth={2}
                     dot={(props: { cx: number; cy: number; payload: { isCurrent: boolean } }) => {
                       const { cx, cy, payload } = props;
                       return payload.isCurrent
-                        ? <circle key={`inc-dot-cur-${cx}`} cx={cx} cy={cy} r={5} fill="#ef4444" stroke="var(--card)" strokeWidth={2} />
-                        : <circle key={`inc-dot-${cx}`} cx={cx} cy={cy} r={3} fill="#ef4444" stroke="var(--card)" strokeWidth={1.5} />;
+                        ? <circle key={`exp-dot-cur-${cx}`} cx={cx} cy={cy} r={5} fill="#ef4444" stroke="var(--card)" strokeWidth={2} />
+                        : <circle key={`exp-dot-${cx}`} cx={cx} cy={cy} r={3} fill="#ef4444" stroke="var(--card)" strokeWidth={1.5} />;
                     }}
                     activeDot={{ r: 5, fill: '#ef4444', stroke: 'var(--card)', strokeWidth: 2 }}
                   >
                     <LabelList
-                      dataKey="income"
+                      dataKey="expense"
                       position="top"
                       content={(props: { x?: number; y?: number; value?: number; index?: number }) => {
                         const { x, y, value, index } = props;

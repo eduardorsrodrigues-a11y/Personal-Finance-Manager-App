@@ -143,6 +143,7 @@ export function AddTransactionModal({
                 placeholder="0.00"
                 className="w-full pl-10 pr-4 py-3 text-2xl bg-input-background rounded-lg border border-border focus:outline-none focus:ring-2 focus:ring-ring"
                 required
+                autoFocus
               />
             </div>
           </div>
