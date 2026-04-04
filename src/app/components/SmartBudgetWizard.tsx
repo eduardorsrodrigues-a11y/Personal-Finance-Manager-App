@@ -29,6 +29,7 @@ interface WizardData {
   utilities: string;
   health: string;
   groceries: string;
+  transportation: string;
   goal: '' | FinancialGoal;
 }
 
@@ -104,20 +105,15 @@ export function SmartBudgetWizard({ isOpen, onClose, initialReveal }: Props) {
   const [fixedAmounts, setFixedAmounts] = useState<Record<string, number>>({});
   const [microAmounts, setMicroAmounts] = useState<Record<string, number>>({});
   const [microError, setMicroError] = useState('');
-  const microErrorTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const showMicroError = (msg: string) => {
-    setMicroError(msg);
-    if (microErrorTimer.current) clearTimeout(microErrorTimer.current);
-    microErrorTimer.current = setTimeout(() => setMicroError(''), 2500);
-  };
+  const showMicroError = (msg: string) => setMicroError(msg);
 
   const isReadjustRef = useRef(false);
 
   const [data, setData] = useState<WizardData>({
     income: '', housingSituation: '', housingAmount: '',
     hasDebt: '', debtAmount: '',
-    utilities: '', health: '', groceries: '', goal: '',
+    utilities: '', health: '', groceries: '', transportation: '', goal: '',
   });
 
   const initialRevealRef = useRef(initialReveal);
@@ -140,6 +136,11 @@ export function SmartBudgetWizard({ isOpen, onClose, initialReveal }: Props) {
     document.addEventListener('keydown', onKey);
     return () => document.removeEventListener('keydown', onKey);
   }, [isOpen]);
+
+  // Clear micro error once user frees up budget
+  useEffect(() => {
+    if (microRemaining > 0) setMicroError('');
+  }, [microRemaining]);
 
   // Open / close effect
   useEffect(() => {
@@ -172,7 +173,7 @@ export function SmartBudgetWizard({ isOpen, onClose, initialReveal }: Props) {
       // Reset on close
       isReadjustRef.current = false;
       setStep(1);
-      setData({ income: '', housingSituation: '', housingAmount: '', hasDebt: '', debtAmount: '', utilities: '', health: '', groceries: '', goal: '' });
+      setData({ income: '', housingSituation: '', housingAmount: '', hasDebt: '', debtAmount: '', utilities: '', health: '', groceries: '', transportation: '', goal: '' });
       setResult(null);
       setComputeError('');
       setApplying(false);
@@ -197,6 +198,7 @@ export function SmartBudgetWizard({ isOpen, onClose, initialReveal }: Props) {
         utilities: parseFloat(data.utilities) || 0,
         health: parseFloat(data.health) || 0,
         groceries: parseFloat(data.groceries) || 0,
+        transportation: parseFloat(data.transportation) || 0,
         debt,
         housingSituation: data.housingSituation as HousingSituation,
         goal: data.goal as FinancialGoal,
@@ -449,7 +451,7 @@ export function SmartBudgetWizard({ isOpen, onClose, initialReveal }: Props) {
               const rec    = macroIncome * 0.2;
               const actual = Math.max(0, actualSavings);
               const state  = actual > rec * 1.03 ? 'high' : actual < rec * 0.97 ? 'low' : 'neutral';
-              const msg    = state === 'high'    ? 'Fantastic! You are saving aggressively.'
+              const msg    = state === 'high'    ? "You're prioritizing your future, nice work!"
                            : state === 'low'     ? "Savings are a bit low. Try cutting back on 'Wants'."
                            :                       "Spot on! You're hitting the 20% savings goal.";
               const color  = state === 'high' ? 'text-emerald-600' : state === 'low' ? 'text-amber-600' : 'text-muted-foreground';
@@ -464,8 +466,8 @@ export function SmartBudgetWizard({ isOpen, onClose, initialReveal }: Props) {
     if (step === 'micro') {
       return (
         <div className="pb-4">
-          {/* Remaining counter */}
-          <div className={`mb-6 p-3 rounded-xl border-2 text-center ${
+          {/* Remaining counter — sticky so it stays visible while scrolling */}
+          <div className={`sticky top-0 z-10 mb-6 p-3 rounded-xl border-2 text-center shadow-sm ${
             microRemaining === 0 ? 'border-emerald-400 bg-emerald-50/80 dark:bg-emerald-950/30' :
             microRemaining > 0  ? 'border-teal-300   bg-teal-50/80   dark:bg-teal-950/30'    :
                                   'border-red-300    bg-red-50/80    dark:bg-red-950/30'
@@ -655,9 +657,10 @@ export function SmartBudgetWizard({ isOpen, onClose, initialReveal }: Props) {
           <p className="text-base font-semibold mb-1">Any other fixed monthly bills?</p>
           <p className="text-sm text-muted-foreground mb-4">Enter 0 if not applicable</p>
           <div className="grid grid-cols-1 gap-3">
-            <FixedInput label="Utilities (electricity, water, internet…)" symbol={currency.symbol} value={data.utilities} onChange={v => set('utilities', v)} />
-            <FixedInput label="Health / Insurance"                         symbol={currency.symbol} value={data.health}    onChange={v => set('health', v)} />
-            <FixedInput label="Groceries (estimated monthly spend)"         symbol={currency.symbol} value={data.groceries} onChange={v => set('groceries', v)} />
+            <FixedInput label="Utilities (electricity, water, internet…)" symbol={currency.symbol} value={data.utilities}      onChange={v => set('utilities', v)} />
+            <FixedInput label="Health / Insurance"                         symbol={currency.symbol} value={data.health}         onChange={v => set('health', v)} />
+            <FixedInput label="Groceries (estimated monthly spend)"         symbol={currency.symbol} value={data.groceries}     onChange={v => set('groceries', v)} />
+            <FixedInput label="Transportation (commute, fuel, transit…)"   symbol={currency.symbol} value={data.transportation} onChange={v => set('transportation', v)} />
           </div>
         </div>
         <p className="text-xs text-muted-foreground">These amounts are treated as fixed Needs in your budget.</p>

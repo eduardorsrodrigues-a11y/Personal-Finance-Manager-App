@@ -7,7 +7,8 @@ export interface AllocatorInputs {
   utilities: number;
   health: number;
   groceries: number;
-  debt: number;           // exact monthly amount
+  transportation: number;  // fixed monthly transport cost
+  debt: number;            // exact monthly amount
   housingSituation: HousingSituation;
   goal: FinancialGoal;
 }
@@ -34,17 +35,17 @@ export interface AllocatorResult {
   error?: string;
 }
 
-export const FIXED_CATEGORIES = new Set(['Housing', 'Debt Payments', 'Utilities', 'Health', 'Groceries']);
+export const FIXED_CATEGORIES = new Set(['Housing', 'Debt Payments', 'Utilities', 'Health', 'Groceries', 'Transportation']);
 
 // Display order
-export const NEEDS_CATEGORIES = ['Housing', 'Debt Payments', 'Utilities', 'Health', 'Groceries'];
-export const WANTS_CATEGORIES = ['Food', 'Shopping', 'Entertainment', 'Travel', 'Gifts', 'Gym & Sports', 'Transportation', 'Family & Personal', 'Other'];
+export const NEEDS_CATEGORIES = ['Housing', 'Debt Payments', 'Utilities', 'Health', 'Groceries', 'Transportation'];
+export const WANTS_CATEGORIES = ['Food', 'Shopping', 'Entertainment', 'Travel', 'Gifts', 'Gym & Sports', 'Family & Personal', 'Other'];
 
 export function computeBudget(inputs: AllocatorInputs): AllocatorResult {
-  const { income, housing, utilities, health, groceries, debt } = inputs;
+  const { income, housing, utilities, health, groceries, debt, transportation } = inputs;
 
   // Phase 1: Validation
-  const needsActual = housing + debt + utilities + health + groceries;
+  const needsActual = housing + debt + utilities + health + groceries + transportation;
   if (needsActual > income) {
     return {
       allocations: [], savings: 0, savingsPct: 0, savingsLevel: 'low',
@@ -67,11 +68,12 @@ export function computeBudget(inputs: AllocatorInputs): AllocatorResult {
 
   // Fixed needs with exact user-provided amounts; wants all start at 0
   const allocMap: Record<string, CategoryAllocation> = {};
-  allocMap['Housing']       = { category: 'Housing',       amount: housing,   pct: p(housing,   income), fixed: true,  bucket: 'needs' };
-  allocMap['Debt Payments'] = { category: 'Debt Payments', amount: debt,      pct: p(debt,      income), fixed: true,  bucket: 'needs' };
-  allocMap['Utilities']     = { category: 'Utilities',     amount: utilities, pct: p(utilities, income), fixed: true,  bucket: 'needs' };
-  allocMap['Health']        = { category: 'Health',        amount: health,    pct: p(health,    income), fixed: true,  bucket: 'needs' };
-  allocMap['Groceries']     = { category: 'Groceries',     amount: groceries, pct: p(groceries, income), fixed: true,  bucket: 'needs' };
+  allocMap['Housing']        = { category: 'Housing',        amount: housing,        pct: p(housing,        income), fixed: true,  bucket: 'needs' };
+  allocMap['Debt Payments']  = { category: 'Debt Payments',  amount: debt,           pct: p(debt,           income), fixed: true,  bucket: 'needs' };
+  allocMap['Utilities']      = { category: 'Utilities',      amount: utilities,      pct: p(utilities,      income), fixed: true,  bucket: 'needs' };
+  allocMap['Health']         = { category: 'Health',         amount: health,         pct: p(health,         income), fixed: true,  bucket: 'needs' };
+  allocMap['Groceries']      = { category: 'Groceries',      amount: groceries,      pct: p(groceries,      income), fixed: true,  bucket: 'needs' };
+  allocMap['Transportation'] = { category: 'Transportation', amount: transportation, pct: p(transportation, income), fixed: true,  bucket: 'needs' };
 
   for (const cat of WANTS_CATEGORIES) {
     allocMap[cat] = { category: cat, amount: 0, pct: 0, fixed: false, bucket: 'wants' };

@@ -28,6 +28,7 @@ export function Budgets() {
 
   const [isWizardOpen, setIsWizardOpen] = useState(false);
   const [wizardInitialReveal, setWizardInitialReveal] = useState<SmartBudgetStored | undefined>(undefined);
+  const [showClearConfirm, setShowClearConfirm] = useState(false);
 
   // Single-category edit modal (manual mode)
   const [editingCategory, setEditingCategory] = useState<string | null>(null);
@@ -69,7 +70,12 @@ export function Budgets() {
   const openWizardFresh   = () => { setWizardInitialReveal(undefined); setIsWizardOpen(true); };
   const openWizardReveal  = () => { setWizardInitialReveal(buildRevealData()); setIsWizardOpen(true); };
   const handleWizardClose = () => { setIsWizardOpen(false); setWizardInitialReveal(undefined); };
-  const clearSmartMode    = async () => { await setBudgetsAll(budgets, undefined); };
+  const clearSmartMode = async () => { await setBudgetsAll(budgets, undefined); };
+  const clearAll       = async () => {
+    await setBudgetsAll({}, undefined);
+    setShowClearConfirm(false);
+    showToast('All budgets cleared.');
+  };
 
   // Smart budget summary numbers
   const totalBudgeted   = ALL_SMART_CATEGORIES.reduce((s, c) => s + (budgets[c] ?? 0), 0);
@@ -112,11 +118,19 @@ export function Budgets() {
     </div>
   );
 
+  // Bucket health — used to override bar colors when over/under recommendation
+  const totalNeedsAmt = NEEDS_CATEGORIES.reduce((s, c) => s + (budgets[c] ?? 0), 0);
+  const totalWantsAmt = WANTS_CATEGORIES.reduce((s, c) => s + (budgets[c] ?? 0), 0);
+  const needsOver     = smartIncome ? totalNeedsAmt > smartIncome * 0.60 * 1.03 : false;
+  const wantsOver     = smartIncome ? totalWantsAmt > smartIncome * 0.20 * 1.03 : false;
+
   const renderSmartRow = (name: string) => {
     const { icon: Icon, bg, text, hex } = CATEGORY_CONFIG[name];
     const amount = budgets[name] ?? 0;
     const pctOfIncome = smartIncome ? (amount / smartIncome) * 100 : 0;
     const isSet = amount > 0;
+    const bucketOver = WANTS_CATEGORIES.includes(name) ? wantsOver : needsOver;
+    const barColor = isSet ? (bucketOver ? '#f59e0b' : hex) : '#9ca3af';
     return (
       <button
         key={name}
@@ -132,7 +146,7 @@ export function Budgets() {
             <div className="flex-1 h-1.5 bg-muted rounded-full overflow-hidden">
               <div
                 className="h-full rounded-full transition-all"
-                style={{ width: `${Math.min(100, pctOfIncome)}%`, backgroundColor: isSet ? hex : '#9ca3af' }}
+                style={{ width: `${Math.min(100, pctOfIncome)}%`, backgroundColor: barColor }}
               />
             </div>
             <span className="text-xs text-muted-foreground shrink-0">{pctOfIncome.toFixed(0)}%</span>
@@ -265,12 +279,25 @@ export function Budgets() {
             </div>
 
 
-            <button
-              onClick={clearSmartMode}
-              className="text-xs text-muted-foreground hover:text-foreground underline"
-            >
-              Switch to manual budget mode
-            </button>
+            <div className="flex items-center gap-4">
+              <button
+                onClick={clearSmartMode}
+                className="text-xs text-muted-foreground hover:text-foreground underline"
+              >
+                Switch to manual budget mode
+              </button>
+              {showClearConfirm ? (
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-muted-foreground">Clear all budgets?</span>
+                  <button onClick={clearAll} className="text-xs font-semibold text-red-500 hover:text-red-600">Yes, clear</button>
+                  <button onClick={() => setShowClearConfirm(false)} className="text-xs text-muted-foreground hover:text-foreground">Cancel</button>
+                </div>
+              ) : (
+                <button onClick={() => setShowClearConfirm(true)} className="text-xs text-red-500 hover:text-red-600 underline">
+                  Clear all
+                </button>
+              )}
+            </div>
           </div>
         ) : (
           /* ── Manual Budget View ──────────────────────────── */
@@ -289,6 +316,17 @@ export function Budgets() {
                 </div>
               </div>
             </div>
+            {showClearConfirm ? (
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-muted-foreground">Clear all budgets?</span>
+                <button onClick={clearAll} className="text-xs font-semibold text-red-500 hover:text-red-600">Yes, clear</button>
+                <button onClick={() => setShowClearConfirm(false)} className="text-xs text-muted-foreground hover:text-foreground">Cancel</button>
+              </div>
+            ) : (
+              <button onClick={() => setShowClearConfirm(true)} className="text-xs text-red-500 hover:text-red-600 underline">
+                Clear all budgets
+              </button>
+            )}
           </div>
         )}
       </div>
