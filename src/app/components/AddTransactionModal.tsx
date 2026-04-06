@@ -5,6 +5,7 @@ import { useCurrency } from '../context/CurrencyContext';
 import { useLanguage } from '../context/LanguageContext';
 import { DeleteConfirmationModal } from './DeleteConfirmationModal';
 import { useToast } from '../context/ToastContext';
+import { track } from '../utils/analytics';
 
 interface AddTransactionModalProps {
   isOpen: boolean;
@@ -67,9 +68,11 @@ export function AddTransactionModal({
       if (mode === 'edit' && initialTransaction) {
         await updateTransaction(initialTransaction.id, { type, amount: parsedAmount, description, date, category });
         showToast(t('toasts.updated'));
+        track.transactionEdited({ type, category, amount: parsedAmount });
       } else {
         await addTransaction({ type, amount: parsedAmount, description, date, category });
         showToast(t('toasts.added'));
+        track.transactionAdded({ type, category, amount: parsedAmount });
       }
       setAmount('');
       setDescription('');
@@ -248,6 +251,7 @@ export function AddTransactionModal({
         onConfirm={async () => {
           await deleteTransaction(initialTransaction.id);
           showToast(t('delete.toast'));
+          track.transactionDeleted({ type: initialTransaction.type, category: initialTransaction.category });
           setShowDeleteConfirm(false);
           onClose();
         }}

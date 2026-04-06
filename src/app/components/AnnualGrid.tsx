@@ -6,6 +6,7 @@ import { useBudgets } from '../context/BudgetContext';
 import { useCurrency } from '../context/CurrencyContext';
 import { useLanguage } from '../context/LanguageContext';
 import { NEEDS_CATEGORIES, WANTS_CATEGORIES } from '../utils/budgetAllocator';
+import { track } from '../utils/analytics';
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 const SALARY_CATS = new Set(['Salary', 'Meal Allowance']);
@@ -144,6 +145,7 @@ export function AnnualGrid() {
     const monthLabel = monthIdx !== null ? MONTHS[monthIdx] : 'Year total';
     setTooltip(null);
     setDrilldown({ label: `${tCategory(cat)} · ${monthLabel}`, transactions: txns });
+    track.annualGridDrilldown({ category: cat, month: monthLabel });
   };
 
   // Formatters
@@ -451,7 +453,7 @@ export function AnnualGrid() {
             </p>
           </div>
           <button
-            onClick={() => setFullscreen(true)}
+            onClick={() => { setFullscreen(true); track.annualGridFullscreen(); }}
             className="px-3 py-1.5 rounded-lg text-xs font-semibold text-teal-600 dark:text-teal-400 hover:bg-teal-50 dark:hover:bg-teal-900/20 border border-teal-200 dark:border-teal-800 transition-colors"
           >
             View full screen

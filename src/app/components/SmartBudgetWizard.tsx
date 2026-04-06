@@ -5,6 +5,7 @@ import { useCurrency } from '../context/CurrencyContext';
 import { useLanguage } from '../context/LanguageContext';
 import { useToast } from '../context/ToastContext';
 import { getCategoryConfig } from '../utils/categoryConfig';
+import { track } from '../utils/analytics';
 import {
   computeBudget, FIXED_CATEGORIES,
   NEEDS_CATEGORIES, WANTS_CATEGORIES,
@@ -280,6 +281,7 @@ export function SmartBudgetWizard({ isOpen, onClose, initialReveal }: Props) {
     for (const cat of WANTS_CATEGORIES) rounded[cat] = Math.round(microAmounts[cat] ?? 0);
     await setBudgetsAll(rounded, result?.income);
     showToast('Smart budget applied successfully!');
+    if (result?.income) track.smartSetupCompleted({ income: result.income });
     onClose();
   };
 

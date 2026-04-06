@@ -6,6 +6,7 @@ import { useCurrency } from '../context/CurrencyContext';
 import { CATEGORY_CONFIG } from '../utils/categoryConfig';
 import { useLanguage } from '../context/LanguageContext';
 import { useToast } from '../context/ToastContext';
+import { track } from '../utils/analytics';
 import {
   NEEDS_CATEGORIES, WANTS_CATEGORIES, FIXED_CATEGORIES,
   type AllocatorResult,
@@ -88,6 +89,7 @@ export function Budgets() {
     await setBudgetsAll({}, undefined);
     setShowClearConfirm(false);
     showToast('All budgets cleared.');
+    track.budgetCleared();
   };
 
   // Smart budget monthly summary numbers
@@ -124,6 +126,7 @@ export function Budgets() {
           : `${tCategory(editingCategory)} budget set to ${formatAmount(amount)}`,
       );
     }
+    track.budgetEdited({ category: editingCategory, isAnnual: editingIsAnnual, amount });
     closeEdit();
   };
 
@@ -317,13 +320,13 @@ export function Budgets() {
         {/* Tab toggle */}
         <div className="flex gap-1 p-1 bg-muted rounded-xl w-fit mb-6">
           <button
-            onClick={() => setTab('monthly')}
+            onClick={() => { setTab('monthly'); track.budgetTabSwitched('monthly'); }}
             className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${tab === 'monthly' ? 'bg-card shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground'}`}
           >
             Monthly
           </button>
           <button
-            onClick={() => setTab('annual')}
+            onClick={() => { setTab('annual'); track.budgetTabSwitched('annual'); }}
             className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${tab === 'annual' ? 'bg-card shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground'}`}
           >
             Annually
