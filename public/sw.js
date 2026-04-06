@@ -43,13 +43,17 @@ self.addEventListener('fetch', (event) => {
   // Static assets: stale-while-revalidate
   event.respondWith(
     caches.match(request).then((cached) => {
+      // Fire the network request to keep the cache fresh (background revalidation)
       const fetchPromise = fetch(request).then((res) => {
         if (res.ok) {
           caches.open(CACHE).then((c) => c.put(request, res.clone()));
         }
         return res;
-      }).catch(() => cached);
-      return cached || fetchPromise;
+      });
+      // Return cached immediately if available; otherwise wait for fetch.
+      // Never reuse `cached` as a fetch fallback — its body is already consumed
+      // once returned to the browser, causing "Response body is already used".
+      return cached || fetchPromise.catch(() => Response.error());
     })
   );
 });
