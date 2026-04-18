@@ -1,4 +1,4 @@
-import { LayoutDashboard, List, Plus } from 'lucide-react';
+import { LayoutDashboard, List, Plus, TrendingUp } from 'lucide-react';
 import { Link, useLocation } from 'react-router';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
@@ -72,6 +72,17 @@ export function MobileNav() {
           >
             <List className="w-5 h-5" />
             <span className="text-xs">{t('nav.transactions')}</span>
+          </Link>
+
+          {/* Invest */}
+          <Link
+            to="/invest"
+            className={`flex flex-col items-center gap-1 px-3 py-1 rounded-lg transition-colors flex-1 ${
+              location.pathname === '/invest' ? 'text-teal-500' : 'text-muted-foreground'
+            }`}
+          >
+            <TrendingUp className="w-5 h-5" />
+            <span className="text-xs">Invest</span>
           </Link>
 
         </div>

@@ -1,4 +1,4 @@
-import { LayoutDashboard, List, PiggyBank, Globe, ChevronDown, LogOut, LogIn, Languages } from 'lucide-react';
+import { LayoutDashboard, List, PiggyBank, TrendingUp, Globe, ChevronDown, LogOut, LogIn, Languages } from 'lucide-react';
 import { Link, useLocation } from 'react-router';
 import { useCurrency, currencies } from '../context/CurrencyContext';
 import { useAuth } from '../context/AuthContext';
@@ -18,6 +18,7 @@ export function Sidebar() {
     { path: '/', label: t('nav.dashboard'), icon: LayoutDashboard },
     { path: '/transactions', label: t('nav.transactions'), icon: List },
     { path: '/budgets', label: t('nav.budgets'), icon: PiggyBank },
+    { path: '/invest', label: 'Invest', icon: TrendingUp, badge: 'NEW' },
   ];
 
   return (
@@ -51,6 +52,11 @@ export function Sidebar() {
                 >
                   <Icon className="w-5 h-5" />
                   <span>{item.label}</span>
+                  {'badge' in item && item.badge && (
+                    <span className="ml-auto text-[9px] font-bold bg-teal-500 text-white px-1.5 py-0.5 rounded-full tracking-wide">
+                      {item.badge}
+                    </span>
+                  )}
                 </Link>
               </li>
             );

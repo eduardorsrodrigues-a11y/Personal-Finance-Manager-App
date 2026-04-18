@@ -1,0 +1,176 @@
+{
+  "updatedAt": "2026-04-04",
+
+  "savingsAccounts": [
+    {
+      "id": "cgd-poupanca",
+      "name": "Caixa Poupança Plus",
+      "institution": "Caixa Geral de Depósitos",
+      "tan": 2.75,
+      "expectedAnnualReturn": 2.75,
+      "maxEligibleAmount": 50000,
+      "term": "12 months",
+      "suggestedAllocationPct": 40,
+      "notes": "Requires existing account. Auto-renews.",
+      "url": "https://www.cgd.pt/Particulares/Poupanca-Investimento/Depositos/Pages/Deposito-CGD-Poupanca.aspx"
+    },
+    {
+      "id": "millennium-super",
+      "name": "Super Poupança Millennium",
+      "institution": "Millennium BCP",
+      "tan": 2.50,
+      "expectedAnnualReturn": 2.50,
+      "maxEligibleAmount": 100000,
+      "term": "6 months",
+      "suggestedAllocationPct": 35,
+      "notes": "Available to new depositors only.",
+      "url": "https://ind.millenniumbcp.pt/pt/particulares/poupanca/Pages/superpoupanca.aspx"
+    },
+    {
+      "id": "activobank-poupanca",
+      "name": "ActivoPoupança",
+      "institution": "ActivoBank",
+      "tan": 2.30,
+      "expectedAnnualReturn": 2.30,
+      "maxEligibleAmount": 75000,
+      "term": "3 months",
+      "suggestedAllocationPct": 25,
+      "notes": "Renewable every quarter.",
+      "url": "https://www.activobank.pt/pt/poupanca/Pages/deposito-activopoupanca.aspx"
+    },
+    {
+      "id": "santander-poupanca",
+      "name": "Poupança 12 Meses",
+      "institution": "Santander Portugal",
+      "tan": 2.20,
+      "expectedAnnualReturn": 2.20,
+      "maxEligibleAmount": 50000,
+      "term": "12 months",
+      "suggestedAllocationPct": 0,
+      "notes": "For existing clients only.",
+      "url": "https://www.santander.pt/particulares/poupanca/depositos"
+    }
+  ],
+
+  "etfs": [
+    {
+      "id": "vwce",
+      "name": "Vanguard FTSE All-World",
+      "ticker": "VWCE",
+      "expectedAnnualReturn": 7.0,
+      "ter": 0.22,
+      "risk": "high",
+      "description": "Global equity ETF, 3,600+ companies.",
+      "suggestedAllocationPct": 60,
+      "url": "https://www.justetf.com/en/etf-profile.html?isin=IE00B3RBWM25"
+    },
+    {
+      "id": "eqqq",
+      "name": "Invesco NASDAQ-100",
+      "ticker": "EQQQ",
+      "expectedAnnualReturn": 9.0,
+      "ter": 0.30,
+      "risk": "high",
+      "description": "Top 100 NASDAQ companies. Higher volatility.",
+      "suggestedAllocationPct": 40,
+      "url": "https://www.justetf.com/en/etf-profile.html?isin=IE0032077012"
+    },
+    {
+      "id": "cspx",
+      "name": "iShares Core S&P 500",
+      "ticker": "CSPX",
+      "expectedAnnualReturn": 8.5,
+      "ter": 0.07,
+      "risk": "high",
+      "description": "500 largest US companies.",
+      "suggestedAllocationPct": 0,
+      "url": "https://www.justetf.com/en/etf-profile.html?isin=IE00B5BMR087"
+    },
+    {
+      "id": "veur",
+      "name": "Vanguard FTSE Europe",
+      "ticker": "VEUR",
+      "expectedAnnualReturn": 5.5,
+      "ter": 0.12,
+      "risk": "medium",
+      "description": "Broad European equity exposure.",
+      "suggestedAllocationPct": 0,
+      "url": "https://www.justetf.com/en/etf-profile.html?isin=IE00B945VV12"
+    }
+  ],
+
+  "futures": [
+    {
+      "id": "ot-2029",
+      "name": "Obrigações do Tesouro 2029",
+      "issuer": "República Portuguesa",
+      "couponRate": 3.5,
+      "expectedAnnualReturn": 3.4,
+      "maturityDate": "2029-10-15",
+      "minInvestment": 1000,
+      "suggestedAllocationPct": 50,
+      "notes": "Available via AforroNet or broker.",
+      "url": "https://www.igcp.pt/pt/financiamento/divida-publica/obrigacoes-do-tesouro/"
+    },
+    {
+      "id": "ot-2031",
+      "name": "Obrigações do Tesouro 2031",
+      "issuer": "República Portuguesa",
+      "couponRate": 3.8,
+      "expectedAnnualReturn": 3.7,
+      "maturityDate": "2031-04-15",
+      "minInvestment": 1000,
+      "suggestedAllocationPct": 50,
+      "notes": "Longer term; slightly higher yield.",
+      "url": "https://www.igcp.pt/pt/financiamento/divida-publica/obrigacoes-do-tesouro/"
+    },
+    {
+      "id": "ot-2034",
+      "name": "Obrigações do Tesouro 2034",
+      "issuer": "República Portuguesa",
+      "couponRate": 4.1,
+      "expectedAnnualReturn": 4.0,
+      "maturityDate": "2034-01-15",
+      "minInvestment": 1000,
+      "suggestedAllocationPct": 0,
+      "notes": "8-year duration.",
+      "url": "https://www.igcp.pt/pt/financiamento/divida-publica/obrigacoes-do-tesouro/"
+    }
+  ],
+
+  "pprs": [
+    {
+      "id": "nbo-ppr",
+      "name": "NBO PPR Crescimento",
+      "institution": "Novo Banco",
+      "expectedAnnualReturn": 5.5,
+      "risk": "medium",
+      "taxBenefit": "IRS deduction: 20% up to €400/yr",
+      "suggestedAllocationPct": 40,
+      "notes": "Early redemption penalty before age 60.",
+      "url": "https://www.novobanco.pt/site/cms.aspx?labelid=ppr"
+    },
+    {
+      "id": "xtb-ppr",
+      "name": "XTB PPR Global Equity",
+      "institution": "XTB",
+      "expectedAnnualReturn": 7.2,
+      "risk": "high",
+      "taxBenefit": "IRS deduction: 20% up to €400/yr",
+      "suggestedAllocationPct": 60,
+      "notes": "Market-linked. Higher risk.",
+      "url": "https://www.xtb.com/pt/ppr"
+    },
+    {
+      "id": "bpi-ppr",
+      "name": "BPI Reforma Investimento",
+      "institution": "BPI",
+      "expectedAnnualReturn": 4.8,
+      "risk": "medium",
+      "taxBenefit": "IRS deduction: 20% up to €400/yr",
+      "suggestedAllocationPct": 0,
+      "notes": "Conservative allocation with PPR benefit.",
+      "url": "https://www.bancobpi.pt/particulares/poupanca-e-investimento/ppr"
+    }
+  ]
+}
