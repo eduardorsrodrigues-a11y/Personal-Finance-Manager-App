@@ -8,7 +8,7 @@ A new top-level section in the app that helps PT-based users decide how to alloc
 
 ## 1. Navigation & Placement
 
-- New item in the sidebar and mobile bottom nav: **"Invest"**
+- New item in the sidebar and mobile hamburger menu: **"Invest"**
 - Route: `/invest`
 - Available to all authenticated users and guests
 - The section is explicitly scoped to **Portugal** — a country notice is shown at the top: *"Options shown are available in Portugal. More countries coming soon."*
@@ -56,9 +56,9 @@ A horizontal segmented bar showing the three-way split visually, followed by thr
 
 | Profile | Savings Account | High Risk / High Return | Futures & Bonds |
 |---|---|---|---|
-| Safe | 70% | 20% | 10% |
-| Balanced | 40% | 40% | 20% |
-| Growth | 15% | 65% | 20% |
+| Safe | 85% | 5% | 10% |
+| Balanced | 60% | 20% | 20% |
+| Growth | 50% | 25% | 25% |
 
 **Bucket → Product type mapping:**
 
