@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2026-04-04",
+  "updatedAt": "2026-04-19",
 
   "savingsAccounts": [
     {
@@ -61,7 +61,7 @@
       "ter": 0.22,
       "risk": "high",
       "description": "Global equity ETF, 3,600+ companies.",
-      "suggestedAllocationPct": 60,
+      "suggestedAllocationPct": 40,
       "url": "https://www.justetf.com/en/etf-profile.html?isin=IE00B3RBWM25"
     },
     {
@@ -72,7 +72,7 @@
       "ter": 0.30,
       "risk": "high",
       "description": "Top 100 NASDAQ companies. Higher volatility.",
-      "suggestedAllocationPct": 40,
+      "suggestedAllocationPct": 20,
       "url": "https://www.justetf.com/en/etf-profile.html?isin=IE0032077012"
     },
     {
@@ -146,7 +146,7 @@
       "expectedAnnualReturn": 5.5,
       "risk": "medium",
       "taxBenefit": "IRS deduction: 20% up to €400/yr",
-      "suggestedAllocationPct": 40,
+      "suggestedAllocationPct": 25,
       "notes": "Early redemption penalty before age 60.",
       "url": "https://www.novobanco.pt/site/cms.aspx?labelid=ppr"
     },
@@ -157,7 +157,7 @@
       "expectedAnnualReturn": 7.2,
       "risk": "high",
       "taxBenefit": "IRS deduction: 20% up to €400/yr",
-      "suggestedAllocationPct": 60,
+      "suggestedAllocationPct": 15,
       "notes": "Market-linked. Higher risk.",
       "url": "https://www.xtb.com/pt/ppr"
     },
