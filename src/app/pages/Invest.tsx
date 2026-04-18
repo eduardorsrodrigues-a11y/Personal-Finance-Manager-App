@@ -222,6 +222,7 @@ function SimChart({ data, riskProfile, horizon }: { data: ChartPoint[]; riskProf
   const colW = iW / data.length;
 
   return (
+    <div>
     <div className="relative" style={{ height: 210 }}>
       <svg viewBox={`0 0 ${W} ${H}`} style={{ width: '100%', height: '100%', display: 'block' }}>
         <defs>
@@ -284,20 +285,21 @@ function SimChart({ data, riskProfile, horizon }: { data: ChartPoint[]; riskProf
         </div>
       )}
 
-      <div className="flex gap-4 mt-2 text-xs text-muted-foreground">
-        <div className="flex items-center gap-1.5">
-          <svg width="20" height="3" style={{ display: 'inline-block' }}>
-            <line x1="0" y1="1.5" x2="20" y2="1.5" stroke={color} strokeWidth="2.5" />
-          </svg>
-          Net portfolio value
-        </div>
-        <div className="flex items-center gap-1.5">
-          <svg width="20" height="3" style={{ display: 'inline-block' }}>
-            <line x1="0" y1="1.5" x2="20" y2="1.5" stroke="#cbd5e1" strokeWidth="1.5" strokeDasharray="4 3" />
-          </svg>
-          Principal
-        </div>
+    </div>
+    <div className="flex gap-4 mt-2 text-xs text-muted-foreground">
+      <div className="flex items-center gap-1.5">
+        <svg width="20" height="3" style={{ display: 'inline-block' }}>
+          <line x1="0" y1="1.5" x2="20" y2="1.5" stroke={color} strokeWidth="2.5" />
+        </svg>
+        Net portfolio value
       </div>
+      <div className="flex items-center gap-1.5">
+        <svg width="20" height="3" style={{ display: 'inline-block' }}>
+          <line x1="0" y1="1.5" x2="20" y2="1.5" stroke="#cbd5e1" strokeWidth="1.5" strokeDasharray="4 3" />
+        </svg>
+        Principal
+      </div>
+    </div>
     </div>
   );
 }
@@ -581,13 +583,15 @@ export function Invest() {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Topbar */}
-      <div className="sticky top-0 z-20 bg-card border-b border-border px-6 h-14 flex items-center justify-between">
-        <span className="text-sm font-semibold text-foreground">Investment Simulator</span>
-        <span className="text-xs text-muted-foreground hidden sm:block">Product data: {freshnessLabel}</span>
-      </div>
+      {/* Header — matches Dashboard pattern */}
+      <header className="border-b border-border bg-card sticky top-0 z-40">
+        <div className="px-4 lg:px-8 py-4 lg:py-6 flex items-center justify-between">
+          <h1 className="font-semibold">Investment Simulator</h1>
+          <span className="text-xs text-muted-foreground hidden sm:block">Product data: {freshnessLabel}</span>
+        </div>
+      </header>
 
-      <div className="px-4 sm:px-6 py-6 max-w-[980px] mx-auto w-full pb-16">
+      <div className="px-4 lg:px-8 py-6 pb-16">
         {/* Country notice */}
         <div className="flex items-center gap-2 bg-card border border-border rounded-xl px-4 py-2.5 mb-5 text-xs text-muted-foreground">
           🇵🇹 <span>Options shown are available in <strong className="text-foreground">Portugal</strong>. More countries coming soon.</span>
