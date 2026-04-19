@@ -44,13 +44,13 @@ export function Sidebar() {
               <li key={item.path}>
                 <Link
                   to={item.path}
-                  className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
+                  className={`flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-colors ${
                     isActive
                       ? 'bg-sidebar-accent text-sidebar-accent-foreground'
                       : 'text-sidebar-foreground hover:bg-sidebar-accent/50'
                   }`}
                 >
-                  <Icon className="w-5 h-5" />
+                  <Icon className="w-5 h-5 shrink-0" />
                   <span>{item.label}</span>
                   {'badge' in item && item.badge && (
                     <span className="ml-auto text-[9px] font-bold bg-teal-500 text-white px-1.5 py-0.5 rounded-full tracking-wide">
