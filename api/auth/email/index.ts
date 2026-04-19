@@ -19,7 +19,23 @@ export default async function handler(req: any, res: any) {
     return;
   }
 
-  const body = await readBody(req);
+  let body: any;
+  try {
+    body = await readBody(req);
+  } catch {
+    res.status(400).json({ error: 'Invalid request body.' });
+    return;
+  }
+
+  try {
+    return await handleRequest(req, res, body);
+  } catch (err: any) {
+    console.error('[auth/email] unhandled error:', err);
+    res.status(500).json({ error: err?.message ?? 'Internal server error.' });
+  }
+}
+
+async function handleRequest(req: any, res: any, body: any) {
   const { action, name, email, birthday, password } = body ?? {};
 
   if (action === 'signup') {

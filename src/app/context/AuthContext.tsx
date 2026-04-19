@@ -96,8 +96,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           localStorage.removeItem(GUEST_MODE_KEY);
           navigate('/', { replace: true });
           return null;
-        } catch {
-          return 'Something went wrong. Please try again.';
+        } catch (err: any) {
+          return err?.message ?? 'Something went wrong. Please try again.';
         }
       },
       signUpWithEmail: async (name: string, email: string, birthday: string, password: string) => {
@@ -115,8 +115,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           localStorage.removeItem(GUEST_MODE_KEY);
           navigate('/', { replace: true });
           return null;
-        } catch {
-          return 'Something went wrong. Please try again.';
+        } catch (err: any) {
+          return err?.message ?? 'Something went wrong. Please try again.';
         }
       },
       signOut: () => {
