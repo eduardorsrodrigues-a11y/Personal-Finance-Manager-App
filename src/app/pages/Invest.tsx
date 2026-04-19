@@ -1,6 +1,7 @@
 import { useState, useMemo, useCallback, useRef, useEffect } from 'react';
 import { ExternalLink, TrendingUp, X } from 'lucide-react';
 import productData from '../../data/invest-products.json';
+import { useUserSettings } from '../context/UserSettingsContext';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -740,6 +741,7 @@ function BucketCard({
 // ── InvestPage ────────────────────────────────────────────────────────────────
 
 export function Invest() {
+  const { settings } = useUserSettings();
   const [amount, setAmount] = useState<string>('');
   const [riskProfile, setRiskProfile] = useState<RiskProfile>('balanced');
   const [age, setAge] = useState<string>('');
@@ -748,6 +750,20 @@ export function Invest() {
   const [allocations, setAllocations] = useState<Record<string, number>>({});
   const [allocMode, setAllocMode] = useState<'suggested' | 'manual'>('suggested');
   const [manualSplits, setManualSplits] = useState({ savings: 60, highRisk: 20, bonds: 20 });
+
+  // Auto-fill from saved settings (only on first load)
+  useEffect(() => {
+    if (settings.birthday) {
+      const birthYear = new Date(settings.birthday).getFullYear();
+      const currentYear = new Date().getFullYear();
+      const calculatedAge = currentYear - birthYear;
+      setAge(String(calculatedAge));
+    }
+    if (settings.riskProfile && ['safe', 'balanced', 'growth'].includes(settings.riskProfile)) {
+      setRiskProfile(settings.riskProfile as RiskProfile);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const ageSuggestion = useMemo(() => {
     const n = parseInt(age);

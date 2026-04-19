@@ -33,13 +33,28 @@ export async function getUserCurrency(userId: string) {
   return data?.default_currency as string | undefined;
 }
 
-export async function upsertUserSettings(params: { userId: string; defaultCurrency: string }) {
-  const { userId, defaultCurrency } = params;
+export async function getUserPreferences(userId: string) {
   const supabase = getSupabaseAdmin();
-  const { error } = await supabase.from('user_settings').upsert(
-    { user_id: userId, default_currency: defaultCurrency },
-    { onConflict: 'user_id' },
-  );
+  const { data, error } = await supabase
+    .from('user_settings')
+    .select('default_currency, risk_profile')
+    .eq('user_id', userId)
+    .maybeSingle();
+
+  if (error) throw error;
+  return {
+    defaultCurrency: (data?.default_currency as string | undefined) ?? 'EUR',
+    riskProfile: (data?.risk_profile as string | undefined) ?? null,
+  };
+}
+
+export async function upsertUserSettings(params: { userId: string; defaultCurrency?: string; riskProfile?: string }) {
+  const { userId, defaultCurrency, riskProfile } = params;
+  const supabase = getSupabaseAdmin();
+  const updates: Record<string, string> = { user_id: userId };
+  if (defaultCurrency !== undefined) updates.default_currency = defaultCurrency;
+  if (riskProfile !== undefined) updates.risk_profile = riskProfile;
+  const { error } = await supabase.from('user_settings').upsert(updates, { onConflict: 'user_id' });
   if (error) throw error;
 }
 
@@ -124,12 +139,22 @@ export async function getUserById(userId: string) {
   const supabase = getSupabaseAdmin();
   const { data, error } = await supabase
     .from('users')
-    .select('id, email, name')
+    .select('id, email, name, birthday')
     .eq('id', userId)
     .maybeSingle();
 
   if (error) throw error;
-  return data as { id: string; email: string | null; name: string | null } | undefined;
+  return data as { id: string; email: string | null; name: string | null; birthday: string | null } | undefined;
+}
+
+export async function updateUser(params: { userId: string; name?: string; birthday?: string }) {
+  const { userId, name, birthday } = params;
+  const supabase = getSupabaseAdmin();
+  const updates: Record<string, string> = {};
+  if (name !== undefined) updates.name = name;
+  if (birthday !== undefined) updates.birthday = birthday;
+  const { error } = await supabase.from('users').update(updates).eq('id', userId);
+  if (error) throw error;
 }
 
 export async function createTransaction(params: {

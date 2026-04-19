@@ -8,6 +8,7 @@ import { CurrencyProvider } from '../context/CurrencyContext';
 import { BudgetProvider } from '../context/BudgetContext';
 import { LanguageProvider } from '../context/LanguageContext';
 import { ToastProvider } from '../context/ToastContext';
+import { UserSettingsProvider } from '../context/UserSettingsContext';
 import { PWAProvider } from '../context/PWAContext';
 import { InstallPrompt } from '../components/InstallPrompt';
 import { SyncIndicator } from '../components/SyncIndicator';
@@ -23,6 +24,7 @@ export function Root() {
         <TransactionProvider>
           <BudgetProvider>
           <ToastProvider>
+            <UserSettingsProvider>
             <div className="flex min-h-screen bg-background">
               <Sidebar />
               <MobileHeader />
@@ -39,6 +41,7 @@ export function Root() {
                 </div>
               </div>
             </div>
+            </UserSettingsProvider>
           </ToastProvider>
           </BudgetProvider>
         </TransactionProvider>

@@ -5,6 +5,7 @@
     { "source": "/login", "destination": "/index.html" },
     { "source": "/transactions", "destination": "/index.html" },
     { "source": "/budgets", "destination": "/index.html" },
-    { "source": "/invest", "destination": "/index.html" }
+    { "source": "/invest", "destination": "/index.html" },
+    { "source": "/settings", "destination": "/index.html" }
   ]
 }

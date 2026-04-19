@@ -1,10 +1,25 @@
-import { LayoutDashboard, List, PiggyBank, TrendingUp, Globe, ChevronDown, LogOut, LogIn, Languages } from 'lucide-react';
+import { LayoutDashboard, List, PiggyBank, TrendingUp, Globe, ChevronDown, LogOut, LogIn, Languages, Settings, PiggyBank as SavingsIcon } from 'lucide-react';
 import { Link, useLocation } from 'react-router';
 import { useCurrency, currencies } from '../context/CurrencyContext';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
 import { languages } from '../translations';
 import { useState } from 'react';
+
+const mainNav = [
+  { path: '/',             label: 'nav.dashboard',    icon: LayoutDashboard },
+  { path: '/transactions', label: 'nav.transactions', icon: List },
+  { path: '/budgets',      label: 'nav.budgets',      icon: PiggyBank },
+];
+
+const planningNav = [
+  { path: '/invest',   label: 'Invest',         icon: TrendingUp, badge: 'NEW' },
+  { path: '/savings',  label: 'Savings Goals',  icon: SavingsIcon },
+];
+
+const accountNav = [
+  { path: '/settings', label: 'Settings', icon: Settings },
+];
 
 export function Sidebar() {
   const location = useLocation();
@@ -14,12 +29,20 @@ export function Sidebar() {
   const [isCurrencyMenuOpen, setIsCurrencyMenuOpen] = useState(false);
   const [isLanguageMenuOpen, setIsLanguageMenuOpen] = useState(false);
 
-  const navItems = [
-    { path: '/', label: t('nav.dashboard'), icon: LayoutDashboard },
-    { path: '/transactions', label: t('nav.transactions'), icon: List },
-    { path: '/budgets', label: t('nav.budgets'), icon: PiggyBank },
-    { path: '/invest', label: 'Invest', icon: TrendingUp, badge: 'NEW' },
-  ];
+  const isActive = (path: string) => location.pathname === path;
+
+  const linkClass = (path: string) =>
+    `flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-colors ${
+      isActive(path)
+        ? 'bg-sidebar-accent text-sidebar-accent-foreground'
+        : 'text-sidebar-foreground hover:bg-sidebar-accent/50'
+    }`;
+
+  const sectionLabel = (label: string) => (
+    <div className="px-4 pt-4 pb-1 text-[9px] font-bold uppercase tracking-[0.12em] text-sidebar-foreground/30">
+      {label}
+    </div>
+  );
 
   return (
     <aside className="hidden lg:flex lg:flex-col lg:w-64 lg:border-r lg:border-border bg-sidebar h-screen sticky top-0">
@@ -35,21 +58,28 @@ export function Sidebar() {
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 p-4">
-        <ul className="space-y-1">
-          {navItems.map((item) => {
+      <nav className="flex-1 p-3 overflow-y-auto">
+        <ul className="space-y-0.5">
+          {mainNav.map(item => {
             const Icon = item.icon;
-            const isActive = location.pathname === item.path;
             return (
               <li key={item.path}>
-                <Link
-                  to={item.path}
-                  className={`flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-colors ${
-                    isActive
-                      ? 'bg-sidebar-accent text-sidebar-accent-foreground'
-                      : 'text-sidebar-foreground hover:bg-sidebar-accent/50'
-                  }`}
-                >
+                <Link to={item.path} className={linkClass(item.path)}>
+                  <Icon className="w-5 h-5 shrink-0" />
+                  <span>{t(item.label)}</span>
+                </Link>
+              </li>
+            );
+          })}
+        </ul>
+
+        {sectionLabel('Planning')}
+        <ul className="space-y-0.5">
+          {planningNav.map(item => {
+            const Icon = item.icon;
+            return (
+              <li key={item.path}>
+                <Link to={item.path} className={linkClass(item.path)}>
                   <Icon className="w-5 h-5 shrink-0" />
                   <span>{item.label}</span>
                   {'badge' in item && item.badge && (
@@ -62,11 +92,26 @@ export function Sidebar() {
             );
           })}
         </ul>
+
+        {sectionLabel('Account')}
+        <ul className="space-y-0.5">
+          {accountNav.map(item => {
+            const Icon = item.icon;
+            return (
+              <li key={item.path}>
+                <Link to={item.path} className={linkClass(item.path)}>
+                  <Icon className="w-5 h-5 shrink-0" />
+                  <span>{item.label}</span>
+                </Link>
+              </li>
+            );
+          })}
+        </ul>
       </nav>
 
       {/* Guest: sign-in prompt */}
       {isGuest && (
-        <div className="px-4 pb-2 border-t border-sidebar-border pt-4">
+        <div className="px-3 pb-2 border-t border-sidebar-border pt-3">
           <button
             onClick={signInWithGoogle}
             className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sidebar-foreground hover:bg-sidebar-accent/50 transition-colors"
@@ -82,7 +127,7 @@ export function Sidebar() {
 
       {/* Authenticated: sign out */}
       {user && (
-        <div className="px-4 pb-2 border-t border-sidebar-border pt-4">
+        <div className="px-3 pb-2 border-t border-sidebar-border pt-3">
           <button
             onClick={signOut}
             className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sidebar-foreground hover:bg-sidebar-accent/50 transition-colors"
@@ -97,7 +142,7 @@ export function Sidebar() {
       )}
 
       {/* Currency Selector */}
-      <div className="px-4 pt-4 border-t border-sidebar-border">
+      <div className="px-3 pt-3 border-t border-sidebar-border">
         <div className="relative">
           <button
             onClick={() => { setIsCurrencyMenuOpen(!isCurrencyMenuOpen); setIsLanguageMenuOpen(false); }}
@@ -131,7 +176,7 @@ export function Sidebar() {
       </div>
 
       {/* Language Selector */}
-      <div className="px-4 pb-4 pt-2">
+      <div className="px-3 pb-4 pt-2">
         <div className="relative">
           <button
             onClick={() => { setIsLanguageMenuOpen(!isLanguageMenuOpen); setIsCurrencyMenuOpen(false); }}

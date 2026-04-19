@@ -4,6 +4,7 @@ import { Dashboard } from "./pages/Dashboard";
 import { TransactionHistory } from "./pages/TransactionHistory";
 import { Budgets } from "./pages/Budgets";
 import { Invest } from "./pages/Invest";
+import { Settings } from "./pages/Settings";
 import { Root } from "./pages/Root";
 import { Login } from "./pages/Login";
 import { ErrorPage } from "./pages/ErrorPage";
@@ -17,6 +18,8 @@ const ProtectedBudgets = () =>
   React.createElement(RequireAccess, null, React.createElement(Budgets));
 const ProtectedInvest = () =>
   React.createElement(RequireAccess, null, React.createElement(Invest));
+const ProtectedSettings = () =>
+  React.createElement(RequireAccess, null, React.createElement(Settings));
 
 export const router = createBrowserRouter([
   {
@@ -28,6 +31,7 @@ export const router = createBrowserRouter([
       { path: "transactions", Component: ProtectedTransactions },
       { path: "budgets", Component: ProtectedBudgets },
       { path: "invest", Component: ProtectedInvest },
+      { path: "settings", Component: ProtectedSettings },
       { path: "login", Component: Login },
     ],
   },
