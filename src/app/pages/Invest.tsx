@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback, useRef } from 'react';
+import { useState, useMemo, useCallback, useRef, useEffect } from 'react';
 import { ExternalLink, TrendingUp, X } from 'lucide-react';
 import productData from '../../data/invest-products.json';
 
@@ -76,6 +76,13 @@ interface WeightedProduct extends AnyProduct {
   weight: number;
 }
 
+type ExtProduct = AnyProduct & {
+  tan?: number; couponRate?: number; ticker?: string; ter?: number;
+  institution?: string; issuer?: string; maxEligibleAmount?: number;
+  minInvestment?: number; taxBenefit?: string; notes?: string;
+  suggestedAllocationPct: number; description?: string;
+};
+
 // ── Config ────────────────────────────────────────────────────────────────────
 
 const RISK_SPLITS: Record<RiskProfile, { savings: number; highRisk: number; bonds: number }> = {
@@ -95,6 +102,46 @@ const RISK_HEX: Record<RiskProfile, string> = {
   balanced: '#1d4ed8',
   growth:   '#7c3aed',
 };
+
+// ── Institution logos ──────────────────────────────────────────────────────────
+
+const INST_LOGOS: Record<string, { abbr: string; bg: string; color: string }> = {
+  'Caixa Geral de Depósitos': { abbr: 'CGD', bg: '#005a8c', color: '#fff' },
+  'Millennium BCP':           { abbr: 'MIL', bg: '#c8102e', color: '#fff' },
+  'ActivoBank':               { abbr: 'ACB', bg: '#f97316', color: '#fff' },
+  'Santander Portugal':       { abbr: 'SAN', bg: '#ec0000', color: '#fff' },
+  'Vanguard':                 { abbr: 'VAN', bg: '#6b0d14', color: '#fff' },
+  'Invesco':                  { abbr: 'INV', bg: '#0056a2', color: '#fff' },
+  'iShares / BlackRock':      { abbr: 'ISH', bg: '#1b4f72', color: '#fff' },
+  'República Portuguesa':     { abbr: 'PT',  bg: '#006600', color: '#fff' },
+  'Novo Banco':               { abbr: 'NBO', bg: '#e85c0d', color: '#fff' },
+  'XTB':                      { abbr: 'XTB', bg: '#1e3a8a', color: '#fff' },
+  'BPI':                      { abbr: 'BPI', bg: '#15803d', color: '#fff' },
+};
+
+function InstLogo({ institution, size = 32 }: { institution: string; size?: number }) {
+  const cfg = INST_LOGOS[institution] ?? {
+    abbr: (institution ?? '?').slice(0, 3).toUpperCase(),
+    bg: '#94a3b8',
+    color: '#fff',
+  };
+  return (
+    <div
+      className="flex items-center justify-center shrink-0 border border-black/[0.06] font-extrabold"
+      style={{
+        width: size,
+        height: size,
+        borderRadius: 6,
+        background: cfg.bg,
+        color: cfg.color,
+        fontSize: size * 0.28,
+        letterSpacing: '-0.3px',
+      }}
+    >
+      {cfg.abbr}
+    </div>
+  );
+}
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -306,6 +353,187 @@ function SimChart({ data, riskProfile, horizon }: { data: ChartPoint[]; riskProf
   );
 }
 
+// ── ProductModal ───────────────────────────────────────────────────────────────
+
+function ProductModal({
+  product,
+  bucketEur,
+  allocs,
+  onAllocChange,
+  onClose,
+}: {
+  product: ExtProduct;
+  bucketEur: number;
+  allocs: Record<string, number>;
+  onAllocChange: (id: string, val: number) => void;
+  onClose: () => void;
+}) {
+  const pct = allocs[product.id] ?? product.suggestedAllocationPct;
+  const eurAmt = bucketEur * (pct / 100);
+  const isSavings = product.tan !== undefined;
+  const isFuture = product.couponRate !== undefined;
+  const isETF = !!product.ticker && !product.taxBenefit;
+  const inst = product.institution ?? product.issuer ?? '';
+  const belowMin = isFuture && product.minInvestment && eurAmt < product.minInvestment;
+  const aboveMax = isSavings && product.maxEligibleAmount && eurAmt > product.maxEligibleAmount;
+  const rateVal = isSavings ? product.tan! : isFuture ? product.couponRate! : product.expectedAnnualReturn;
+  const rateColor = isSavings ? '#0f766e' : isFuture ? '#1d4ed8' : '#7c3aed';
+  const rateLabel = isSavings ? 'TAN' : isFuture ? 'coupon' : 'p.a.';
+
+  return (
+    <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4" onClick={onClose}>
+      <div className="bg-card rounded-2xl w-full max-w-[440px] max-h-[82vh] flex flex-col shadow-2xl overflow-hidden" onClick={e => e.stopPropagation()}>
+        <div className="flex items-center justify-between px-5 py-4 border-b border-border shrink-0">
+          <span className="text-sm font-semibold">Product details</span>
+          <button onClick={onClose} className="w-7 h-7 flex items-center justify-center rounded-lg bg-muted text-muted-foreground hover:bg-muted/80 transition-colors">
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+        <div className="overflow-y-auto flex-1 p-5">
+          {/* Hero */}
+          <div className="flex items-start gap-3.5 mb-5 pb-4 border-b border-border">
+            <InstLogo institution={inst} size={48} />
+            <div className="flex-1 min-w-0">
+              <div className="text-[15px] font-bold text-foreground leading-snug">{product.name}</div>
+              <div className="text-xs text-muted-foreground mt-0.5">{inst}</div>
+            </div>
+            <div className="text-right shrink-0">
+              <div className="text-2xl font-bold" style={{ color: rateColor, letterSpacing: '-0.5px' }}>{fmtPct(rateVal)}</div>
+              <div className="text-[10px] text-muted-foreground mt-0.5">{rateLabel}</div>
+            </div>
+          </div>
+
+          <div className="flex flex-col gap-3.5">
+            {/* Key details */}
+            <div>
+              <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground mb-2">Key details</p>
+              {isSavings && <>
+                <div className="flex justify-between text-xs mb-1.5"><span className="text-muted-foreground">Expected return</span><span className="font-semibold">{fmtPct(product.expectedAnnualReturn)} p.a.</span></div>
+                <div className="flex justify-between text-xs mb-1.5"><span className="text-muted-foreground">Term</span><span className="font-semibold">{(product as any).term}</span></div>
+                <div className="flex justify-between text-xs"><span className="text-muted-foreground">Max eligible amount</span><span className="font-semibold">{fmtEur(product.maxEligibleAmount!)}</span></div>
+              </>}
+              {isETF && <>
+                <div className="flex justify-between text-xs mb-1.5"><span className="text-muted-foreground">Ticker</span><span className="font-semibold">{product.ticker}</span></div>
+                <div className="flex justify-between text-xs mb-1.5"><span className="text-muted-foreground">Expected return (hist.)</span><span className="font-semibold">{fmtPct(product.expectedAnnualReturn)} p.a.</span></div>
+                <div className="flex justify-between text-xs mb-1.5"><span className="text-muted-foreground">Total Expense Ratio</span><span className="font-semibold">{fmtPct(product.ter!)}</span></div>
+                <div className="flex justify-between text-xs"><span className="text-muted-foreground">Risk</span><span className="font-semibold capitalize">{(product as any).risk}</span></div>
+              </>}
+              {isFuture && <>
+                <div className="flex justify-between text-xs mb-1.5"><span className="text-muted-foreground">Expected return</span><span className="font-semibold">{fmtPct(product.expectedAnnualReturn)} p.a.</span></div>
+                <div className="flex justify-between text-xs mb-1.5"><span className="text-muted-foreground">Maturity date</span><span className="font-semibold">{(product as any).maturityDate}</span></div>
+                <div className="flex justify-between text-xs"><span className="text-muted-foreground">Minimum investment</span><span className="font-semibold">{fmtEur(product.minInvestment!)}</span></div>
+              </>}
+              {product.description && (
+                <div className="flex justify-between gap-4 text-xs mt-1.5"><span className="text-muted-foreground shrink-0">About</span><span className="font-semibold text-right">{product.description}</span></div>
+              )}
+            </div>
+
+            {/* Your allocation */}
+            <div>
+              <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground mb-2">Your allocation</p>
+              <div className="flex items-center bg-muted rounded-xl overflow-hidden">
+                <div className="flex-1 px-3 py-2.5">
+                  <div className="text-[11px] text-muted-foreground">% of bucket</div>
+                  <div className="text-lg font-bold text-foreground mt-0.5">{pct}%</div>
+                </div>
+                <div className="w-px h-10 bg-border self-center" />
+                <div className="flex-1 px-3 py-2.5 text-right">
+                  <div className="text-[11px] text-muted-foreground">Amount</div>
+                  <div className="text-lg font-bold text-foreground mt-0.5">{fmtEur(eurAmt)}</div>
+                </div>
+              </div>
+              <div className="flex items-center gap-2 mt-2.5">
+                <span className="text-xs text-muted-foreground">Adjust:</span>
+                <input
+                  type="number" min="0" max="100" value={pct}
+                  onChange={e => onAllocChange(product.id, Number(e.target.value))}
+                  className="w-14 text-right border border-border rounded-md bg-input-background text-xs font-semibold px-1.5 py-1 outline-none focus:border-teal-500 transition-colors"
+                />
+                <span className="text-xs text-muted-foreground">%</span>
+              </div>
+            </div>
+
+            {belowMin && (
+              <div className="text-xs text-amber-800 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2.5 leading-relaxed">
+                ⚠ Your allocated amount ({fmtEur(eurAmt)}) is below the minimum investment of {fmtEur(product.minInvestment!)}.
+              </div>
+            )}
+            {aboveMax && (
+              <div className="text-xs text-amber-800 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2.5 leading-relaxed">
+                ⚠ Your allocated amount ({fmtEur(eurAmt)}) exceeds the maximum eligible amount of {fmtEur(product.maxEligibleAmount!)}.
+              </div>
+            )}
+            {product.taxBenefit && (
+              <div className="text-xs text-teal-800 bg-teal-50 border border-teal-200 rounded-xl px-3 py-2.5 leading-relaxed">
+                ★ Tax benefit: {product.taxBenefit}
+              </div>
+            )}
+            {product.notes && (
+              <div className="text-xs text-muted-foreground bg-muted rounded-xl px-3 py-2.5 leading-relaxed">
+                {product.notes}
+              </div>
+            )}
+          </div>
+
+          <a
+            href={product.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center justify-center gap-2 w-full py-2.5 mt-5 rounded-xl bg-teal-500 hover:bg-teal-600 text-white text-sm font-semibold transition-colors"
+          >
+            Visit {inst}
+            <ExternalLink className="w-3.5 h-3.5" />
+          </a>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── ManualSplits ──────────────────────────────────────────────────────────────
+
+function ManualSplits({
+  manualSplits,
+  setManualSplits,
+  totalAmount,
+}: {
+  manualSplits: { savings: number; highRisk: number; bonds: number };
+  setManualSplits: React.Dispatch<React.SetStateAction<{ savings: number; highRisk: number; bonds: number }>>;
+  totalAmount: number;
+}) {
+  const rows = [
+    { key: 'savings' as const,  label: 'Savings Account',        color: BUCKET_COLORS.savings  },
+    { key: 'highRisk' as const, label: 'High Risk / High Return', color: BUCKET_COLORS.highRisk },
+    { key: 'bonds' as const,    label: 'Futures & Bonds',         color: BUCKET_COLORS.bonds    },
+  ];
+  const sum = manualSplits.savings + manualSplits.highRisk + manualSplits.bonds;
+  const ok = sum === 100;
+
+  return (
+    <div className="bg-muted rounded-xl p-4 mb-5">
+      <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground mb-3">Bucket allocation</p>
+      {rows.map(r => (
+        <div key={r.key} className="flex items-center gap-3 mb-2.5 last:mb-0">
+          <div className="w-2 h-2 rounded-full shrink-0" style={{ background: r.color }} />
+          <span className="text-xs font-medium text-foreground flex-1">{r.label}</span>
+          <input
+            type="number" min="0" max="100"
+            value={manualSplits[r.key]}
+            onChange={e => setManualSplits(prev => ({ ...prev, [r.key]: Number(e.target.value) }))}
+            className="w-14 text-right border border-border rounded-md bg-card text-sm font-semibold px-2 py-1 outline-none focus:border-teal-500 transition-colors"
+          />
+          <span className="text-xs text-muted-foreground w-3">%</span>
+          <span className="text-xs font-semibold text-foreground min-w-[56px] text-right">{fmtEur(totalAmount * (manualSplits[r.key] / 100))}</span>
+        </div>
+      ))}
+      <div className={`flex justify-between text-xs font-semibold mt-3 pt-3 border-t border-border ${ok ? 'text-emerald-500' : 'text-red-500'}`}>
+        <span>Total</span>
+        <span>{ok ? '✓ 100%' : `${sum}% ${sum > 100 ? '— over by ' + (sum - 100) + '%' : '— needs ' + (100 - sum) + '% more'}`}</span>
+      </div>
+    </div>
+  );
+}
+
 // ── ProductRow ────────────────────────────────────────────────────────────────
 
 function ProductRow({
@@ -313,88 +541,53 @@ function ProductRow({
   bucketEur,
   alloc,
   onAllocChange,
+  onOpen,
 }: {
   product: AnyProduct;
   bucketEur: number;
   alloc: number | undefined;
   onAllocChange: (id: string, val: number) => void;
+  onOpen: () => void;
 }) {
-  const p = product as AnyProduct & {
-    tan?: number; couponRate?: number; ticker?: string; ter?: number;
-    institution?: string; issuer?: string; maxEligibleAmount?: number;
-    minInvestment?: number; taxBenefit?: string; notes?: string;
-    suggestedAllocationPct: number;
-  };
-
+  const p = product as ExtProduct;
   const pct = alloc ?? p.suggestedAllocationPct;
   const eurAmt = bucketEur * (pct / 100);
   const isSavings = p.tan !== undefined;
   const isFuture = p.couponRate !== undefined;
-
-  const metricLabel = isSavings
+  const inst = p.institution ?? p.issuer ?? '';
+  const metric = isSavings
     ? `TAN ${fmtPct(p.tan!)}`
     : isFuture
     ? `${fmtPct(p.couponRate!)} coupon`
     : `${fmtPct(p.expectedAnnualReturn)} p.a.`;
-
-  const subLabel = isSavings
-    ? p.institution
-    : p.ticker
-    ? `${p.ticker} · TER ${fmtPct(p.ter!)}`
-    : p.institution || p.issuer;
-
-  const belowMin = isFuture && p.minInvestment && eurAmt < p.minInvestment;
-  const aboveMax = isSavings && p.maxEligibleAmount && eurAmt > p.maxEligibleAmount;
+  const sub = p.ticker ? `${p.ticker} · TER ${fmtPct(p.ter!)}` : inst;
 
   return (
-    <div className="px-4 py-2.5 border-b border-border last:border-b-0 flex flex-col gap-1.5">
-      <div className="flex items-start justify-between gap-2">
-        <div className="flex-1 min-w-0">
-          <a
-            href={p.url}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-1 text-xs font-semibold text-foreground hover:text-teal-600 transition-colors leading-snug"
-          >
-            {p.name}
-            <ExternalLink className="w-2.5 h-2.5 opacity-40 shrink-0" />
-          </a>
-          <div className="text-[11px] text-muted-foreground mt-0.5">{subLabel}</div>
+    <div className="flex items-center gap-2.5 px-4 py-2.5 border-b border-border last:border-b-0 hover:bg-background transition-colors">
+      <InstLogo institution={inst} size={32} />
+      <div className="flex-1 min-w-0">
+        <button
+          className="flex items-center gap-1 text-xs font-semibold text-foreground hover:text-teal-600 transition-colors text-left leading-snug"
+          onClick={onOpen}
+        >
+          {p.name}
+          <ExternalLink className="w-2.5 h-2.5 opacity-35 shrink-0" />
+        </button>
+        <div className="text-[11px] text-muted-foreground mt-0.5">{sub}</div>
+      </div>
+      <div className="flex flex-col items-end gap-1 shrink-0">
+        <div className="text-sm font-bold text-foreground">{fmtEur(eurAmt)}</div>
+        <div className="flex items-center gap-1">
+          <input
+            type="number" min="0" max="100" value={pct}
+            onChange={e => onAllocChange(p.id, Number(e.target.value))}
+            onClick={e => e.stopPropagation()}
+            className="w-11 text-right border border-border rounded-md bg-input-background text-[11px] font-semibold px-1.5 py-0.5 outline-none focus:border-teal-500 transition-colors"
+          />
+          <span className="text-[11px] text-muted-foreground">%</span>
         </div>
-        <div className="text-xs font-bold text-emerald-500 shrink-0">{metricLabel}</div>
+        <div className="text-[10px] font-semibold text-emerald-500">{metric}</div>
       </div>
-
-      <div className="flex items-center gap-1.5">
-        <input
-          type="number"
-          min="0"
-          max="100"
-          value={pct}
-          onChange={e => onAllocChange(p.id, Number(e.target.value))}
-          className="w-12 text-right border border-border rounded-md bg-input-background text-xs font-semibold text-foreground px-1.5 py-1 outline-none focus:border-teal-500 focus:bg-card transition-colors"
-        />
-        <span className="text-[11px] text-muted-foreground">%</span>
-        <span className="text-[11px] font-medium text-muted-foreground ml-auto">{fmtEur(eurAmt)}</span>
-      </div>
-
-      {p.taxBenefit && (
-        <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-1.5 py-0.5 rounded bg-teal-100 text-teal-700 self-start">
-          ★ IRS benefit
-        </span>
-      )}
-      {belowMin && (
-        <span className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-amber-50 text-amber-800 self-start">
-          Min. investment {fmtEur(p.minInvestment!)}
-        </span>
-      )}
-      {aboveMax && (
-        <span className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-amber-50 text-amber-800 self-start">
-          Max eligible {fmtEur(p.maxEligibleAmount!)}
-        </span>
-      )}
-      {p.notes && (
-        <div className="text-[10px] text-muted-foreground leading-relaxed">{p.notes}</div>
-      )}
     </div>
   );
 }
@@ -408,6 +601,7 @@ function SeeMoreModal({
   allocations,
   onAllocChange,
   onClose,
+  onOpenProduct,
 }: {
   bucketLabel: string;
   products: AnyProduct[];
@@ -415,22 +609,14 @@ function SeeMoreModal({
   allocations: Record<string, number>;
   onAllocChange: (id: string, val: number) => void;
   onClose: () => void;
+  onOpenProduct: (p: AnyProduct) => void;
 }) {
   return (
-    <div
-      className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4"
-      onClick={onClose}
-    >
-      <div
-        className="bg-card rounded-xl w-full max-w-md max-h-[80vh] flex flex-col shadow-2xl overflow-hidden"
-        onClick={e => e.stopPropagation()}
-      >
+    <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4" onClick={onClose}>
+      <div className="bg-card rounded-xl w-full max-w-[500px] max-h-[85vh] flex flex-col shadow-2xl overflow-hidden" onClick={e => e.stopPropagation()}>
         <div className="flex items-center justify-between px-5 py-4 border-b border-border shrink-0">
           <span className="text-sm font-semibold text-foreground">All products — {bucketLabel}</span>
-          <button
-            onClick={onClose}
-            className="w-7 h-7 flex items-center justify-center rounded-lg bg-muted text-muted-foreground hover:bg-muted/80 transition-colors"
-          >
+          <button onClick={onClose} className="w-7 h-7 flex items-center justify-center rounded-lg bg-muted text-muted-foreground hover:bg-muted/80 transition-colors">
             <X className="w-4 h-4" />
           </button>
         </div>
@@ -442,6 +628,7 @@ function SeeMoreModal({
               bucketEur={bucketEur}
               alloc={allocations[p.id]}
               onAllocChange={onAllocChange}
+              onOpen={() => { onClose(); onOpenProduct(p); }}
             />
           ))}
         </div>
@@ -471,7 +658,8 @@ function BucketCard({
   allocations: Record<string, number>;
   onAllocChange: (id: string, val: number) => void;
 }) {
-  const [showModal, setShowModal] = useState(false);
+  const [showMore, setShowMore] = useState(false);
+  const [activeProd, setActiveProd] = useState<AnyProduct | null>(null);
   const visible = products.slice(0, MAX_VISIBLE);
   const hidden = products.slice(MAX_VISIBLE);
 
@@ -485,16 +673,16 @@ function BucketCard({
     <>
       <div className="border border-border rounded-xl bg-card flex flex-col overflow-hidden">
         <div className="px-4 pt-3 pb-3 border-b border-border" style={{ borderTop: `3px solid ${color}` }}>
-          <div className="flex items-start justify-between gap-2 mb-1">
-            <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">{label}</span>
-            {remaining !== 0 && (
-              <span className="text-[10px] font-semibold text-red-500 bg-red-50 px-1.5 py-0.5 rounded">
-                {remaining > 0 ? `${remaining}% left` : `+${Math.abs(remaining)}% over`}
-              </span>
-            )}
+          <div className="text-[9px] font-bold uppercase tracking-widest text-muted-foreground mb-1.5">{label}</div>
+          <div className="flex items-baseline gap-2">
+            <span className="text-[22px] font-bold leading-none text-foreground" style={{ letterSpacing: '-0.8px' }}>{fmtEur(eurAmount)}</span>
+            <span className="text-sm font-semibold" style={{ color }}>{pct}%</span>
           </div>
-          <div className="text-2xl font-bold leading-none mb-0.5" style={{ color }}>{pct}%</div>
-          <div className="text-[11px] text-muted-foreground">{fmtEur(eurAmount)} to invest</div>
+          {remaining !== 0 && (
+            <div className="text-[10px] font-semibold text-red-500 mt-1">
+              {remaining > 0 ? `${remaining}% unallocated` : `+${Math.abs(remaining)}% over`}
+            </div>
+          )}
         </div>
 
         <div className="flex-1">
@@ -508,6 +696,7 @@ function BucketCard({
                 bucketEur={eurAmount}
                 alloc={allocations[p.id]}
                 onAllocChange={onAllocChange}
+                onOpen={() => setActiveProd(p)}
               />
             ))
           )}
@@ -515,7 +704,7 @@ function BucketCard({
 
         {hidden.length > 0 && (
           <button
-            onClick={() => setShowModal(true)}
+            onClick={() => setShowMore(true)}
             className="w-full py-2.5 px-4 border-t border-border bg-muted text-[11px] font-semibold text-muted-foreground hover:bg-muted/70 hover:text-foreground transition-colors text-center"
           >
             See {hidden.length} more product{hidden.length > 1 ? 's' : ''}
@@ -523,14 +712,25 @@ function BucketCard({
         )}
       </div>
 
-      {showModal && (
+      {activeProd && (
+        <ProductModal
+          product={activeProd as ExtProduct}
+          bucketEur={eurAmount}
+          allocs={allocations}
+          onAllocChange={onAllocChange}
+          onClose={() => setActiveProd(null)}
+        />
+      )}
+
+      {showMore && (
         <SeeMoreModal
           bucketLabel={label}
           products={products}
           bucketEur={eurAmount}
           allocations={allocations}
           onAllocChange={onAllocChange}
-          onClose={() => setShowModal(false)}
+          onClose={() => setShowMore(false)}
+          onOpenProduct={p => setActiveProd(p)}
         />
       )}
     </>
@@ -546,6 +746,8 @@ export function Invest() {
   const [horizon, setHorizon] = useState(10);
   const [bannerDismissed, setBannerDismissed] = useState(false);
   const [allocations, setAllocations] = useState<Record<string, number>>({});
+  const [allocMode, setAllocMode] = useState<'suggested' | 'manual'>('suggested');
+  const [manualSplits, setManualSplits] = useState({ savings: 60, highRisk: 20, bonds: 20 });
 
   const ageSuggestion = useMemo(() => {
     const n = parseInt(age);
@@ -556,7 +758,7 @@ export function Invest() {
   }, [age]);
 
   const showBanner = ageSuggestion && !bannerDismissed && ageSuggestion.profile !== riskProfile;
-  const splits = RISK_SPLITS[riskProfile];
+  const splits = allocMode === 'suggested' ? RISK_SPLITS[riskProfile] : manualSplits;
   const buckets = useMemo(() => getBuckets(), []);
   const parsedAmount = parseFloat(amount) || 0;
   const hasAmount = parsedAmount > 0;
@@ -571,6 +773,10 @@ export function Invest() {
   );
   const fv = useMemo(() => calcFV(parsedAmount, horizon, allProducts), [parsedAmount, horizon, allProducts]);
   const chartData = useMemo(() => buildChartData(parsedAmount, horizon, allProducts), [parsedAmount, horizon, allProducts]);
+
+  useEffect(() => {
+    if (allocMode === 'manual') setManualSplits(RISK_SPLITS[riskProfile]);
+  }, [allocMode]);
 
   const bucketDefs = [
     { key: 'savings',  label: 'Savings Account',        pct: splits.savings,  color: BUCKET_COLORS.savings,  products: buckets.savings  },
@@ -733,8 +939,30 @@ export function Invest() {
               <div className="px-5 py-3.5 border-b border-border flex items-center gap-2">
                 <div className="w-5 h-5 rounded-full bg-muted flex items-center justify-center text-[10px] font-bold text-muted-foreground">2</div>
                 <span className="text-xs font-semibold text-muted-foreground uppercase tracking-widest">Allocation</span>
+                <div className="ml-auto flex gap-[1px] bg-muted rounded-lg p-[2px]">
+                  {(['suggested', 'manual'] as const).map(m => (
+                    <button
+                      key={m}
+                      onClick={() => setAllocMode(m)}
+                      className={`text-[11px] font-medium px-3 py-[5px] rounded-md transition-all capitalize ${
+                        allocMode === m
+                          ? 'bg-card text-foreground font-semibold shadow-sm'
+                          : 'text-muted-foreground hover:text-foreground'
+                      }`}
+                    >
+                      {m}
+                    </button>
+                  ))}
+                </div>
               </div>
               <div className="p-5">
+                {allocMode === 'manual' && (
+                  <ManualSplits
+                    manualSplits={manualSplits}
+                    setManualSplits={setManualSplits}
+                    totalAmount={parsedAmount}
+                  />
+                )}
                 {/* Allocation bar */}
                 <div className="mb-5">
                   <div className="h-2 rounded-full overflow-hidden flex mb-2.5">
