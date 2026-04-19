@@ -59,7 +59,8 @@ export async function listTransactions(userId: string): Promise<DbTransaction[]>
     .select('id, type, amount, description, transaction_date, category')
     .eq('user_id', userId)
     .order('transaction_date', { ascending: false })
-    .order('created_at', { ascending: false });
+    .order('created_at', { ascending: false })
+    .limit(10000);
 
   if (error) throw error;
   const rows = (data ?? []) as Array<{
