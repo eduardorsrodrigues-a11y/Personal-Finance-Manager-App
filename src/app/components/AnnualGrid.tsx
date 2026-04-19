@@ -1,5 +1,5 @@
 import { useMemo, useState, useEffect, useCallback } from 'react';
-import { X } from 'lucide-react';
+import { X, Pencil } from 'lucide-react';
 import { useTransactions } from '../context/TransactionContext';
 import { type Transaction } from '../context/TransactionContext';
 import { useBudgets } from '../context/BudgetContext';
@@ -7,6 +7,7 @@ import { useCurrency } from '../context/CurrencyContext';
 import { useLanguage } from '../context/LanguageContext';
 import { NEEDS_CATEGORIES, WANTS_CATEGORIES } from '../utils/budgetAllocator';
 import { track } from '../utils/analytics';
+import { AddTransactionModal } from './AddTransactionModal';
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 const SALARY_CATS = new Set(['Salary', 'Meal Allowance']);
@@ -46,6 +47,7 @@ export function AnnualGrid() {
   const [fullscreen, setFullscreen] = useState(false);
   const [tooltip, setTooltip] = useState<TooltipState | null>(null);
   const [drilldown, setDrilldown] = useState<DrilldownState | null>(null);
+  const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
 
   const currentYear = new Date().getFullYear();
 
@@ -390,7 +392,11 @@ export function AnnualGrid() {
         </div>
         <div className="overflow-y-auto flex-1 divide-y divide-border/50">
           {drilldown.transactions.map(t => (
-            <div key={t.id} className="flex items-center gap-3 px-5 py-3">
+            <button
+              key={t.id}
+              onClick={() => { setDrilldown(null); setEditingTransaction(t); }}
+              className="w-full flex items-center gap-3 px-5 py-3 hover:bg-muted/50 transition-colors text-left group"
+            >
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-medium truncate">{t.description}</p>
                 <p className="text-xs text-muted-foreground">
@@ -400,7 +406,8 @@ export function AnnualGrid() {
               <span className={`text-sm font-semibold shrink-0 ${t.type === 'expense' ? 'text-red-500' : 'text-emerald-600 dark:text-emerald-400'}`}>
                 {t.type === 'expense' ? '-' : '+'}{formatAmount(t.amount)}
               </span>
-            </div>
+              <Pencil className="w-3.5 h-3.5 text-muted-foreground/40 group-hover:text-muted-foreground shrink-0 transition-colors" />
+            </button>
           ))}
         </div>
         <div className="px-5 py-3 border-t border-border bg-muted/30 shrink-0 flex justify-between items-center">
@@ -437,6 +444,11 @@ export function AnnualGrid() {
         </div>
         {tooltipEl}
         {drilldownEl}
+        <AddTransactionModal
+          isOpen={!!editingTransaction}
+          onClose={() => setEditingTransaction(null)}
+          initialTransaction={editingTransaction ?? undefined}
+        />
       </>
     );
   }
@@ -463,6 +475,12 @@ export function AnnualGrid() {
       </div>
       {tooltipEl}
       {drilldownEl}
+      <AddTransactionModal
+        isOpen={!!editingTransaction}
+        onClose={() => setEditingTransaction(null)}
+        mode="edit"
+        initialTransaction={editingTransaction ?? undefined}
+      />
     </>
   );
 }
