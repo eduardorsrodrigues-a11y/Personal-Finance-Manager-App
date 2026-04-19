@@ -588,8 +588,11 @@ export function Invest() {
       {/* Header — matches Dashboard pattern */}
       <header className="border-b border-border bg-card sticky top-0 z-40">
         <div className="px-4 lg:px-8 py-3 lg:py-5 flex items-center justify-between">
-          <h1 className="font-semibold">Investment Simulator</h1>
-          <span className="text-xs text-muted-foreground hidden sm:block">Product data: {freshnessLabel}</span>
+          <div>
+            <h1 className="text-xl font-semibold">Investment Simulator</h1>
+            <p className="text-xs text-amber-500 font-medium mt-0.5">Beta · Products shown are illustrative mock data, not real financial advice.</p>
+          </div>
+          <span className="text-xs text-muted-foreground hidden sm:block shrink-0 ml-4">Updated {freshnessLabel}</span>
         </div>
       </header>
 

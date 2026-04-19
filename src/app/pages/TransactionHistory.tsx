@@ -160,7 +160,7 @@ export function TransactionHistory() {
         <div className="px-4 lg:px-8 py-3 lg:py-5">
           {/* Title + Add */}
           <div className="flex items-center justify-between mb-3">
-            <h1 className="font-semibold">{t('transactions.title')}</h1>
+            <h1 className="text-xl font-semibold">{t('transactions.title')}</h1>
             <button
               onClick={openAdd}
               className="bg-emerald-500 hover:bg-emerald-600 text-white px-3 py-1.5 rounded-lg flex items-center gap-1.5 text-sm font-medium transition-colors shrink-0"

@@ -290,9 +290,9 @@ export function Budgets() {
     <div className="min-h-screen bg-background">
       <header className="border-b border-border bg-card sticky top-0 z-40">
         <div className="px-4 lg:px-8 py-3 lg:py-5">
-          <div className="flex items-start justify-between gap-4">
+          <div className="flex items-center justify-between gap-4">
             <div>
-              <h1 className="font-semibold">{t('budgets.title')}</h1>
+              <h1 className="text-xl font-semibold">{t('budgets.title')}</h1>
               <p className="text-sm text-muted-foreground">{t('budgets.subtitle')}</p>
             </div>
             {tab === 'monthly' && (isSmartMode ? (
