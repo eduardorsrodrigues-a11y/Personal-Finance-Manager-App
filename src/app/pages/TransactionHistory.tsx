@@ -4,7 +4,8 @@ import { useSearchParams } from 'react-router';
 import { Transaction, useTransactions } from '../context/TransactionContext';
 import { AddTransactionModal } from '../components/AddTransactionModal';
 import { DeleteConfirmationModal } from '../components/DeleteConfirmationModal';
-import { getAvailableMonths, filterTransactionsByMonth } from '../utils/dateUtils';
+import { filterTransactionsByMonth } from '../utils/dateUtils';
+import { TimePeriodPicker } from '../components/TimePeriodPicker';
 import { useCurrency } from '../context/CurrencyContext';
 import { getCategoryConfig } from '../utils/categoryConfig';
 import { useLanguage } from '../context/LanguageContext';
@@ -26,7 +27,7 @@ export function TransactionHistory() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalMode, setModalMode] = useState<'add' | 'edit'>('add');
   const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
-  const [selectedMonth, setSelectedMonth] = useState<string>(initialMonthParam || 'all');
+  const [selectedMonth, setSelectedMonth] = useState<string>(initialMonthParam || 'this-month');
   const [selectedCategory, setSelectedCategory] = useState<string>(initialCategoryParam || 'all');
   const [isHidden, setIsHidden] = useState(false);
   const [visibleCount, setVisibleCount] = useState(20);
@@ -69,7 +70,7 @@ export function TransactionHistory() {
   }, []);
 
   useEffect(() => {
-    setSelectedMonth(initialMonthParam || 'all');
+    setSelectedMonth(initialMonthParam || 'this-month');
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initialMonthParam]);
 
@@ -92,8 +93,6 @@ export function TransactionHistory() {
     observer.observe(el);
     return () => observer.disconnect();
   }, []);
-
-  const availableMonths = useMemo(() => getAvailableMonths(transactions), [transactions]);
 
   const availableCategories = useMemo(() => {
     const source = filter === 'all' ? transactions : transactions.filter(tx => tx.type === filter);
@@ -191,34 +190,24 @@ export function TransactionHistory() {
               ))}
             </div>
             {/* Desktop: selects inline */}
-            <div className="hidden lg:flex gap-2 shrink-0">
+            <div className="hidden lg:flex items-center gap-2 shrink-0">
               <select value={selectedCategory} onChange={(e) => setSelectedCategory(e.target.value)}
                 className="px-3 py-2 bg-input-background rounded-lg border border-border text-sm focus:outline-none focus:ring-2 focus:ring-ring">
                 <option value="all">{t('transactions.allCategories')}</option>
                 {availableCategories.map(c => <option key={c} value={c}>{tCategory(c)}</option>)}
               </select>
-              <select value={selectedMonth} onChange={(e) => setSelectedMonth(e.target.value)}
-                className="px-3 py-2 bg-input-background rounded-lg border border-border text-sm focus:outline-none focus:ring-2 focus:ring-ring">
-                <option value="all">{t('transactions.allTime')}</option>
-                <option value="this-year">This year</option>
-                {availableMonths.map(m => <option key={m} value={m}>{m}</option>)}
-              </select>
+              <TimePeriodPicker value={selectedMonth} onChange={setSelectedMonth} />
             </div>
           </div>
 
           {/* Mobile: Category + Time */}
-          <div className="grid grid-cols-2 gap-2 lg:hidden">
+          <div className="flex flex-col gap-2 lg:hidden">
             <select value={selectedCategory} onChange={(e) => setSelectedCategory(e.target.value)}
               className="w-full px-3 py-2 bg-input-background rounded-lg border border-border text-sm focus:outline-none focus:ring-2 focus:ring-ring">
               <option value="all">{t('transactions.allCategories')}</option>
               {availableCategories.map(c => <option key={c} value={c}>{tCategory(c)}</option>)}
             </select>
-            <select value={selectedMonth} onChange={(e) => setSelectedMonth(e.target.value)}
-              className="w-full px-3 py-2 bg-input-background rounded-lg border border-border text-sm focus:outline-none focus:ring-2 focus:ring-ring">
-              <option value="all">{t('transactions.allTime')}</option>
-              <option value="this-year">This year</option>
-              {availableMonths.map(m => <option key={m} value={m}>{m}</option>)}
-            </select>
+            <TimePeriodPicker value={selectedMonth} onChange={setSelectedMonth} />
           </div>
         </div>
       </header>

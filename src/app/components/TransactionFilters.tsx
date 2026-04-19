@@ -1,5 +1,5 @@
-import { Calendar } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
+import { TimePeriodPicker } from './TimePeriodPicker';
 
 type FilterType = 'all' | 'income' | 'expense';
 
@@ -10,8 +10,9 @@ interface TransactionFiltersProps {
   onCategoryChange: (category: string) => void;
   selectedMonth: string;
   onMonthChange: (month: string) => void;
-  availableMonths: string[];
   availableCategories: string[];
+  /** @deprecated no longer used — kept for API compatibility */
+  availableMonths?: string[];
   showTypeFilter?: boolean;
   showCategoryFilter?: boolean;
 }
@@ -23,7 +24,6 @@ export function TransactionFilters({
   onCategoryChange,
   selectedMonth,
   onMonthChange,
-  availableMonths,
   availableCategories,
   showTypeFilter = true,
   showCategoryFilter = true,
@@ -77,20 +77,7 @@ export function TransactionFilters({
 
         <div className="flex-1">
           <label className="text-xs font-medium text-muted-foreground mb-2 block">{t('transactions.timePeriod')}</label>
-          <div className="flex items-center gap-2">
-            <Calendar className="w-5 h-5 text-muted-foreground hidden sm:block" />
-            <select
-              value={selectedMonth}
-              onChange={(e) => onMonthChange(e.target.value)}
-              className="flex-1 px-3 py-2 bg-input-background rounded-lg border border-border focus:outline-none focus:ring-2 focus:ring-ring text-sm"
-            >
-              <option value="all">{t('transactions.allTime')}</option>
-              <option value="this-year">This year</option>
-              {availableMonths.map((month) => (
-                <option key={month} value={month}>{month}</option>
-              ))}
-            </select>
-          </div>
+          <TimePeriodPicker value={selectedMonth} onChange={onMonthChange} />
         </div>
       </div>
     </div>

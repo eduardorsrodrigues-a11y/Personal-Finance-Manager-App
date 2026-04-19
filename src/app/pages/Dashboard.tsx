@@ -5,7 +5,7 @@ import { useNavigate } from 'react-router';
 import { useTransactions } from '../context/TransactionContext';
 import { AddTransactionModal } from '../components/AddTransactionModal';
 import { TransactionFilters } from '../components/TransactionFilters';
-import { getAvailableMonths, filterTransactionsByMonth, getCurrentMonthLabel } from '../utils/dateUtils';
+import { filterTransactionsByMonth } from '../utils/dateUtils';
 import { AnnualGrid } from '../components/AnnualGrid';
 import { useCurrency } from '../context/CurrencyContext';
 import { useBudgets } from '../context/BudgetContext';
@@ -71,20 +71,12 @@ export function Dashboard() {
     return () => window.removeEventListener('keydown', handler);
   }, []);
 
-  // When loading finishes and a reset is pending, jump to most recent month with transactions
+  // When loading finishes and a reset is pending, default to this-month
   useEffect(() => {
     if (isLoading || !pendingResetRef.current) return;
     pendingResetRef.current = false;
-    const months = getAvailableMonths(transactions);
-    updateMonth(months[0] ?? getCurrentMonthLabel());
+    updateMonth('this-month');
   }, [isLoading, transactions]);
-
-  // Get available months — inject selectedMonth only if it's a real month label (not a special value)
-  const availableMonths = useMemo(() => {
-    const months = getAvailableMonths(transactions);
-    const isSpecial = !selectedMonth || selectedMonth === 'all' || selectedMonth === 'this-year';
-    return !isSpecial && !months.includes(selectedMonth) ? [selectedMonth, ...months] : months;
-  }, [transactions, selectedMonth]);
 
   // Filter transactions by selected month only
   const monthFilteredTransactions = useMemo(
@@ -200,7 +192,6 @@ export function Dashboard() {
             onCategoryChange={() => {}}
             selectedMonth={selectedMonth}
             onMonthChange={updateMonth}
-            availableMonths={availableMonths}
             availableCategories={[]}
             showTypeFilter={false}
             showCategoryFilter={false}
