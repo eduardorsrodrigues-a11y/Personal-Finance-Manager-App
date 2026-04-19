@@ -12,6 +12,8 @@ type AuthContextType = {
   isGuest: boolean;
   loading: boolean;
   signInWithGoogle: () => void;
+  signInWithEmail: (email: string, password: string) => Promise<string | null>;
+  signUpWithEmail: (name: string, email: string, birthday: string, password: string) => Promise<string | null>;
   signOut: () => void;
   enterGuestMode: () => void;
 };
@@ -77,9 +79,45 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         navigate('/', { replace: true });
       },
       signInWithGoogle: () => {
-        // Guest transactions persist in localStorage through the OAuth redirect.
-        // TransactionContext will pick them up and migrate them after sign-in.
         window.location.href = '/api/auth/google';
+      },
+      signInWithEmail: async (email: string, password: string) => {
+        try {
+          const res = await fetch('/api/auth/login', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify({ email, password }),
+          });
+          const json = await res.json();
+          if (!res.ok) return json.error ?? 'Sign-in failed.';
+          setUser(json.user);
+          setIsGuest(false);
+          localStorage.removeItem(GUEST_MODE_KEY);
+          navigate('/', { replace: true });
+          return null;
+        } catch {
+          return 'Something went wrong. Please try again.';
+        }
+      },
+      signUpWithEmail: async (name: string, email: string, birthday: string, password: string) => {
+        try {
+          const res = await fetch('/api/auth/signup', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify({ name, email, birthday, password }),
+          });
+          const json = await res.json();
+          if (!res.ok) return json.error ?? 'Sign-up failed.';
+          setUser(json.user);
+          setIsGuest(false);
+          localStorage.removeItem(GUEST_MODE_KEY);
+          navigate('/', { replace: true });
+          return null;
+        } catch {
+          return 'Something went wrong. Please try again.';
+        }
       },
       signOut: () => {
         // Wipe all local data immediately before the server redirect.

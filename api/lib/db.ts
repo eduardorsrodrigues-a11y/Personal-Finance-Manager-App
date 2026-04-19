@@ -82,6 +82,44 @@ export async function listTransactions(userId: string): Promise<DbTransaction[]>
   }));
 }
 
+export async function getUserByEmail(email: string) {
+  const supabase = getSupabaseAdmin();
+  const { data, error } = await supabase
+    .from('users')
+    .select('id, email, name, password_hash')
+    .eq('email', email)
+    .maybeSingle();
+  if (error) throw error;
+  return data as { id: string; email: string; name: string | null; password_hash: string | null } | null;
+}
+
+export async function countEmailUsers(): Promise<number> {
+  const supabase = getSupabaseAdmin();
+  const { count, error } = await supabase
+    .from('users')
+    .select('id', { count: 'exact', head: true })
+    .not('password_hash', 'is', null);
+  if (error) throw error;
+  return count ?? 0;
+}
+
+export async function createEmailUser(params: {
+  name: string;
+  email: string;
+  birthday: string;
+  passwordHash: string;
+}) {
+  const { name, email, birthday, passwordHash } = params;
+  const supabase = getSupabaseAdmin();
+  const { data, error } = await supabase
+    .from('users')
+    .insert({ name, email, birthday, password_hash: passwordHash })
+    .select('id, email, name')
+    .single();
+  if (error) throw error;
+  return data as { id: string; email: string; name: string };
+}
+
 export async function getUserById(userId: string) {
   const supabase = getSupabaseAdmin();
   const { data, error } = await supabase
