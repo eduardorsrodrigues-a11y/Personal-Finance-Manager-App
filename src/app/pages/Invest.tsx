@@ -788,7 +788,7 @@ export function Invest() {
                         {fmtEur(fv.netFV)}
                       </p>
                       <p className="mt-2 text-sm font-medium flex items-center justify-center gap-1.5">
-                        <span className="text-emerald-500 font-semibold">↑ {fmtEur(fv.netReturn)} net return</span>
+                        <span className="text-emerald-500 font-semibold">+ {fmtEur(fv.netReturn)} net return</span>
                         <span className="text-muted-foreground">· after 28% tax</span>
                       </p>
                     </div>
