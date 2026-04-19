@@ -1,4 +1,4 @@
-import { Menu, X, Globe, LogIn, LogOut, ChevronDown, PiggyBank, Languages } from 'lucide-react';
+import { Menu, X, Globe, LogIn, LogOut, ChevronDown, PiggyBank, TrendingUp, Languages } from 'lucide-react';
 import { useState } from 'react';
 import { Link } from 'react-router';
 import { useCurrency, currencies } from '../context/CurrencyContext';
@@ -61,6 +61,19 @@ export function MobileHeader() {
           >
             <PiggyBank className="w-5 h-5 text-muted-foreground" />
             <span className="text-sm font-medium text-foreground">{t('nav.budgets')}</span>
+          </Link>
+        </div>
+
+        {/* Invest nav link */}
+        <div className="border-b border-border">
+          <Link
+            to="/invest"
+            onClick={closeMenu}
+            className="flex items-center gap-3 px-4 py-4 w-full hover:bg-muted transition-colors"
+          >
+            <TrendingUp className="w-5 h-5 text-muted-foreground" />
+            <span className="text-sm font-medium text-foreground">Invest</span>
+            <span className="ml-auto text-[9px] font-bold bg-teal-500 text-white px-1.5 py-0.5 rounded-full tracking-wide">NEW</span>
           </Link>
         </div>
 
