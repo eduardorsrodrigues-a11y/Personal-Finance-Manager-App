@@ -145,7 +145,10 @@ export function AddTransactionModal({
                 type="text"
                 inputMode="decimal"
                 value={amount}
-                onChange={(e) => setAmount(e.target.value)}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  if (/^[0-9.,]*$/.test(val)) setAmount(val);
+                }}
                 placeholder="0.00"
                 className="w-full pl-10 pr-4 py-3 text-2xl bg-input-background rounded-lg border border-border focus:outline-none focus:ring-2 focus:ring-ring"
                 required

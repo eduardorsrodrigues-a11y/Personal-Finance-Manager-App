@@ -96,9 +96,10 @@ export function TransactionHistory() {
   const availableMonths = useMemo(() => getAvailableMonths(transactions), [transactions]);
 
   const availableCategories = useMemo(() => {
-    const cats = new Set(transactions.map(tx => tx.category));
+    const source = filter === 'all' ? transactions : transactions.filter(tx => tx.type === filter);
+    const cats = new Set(source.map(tx => tx.category));
     return Array.from(cats).sort();
-  }, [transactions]);
+  }, [transactions, filter]);
 
   const filteredTransactions = useMemo(() => {
     let filtered = transactions.filter((tx) => {
@@ -184,7 +185,7 @@ export function TransactionHistory() {
             </div>
             <div className="flex gap-1.5 shrink-0">
               {(['all', 'income', 'expense'] as FilterType[]).map((ft) => (
-                <button key={ft} onClick={() => setFilter(ft)} className={typeButtonClass(ft)}>
+                <button key={ft} onClick={() => { setFilter(ft); setSelectedCategory('all'); }} className={typeButtonClass(ft)}>
                   {ft === 'all' ? t('transactions.all') : ft === 'income' ? t('transactions.income') : t('transactions.expense')}
                 </button>
               ))}
