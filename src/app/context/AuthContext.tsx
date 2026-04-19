@@ -83,11 +83,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       },
       signInWithEmail: async (email: string, password: string) => {
         try {
-          const res = await fetch('/api/auth/login', {
+          const res = await fetch('/api/auth/email', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             credentials: 'include',
-            body: JSON.stringify({ email, password }),
+            body: JSON.stringify({ action: 'signin', email, password }),
           });
           const json = await res.json();
           if (!res.ok) return json.error ?? 'Sign-in failed.';
@@ -102,11 +102,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       },
       signUpWithEmail: async (name: string, email: string, birthday: string, password: string) => {
         try {
-          const res = await fetch('/api/auth/signup', {
+          const res = await fetch('/api/auth/email', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             credentials: 'include',
-            body: JSON.stringify({ name, email, birthday, password }),
+            body: JSON.stringify({ action: 'signup', name, email, birthday, password }),
           });
           const json = await res.json();
           if (!res.ok) return json.error ?? 'Sign-up failed.';
