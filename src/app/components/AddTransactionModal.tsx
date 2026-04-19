@@ -10,6 +10,7 @@ import { track } from '../utils/analytics';
 interface AddTransactionModalProps {
   isOpen: boolean;
   onClose: () => void;
+  onSaved?: (mode: 'add' | 'edit') => void;
   mode?: 'add' | 'edit';
   initialTransaction?: Transaction | null;
 }
@@ -20,6 +21,7 @@ const incomeCategories = ['Salary', 'Freelance', 'Investment', 'Business', 'RSUs
 export function AddTransactionModal({
   isOpen,
   onClose,
+  onSaved,
   mode = 'add',
   initialTransaction,
 }: AddTransactionModalProps) {
@@ -78,6 +80,7 @@ export function AddTransactionModal({
       setDescription('');
       setDate(new Date().toISOString().split('T')[0]);
       setCategory('');
+      onSaved?.(mode === 'edit' ? 'edit' : 'add');
       onClose();
     } finally {
       setIsSubmitting(false);

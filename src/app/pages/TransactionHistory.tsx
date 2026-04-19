@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect, useRef } from 'react';
+import { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import { Plus, Search, Trash2, ShoppingCart } from 'lucide-react';
 import { useSearchParams } from 'react-router';
 import { Transaction, useTransactions } from '../context/TransactionContext';
@@ -29,7 +29,9 @@ export function TransactionHistory() {
   const [selectedMonth, setSelectedMonth] = useState<string>(initialMonthParam || 'all');
   const [selectedCategory, setSelectedCategory] = useState<string>(initialCategoryParam || 'all');
   const [isHidden, setIsHidden] = useState(false);
+  const [visibleCount, setVisibleCount] = useState(20);
   const lastScrollY = useRef(0);
+  const sentinelRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -76,6 +78,21 @@ export function TransactionHistory() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initialCategoryParam]);
 
+  // Reset visible count when any filter changes
+  useEffect(() => { setVisibleCount(20); }, [filter, searchQuery, selectedMonth, selectedCategory]);
+
+  // Infinite scroll sentinel
+  useEffect(() => {
+    const el = sentinelRef.current;
+    if (!el) return;
+    const observer = new IntersectionObserver(
+      (entries) => { if (entries[0].isIntersecting) setVisibleCount(c => c + 20); },
+      { rootMargin: '200px' },
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+
   const availableMonths = useMemo(() => getAvailableMonths(transactions), [transactions]);
 
   const availableCategories = useMemo(() => {
@@ -103,7 +120,14 @@ export function TransactionHistory() {
     [filteredTransactions, selectedMonth],
   );
 
-  const groupedTransactions = filteredByMonthTransactions.reduce((acc, tx) => {
+  const visibleTransactions = filteredByMonthTransactions.slice(0, visibleCount);
+  const hasMore = filteredByMonthTransactions.length > visibleCount;
+
+  const handleSaved = useCallback((savedMode: 'add' | 'edit') => {
+    if (savedMode === 'add') window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, []);
+
+  const groupedTransactions = visibleTransactions.reduce((acc, tx) => {
     const date = new Date(tx.date).toLocaleDateString('en-US', {
       year: 'numeric', month: 'long', day: 'numeric',
     });
@@ -249,6 +273,7 @@ export function TransactionHistory() {
                 </div>
               </div>
             ))}
+          {hasMore && <div ref={sentinelRef} className="h-10" />}
           </div>
         ) : (
           <div className="bg-card border border-border rounded-xl p-12 text-center">
@@ -275,6 +300,7 @@ export function TransactionHistory() {
       <AddTransactionModal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
+        onSaved={handleSaved}
         mode={modalMode}
         initialTransaction={editingTransaction}
       />
