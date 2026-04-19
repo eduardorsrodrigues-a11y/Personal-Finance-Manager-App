@@ -14,7 +14,6 @@ const mainNav = [
 
 const planningNav = [
   { path: '/invest',   label: 'Invest',         icon: TrendingUp, badge: 'NEW' },
-  { path: '/savings',  label: 'Savings Goals',  icon: SavingsIcon },
 ];
 
 const accountNav = [
@@ -91,6 +90,13 @@ export function Sidebar() {
               </li>
             );
           })}
+          <li>
+            <div className="flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-sidebar-foreground/40 cursor-default select-none">
+              <SavingsIcon className="w-5 h-5 shrink-0" />
+              <span>Savings Goals</span>
+              <span className="ml-auto text-[9px] font-bold bg-sidebar-foreground/20 text-sidebar-foreground/50 px-1.5 py-0.5 rounded-full tracking-wide">SOON</span>
+            </div>
+          </li>
         </ul>
 
         {sectionLabel('Account')}
