@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { createPortal } from 'react-dom';
 import { X, Calendar } from 'lucide-react';
 import { formatPeriodLabel } from '../utils/dateUtils';
 
@@ -83,8 +84,8 @@ export function TimePeriodPicker({ value, onChange, className = '' }: Props) {
         ))}
       </div>
 
-      {/* Date range modal */}
-      {showModal && (
+      {/* Date range modal — rendered via portal to escape transformed parent stacking contexts */}
+      {showModal && createPortal(
         <div
           className="fixed inset-0 z-[300] flex items-center justify-center bg-black/40"
           onClick={() => setShowModal(false)}
@@ -148,7 +149,8 @@ export function TimePeriodPicker({ value, onChange, className = '' }: Props) {
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body,
       )}
     </>
   );
