@@ -214,8 +214,10 @@ function SimChart({ data, riskProfile, horizon }: { data: ChartPoint[]; riskProf
     toPath(pts) +
     ` L${pts[pts.length - 1][0].toFixed(1)},${baseline} L${pts[0][0].toFixed(1)},${baseline} Z`;
 
-  const fmtY = (v: number) =>
-    v >= 1_000_000 ? `€${(v / 1_000_000).toFixed(1)}M` : v >= 1000 ? `€${(v / 1000).toFixed(0)}k` : `€${v}`;
+  const fmtY = (v: number) => {
+    const n = Math.ceil(v);
+    return n >= 1_000_000 ? `€${(n / 1_000_000).toFixed(1)}M` : n >= 1000 ? `€${Math.ceil(n / 1000)}k` : `€${n}`;
+  };
   const yTicks = [0, 0.25, 0.5, 0.75, 1].map(f => maxVal * f);
   const step = horizon <= 10 ? 2 : horizon <= 20 ? 5 : 10;
   const xTicks = data.filter(d => d.year % step === 0 || d.year === 1 || d.year === horizon);
@@ -797,9 +799,10 @@ export function Invest() {
                         const c = calcComparisonFV(parsedAmount, horizon, r);
                         const isActive = r === riskProfile;
                         return (
-                          <div
+                          <button
                             key={r}
-                            className="flex-1 border-[1.5px] border-border rounded-xl px-3.5 py-3 flex items-center gap-2.5 transition-colors"
+                            onClick={() => setRiskProfile(r)}
+                            className="flex-1 border-[1.5px] border-border rounded-xl px-3.5 py-3 flex items-center gap-2.5 transition-colors text-left hover:border-opacity-60"
                             style={
                               isActive
                                 ? { borderColor: RISK_HEX[r], background: `color-mix(in srgb, ${RISK_HEX[r]} 5%, white)` }
@@ -816,7 +819,7 @@ export function Invest() {
                                 {c ? fmtEur(c.netFV) : '—'}
                               </div>
                             </div>
-                          </div>
+                          </button>
                         );
                       })}
                     </div>
