@@ -13,6 +13,7 @@ interface AddTransactionModalProps {
   onSaved?: (mode: 'add' | 'edit') => void;
   mode?: 'add' | 'edit';
   initialTransaction?: Transaction | null;
+  zIndex?: number;
 }
 
 const expenseCategories = ['Food', 'Groceries', 'Housing', 'Utilities', 'Transportation', 'Shopping', 'Health', 'Entertainment', 'Travel', 'Family & Personal', 'Gifts', 'Gym & Sports', 'Other'];
@@ -24,6 +25,7 @@ export function AddTransactionModal({
   onSaved,
   mode = 'add',
   initialTransaction,
+  zIndex,
 }: AddTransactionModalProps) {
   const { addTransaction, updateTransaction, deleteTransaction } = useTransactions();
   const { currency } = useCurrency();
@@ -91,7 +93,7 @@ export function AddTransactionModal({
 
   return (
     <>
-    <div className="fixed inset-0 bg-black/50 z-50 overflow-y-auto">
+    <div className="fixed inset-0 bg-black/50 overflow-y-auto" style={{ zIndex: zIndex ?? 50 }}>
       <div className="flex min-h-full items-center justify-center p-4">
       <div className="bg-card rounded-xl shadow-lg w-full max-w-md">
         {/* Header */}

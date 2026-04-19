@@ -376,7 +376,7 @@ export function AnnualGrid() {
   // ── Drilldown modal (all transactions for that cell) ─────────
   const drilldownEl = drilldown && (
     <>
-      <div className="fixed inset-0 z-[150] bg-black/50 backdrop-blur-sm" onClick={() => setDrilldown(null)} />
+      <div className="fixed inset-0 z-[150] bg-black/50 backdrop-blur-sm" onClick={() => { setDrilldown(null); setEditingTransaction(null); }} />
       <div className="fixed inset-x-4 top-[10%] bottom-[10%] lg:inset-x-auto lg:left-1/2 lg:-translate-x-1/2 lg:w-[480px] z-[160] bg-card border border-border rounded-2xl shadow-2xl flex flex-col overflow-hidden">
         <div className="flex items-center justify-between px-5 py-4 border-b border-border shrink-0">
           <div>
@@ -394,7 +394,7 @@ export function AnnualGrid() {
           {drilldown.transactions.map(t => (
             <button
               key={t.id}
-              onClick={() => { setDrilldown(null); setEditingTransaction(t); }}
+              onClick={() => setEditingTransaction(t)}
               className="w-full flex items-center gap-3 px-5 py-3 hover:bg-muted/50 transition-colors text-left group"
             >
               <div className="flex-1 min-w-0">
@@ -477,9 +477,10 @@ export function AnnualGrid() {
       {drilldownEl}
       <AddTransactionModal
         isOpen={!!editingTransaction}
-        onClose={() => setEditingTransaction(null)}
+        onClose={() => { setEditingTransaction(null); setDrilldown(null); }}
         mode="edit"
         initialTransaction={editingTransaction ?? undefined}
+        zIndex={170}
       />
     </>
   );
