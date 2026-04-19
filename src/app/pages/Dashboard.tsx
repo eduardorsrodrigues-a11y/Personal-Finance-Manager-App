@@ -178,8 +178,8 @@ export function Dashboard() {
     <div className="min-h-screen bg-background">
       {/* Header */}
       <header className="border-b border-border bg-card sticky top-0 z-40">
-        <div className="px-4 lg:px-8 py-4 lg:py-6">
-          <div className="flex items-center justify-between mb-4">
+        <div className="px-4 lg:px-8 py-3 lg:py-5">
+          <div className="flex items-center justify-between mb-3">
             <div>
               <h1 className="font-semibold">{tr('dashboard.title')}</h1>
             </div>

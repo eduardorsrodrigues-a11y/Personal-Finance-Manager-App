@@ -587,7 +587,7 @@ export function Invest() {
     <div className="min-h-screen bg-background">
       {/* Header — matches Dashboard pattern */}
       <header className="border-b border-border bg-card sticky top-0 z-40">
-        <div className="px-4 lg:px-8 py-4 lg:py-6 flex items-center justify-between">
+        <div className="px-4 lg:px-8 py-3 lg:py-5 flex items-center justify-between">
           <h1 className="font-semibold">Investment Simulator</h1>
           <span className="text-xs text-muted-foreground hidden sm:block">Product data: {freshnessLabel}</span>
         </div>
