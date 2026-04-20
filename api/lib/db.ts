@@ -241,3 +241,229 @@ export async function upsertBudgets(params: { userId: string; budgets: Record<st
     .upsert({ user_id: userId, budgets }, { onConflict: 'user_id' });
   if (error) throw error;
 }
+
+// ── Plaid ─────────────────────────────────────────────────────────────────────
+
+export type PlaidConnection = {
+  id: string;
+  institution: string | null;
+  status: string;
+  last_synced_at: string | null;
+};
+
+export async function getPlaidConnections(userId: string): Promise<PlaidConnection[]> {
+  const supabase = getSupabaseAdmin();
+  const { data, error } = await supabase
+    .from('plaid_connections')
+    .select('id, institution, status, last_synced_at')
+    .eq('user_id', userId)
+    .neq('status', 'disconnected');
+  if (error) throw error;
+  return (data ?? []) as PlaidConnection[];
+}
+
+export async function getPlaidConnectionWithToken(connectionId: string, userId: string) {
+  const supabase = getSupabaseAdmin();
+  const { data, error } = await supabase
+    .from('plaid_connections')
+    .select('id, access_token, cursor, item_id, institution, last_synced_at')
+    .eq('id', connectionId)
+    .eq('user_id', userId)
+    .single();
+  if (error) throw error;
+  return data as { id: string; access_token: string; cursor: string | null; item_id: string; institution: string | null; last_synced_at: string | null };
+}
+
+export async function getPlaidConnectionByItemId(itemId: string) {
+  const supabase = getSupabaseAdmin();
+  const { data, error } = await supabase
+    .from('plaid_connections')
+    .select('id, user_id, access_token, cursor')
+    .eq('item_id', itemId)
+    .maybeSingle();
+  if (error) throw error;
+  return data as { id: string; user_id: string; access_token: string; cursor: string | null } | null;
+}
+
+export async function insertPlaidConnection(params: {
+  userId: string;
+  accessToken: string;
+  itemId: string;
+  institution: string | null;
+}) {
+  const supabase = getSupabaseAdmin();
+  const { data, error } = await supabase
+    .from('plaid_connections')
+    .insert({
+      user_id: params.userId,
+      access_token: params.accessToken,
+      item_id: params.itemId,
+      institution: params.institution,
+    })
+    .select('id')
+    .single();
+  if (error) throw error;
+  return data as { id: string };
+}
+
+export async function updatePlaidCursor(connectionId: string, cursor: string) {
+  const supabase = getSupabaseAdmin();
+  const { error } = await supabase
+    .from('plaid_connections')
+    .update({ cursor, last_synced_at: new Date().toISOString() })
+    .eq('id', connectionId);
+  if (error) throw error;
+}
+
+export async function updatePlaidStatus(itemId: string, status: string) {
+  const supabase = getSupabaseAdmin();
+  const { error } = await supabase
+    .from('plaid_connections')
+    .update({ status })
+    .eq('item_id', itemId);
+  if (error) throw error;
+}
+
+export async function deletePlaidConnection(connectionId: string, userId: string) {
+  const supabase = getSupabaseAdmin();
+  const { error } = await supabase
+    .from('plaid_connections')
+    .update({ status: 'disconnected' })
+    .eq('id', connectionId)
+    .eq('user_id', userId);
+  if (error) throw error;
+}
+
+export type PendingTransaction = {
+  id: string;
+  plaid_txn_id: string;
+  date: string;
+  description: string;
+  raw_amount: number;
+  currency: string;
+  plaid_category: string | null;
+  possible_duplicate: boolean;
+  institution: string | null;
+  connection_id: string;
+};
+
+export async function getPendingTransactions(userId: string): Promise<PendingTransaction[]> {
+  const supabase = getSupabaseAdmin();
+  const { data, error } = await supabase
+    .from('pending_transactions')
+    .select('id, plaid_txn_id, date, description, raw_amount, currency, plaid_category, possible_duplicate, connection_id, plaid_connections(institution)')
+    .eq('user_id', userId)
+    .eq('status', 'pending')
+    .order('date', { ascending: false });
+  if (error) throw error;
+  return ((data ?? []) as any[]).map((r) => ({
+    ...r,
+    institution: r.plaid_connections?.institution ?? null,
+  }));
+}
+
+export async function getPendingCount(userId: string): Promise<number> {
+  const supabase = getSupabaseAdmin();
+  const { count, error } = await supabase
+    .from('pending_transactions')
+    .select('id', { count: 'exact', head: true })
+    .eq('user_id', userId)
+    .eq('status', 'pending');
+  if (error) throw error;
+  return count ?? 0;
+}
+
+export async function upsertPendingTransaction(params: {
+  userId: string;
+  connectionId: string;
+  plaidTxnId: string;
+  date: string;
+  description: string;
+  rawAmount: number;
+  currency: string;
+  plaidCategory: string | null;
+  possibleDuplicate: boolean;
+}) {
+  const supabase = getSupabaseAdmin();
+  const { error } = await supabase.from('pending_transactions').upsert(
+    {
+      user_id: params.userId,
+      connection_id: params.connectionId,
+      plaid_txn_id: params.plaidTxnId,
+      date: params.date,
+      description: params.description,
+      raw_amount: params.rawAmount,
+      currency: params.currency,
+      plaid_category: params.plaidCategory,
+      possible_duplicate: params.possibleDuplicate,
+      status: 'pending',
+    },
+    { onConflict: 'user_id,plaid_txn_id', ignoreDuplicates: true },
+  );
+  if (error) throw error;
+}
+
+export async function setPendingStatus(id: string, userId: string, status: 'accepted' | 'rejected') {
+  const supabase = getSupabaseAdmin();
+  const { error } = await supabase
+    .from('pending_transactions')
+    .update({ status })
+    .eq('id', id)
+    .eq('user_id', userId);
+  if (error) throw error;
+}
+
+export async function deletePendingByPlaidId(plaidTxnId: string, userId: string) {
+  const supabase = getSupabaseAdmin();
+  const { error } = await supabase
+    .from('pending_transactions')
+    .delete()
+    .eq('plaid_txn_id', plaidTxnId)
+    .eq('user_id', userId)
+    .eq('status', 'pending');
+  if (error) throw error;
+}
+
+export async function transactionExistsByPlaidId(userId: string, plaidTxnId: string): Promise<boolean> {
+  const supabase = getSupabaseAdmin();
+  const { count, error } = await supabase
+    .from('transactions')
+    .select('id', { count: 'exact', head: true })
+    .eq('user_id', userId)
+    .eq('plaid_txn_id', plaidTxnId);
+  if (error) throw error;
+  return (count ?? 0) > 0;
+}
+
+export async function pendingExistsByPlaidId(userId: string, plaidTxnId: string): Promise<boolean> {
+  const supabase = getSupabaseAdmin();
+  const { count, error } = await supabase
+    .from('pending_transactions')
+    .select('id', { count: 'exact', head: true })
+    .eq('user_id', userId)
+    .eq('plaid_txn_id', plaidTxnId);
+  if (error) throw error;
+  return (count ?? 0) > 0;
+}
+
+export async function createTransactionFromPlaid(params: {
+  userId: string;
+  type: 'income' | 'expense';
+  amount: number;
+  description: string;
+  transactionDate: string;
+  category: string;
+  plaidTxnId: string;
+}) {
+  const supabase = getSupabaseAdmin();
+  const { error } = await supabase.from('transactions').insert({
+    user_id: params.userId,
+    type: params.type,
+    amount: params.amount,
+    description: params.description,
+    transaction_date: params.transactionDate,
+    category: params.category,
+    plaid_txn_id: params.plaidTxnId,
+  });
+  if (error) throw error;
+}

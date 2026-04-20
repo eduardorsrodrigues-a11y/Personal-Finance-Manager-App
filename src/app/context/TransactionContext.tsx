@@ -15,6 +15,7 @@ interface TransactionContextType {
   addTransaction: (transaction: Omit<Transaction, 'id'>) => Promise<void>;
   deleteTransaction: (id: string) => Promise<void>;
   updateTransaction: (id: string, transaction: Omit<Transaction, 'id'>) => Promise<void>;
+  loadTransactions: () => Promise<void>;
   hasPendingSync: boolean;
   isLoading: boolean;
 }
@@ -229,7 +230,7 @@ export function TransactionProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <TransactionContext.Provider value={{ transactions, addTransaction, deleteTransaction, updateTransaction, hasPendingSync, isLoading }}>
+    <TransactionContext.Provider value={{ transactions, addTransaction, deleteTransaction, updateTransaction, loadTransactions: refresh, hasPendingSync, isLoading }}>
       {children}
     </TransactionContext.Provider>
   );

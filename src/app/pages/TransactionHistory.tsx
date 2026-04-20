@@ -4,12 +4,15 @@ import { useSearchParams } from 'react-router';
 import { Transaction, useTransactions } from '../context/TransactionContext';
 import { AddTransactionModal } from '../components/AddTransactionModal';
 import { DeleteConfirmationModal } from '../components/DeleteConfirmationModal';
+import { BankSyncBanner } from '../components/BankSyncBanner';
+import { PlaidConnectButton } from '../components/PlaidConnectButton';
 import { filterTransactionsByMonth } from '../utils/dateUtils';
 import { TimePeriodPicker } from '../components/TimePeriodPicker';
 import { useCurrency } from '../context/CurrencyContext';
 import { getCategoryConfig } from '../utils/categoryConfig';
 import { useLanguage } from '../context/LanguageContext';
 import { useToast } from '../context/ToastContext';
+import { useAuth } from '../context/AuthContext';
 
 type FilterType = 'all' | 'income' | 'expense';
 
@@ -18,6 +21,7 @@ export function TransactionHistory() {
   const { formatAmount } = useCurrency();
   const { t, tCategory } = useLanguage();
   const { showToast } = useToast();
+  const { user } = useAuth();
   const [pendingDelete, setPendingDelete] = useState<Transaction | null>(null);
   const [searchParams] = useSearchParams();
   const initialMonthParam = searchParams.get('month');
@@ -161,13 +165,16 @@ export function TransactionHistory() {
           {/* Title + Add */}
           <div className="flex items-center justify-between mb-3">
             <h1 className="text-xl font-semibold">{t('transactions.title')}</h1>
-            <button
-              onClick={openAdd}
-              className="bg-emerald-500 hover:bg-emerald-600 text-white px-3 py-1.5 rounded-lg flex items-center gap-1.5 text-sm font-medium transition-colors shrink-0"
-            >
-              <Plus className="w-4 h-4" />
-              <span className="hidden sm:inline">{t('transactions.addTransaction')}</span>
-            </button>
+            <div className="flex items-center gap-2">
+              {user && <PlaidConnectButton />}
+              <button
+                onClick={openAdd}
+                className="bg-emerald-500 hover:bg-emerald-600 text-white px-3 py-1.5 rounded-lg flex items-center gap-1.5 text-sm font-medium transition-colors shrink-0"
+              >
+                <Plus className="w-4 h-4" />
+                <span className="hidden sm:inline">{t('transactions.addTransaction')}</span>
+              </button>
+            </div>
           </div>
 
           {/* Search + type pills */}
@@ -211,6 +218,9 @@ export function TransactionHistory() {
           </div>
         </div>
       </header>
+
+      {/* ── Bank sync banner ── */}
+      {user && <BankSyncBanner />}
 
       {/* ── Transaction list ── */}
       <div className="px-4 lg:px-8 py-6 lg:py-8">
