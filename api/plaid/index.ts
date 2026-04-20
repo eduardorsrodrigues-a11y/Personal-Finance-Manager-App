@@ -1,6 +1,6 @@
 import { Configuration, PlaidApi, PlaidEnvironments, Products, CountryCode } from 'plaid';
-import { getAuthenticatedUserId } from '../lib/session.js';
-import { encrypt, decrypt } from '../lib/crypto.js';
+import { getAuthenticatedUserId } from '../_lib/session.js';
+import { encrypt, decrypt } from '../_lib/crypto.js';
 import {
   getPlaidConnections,
   getPlaidConnectionWithToken,
@@ -17,7 +17,7 @@ import {
   transactionExistsByPlaidId,
   pendingExistsByPlaidId,
   createTransactionFromPlaid,
-} from '../lib/db.js';
+} from '../_lib/db.js';
 
 // ── Plaid client ──────────────────────────────────────────────────────────────
 

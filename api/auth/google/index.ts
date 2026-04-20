@@ -1,5 +1,5 @@
 import crypto from 'crypto';
-import { serializeCookie } from '../../lib/cookies.js';
+import { serializeCookie } from '../../_lib/cookies.js';
 
 function getBaseUrl(req: any) {
   const host = req.headers?.host as string | undefined;

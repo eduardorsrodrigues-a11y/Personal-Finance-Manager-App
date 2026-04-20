@@ -1,6 +1,6 @@
 import bcrypt from 'bcryptjs';
-import { createEmailUser, countEmailUsers, getUserByEmail } from '../../lib/db.js';
-import { createSessionToken, setSessionCookie } from '../../lib/session.js';
+import { createEmailUser, countEmailUsers, getUserByEmail } from '../../_lib/db.js';
+import { createSessionToken, setSessionCookie } from '../../_lib/session.js';
 
 const EMAIL_ACCOUNT_CAP = 10;
 
