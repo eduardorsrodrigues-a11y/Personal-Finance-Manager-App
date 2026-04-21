@@ -29,6 +29,7 @@ type PlaidContextValue = {
   isLoading: boolean;
   connectBank: () => void;
   sync: (connectionId: string) => Promise<void>;
+  syncAll: () => Promise<void>;
   reviewTransaction: (params: {
     id: string;
     plaidTxnId: string;
@@ -39,6 +40,7 @@ type PlaidContextValue = {
     description?: string;
   }) => Promise<number>;
   disconnect: (connectionId: string) => Promise<void>;
+  disableConnection: (connectionId: string, disabled: boolean) => Promise<void>;
   openReview: boolean;
   setOpenReview: (v: boolean) => void;
   linkToken: string | null;
@@ -113,6 +115,35 @@ export function PlaidProvider({ children }: { children: React.ReactNode }) {
     }
   }, [fetchConnections, fetchPending]);
 
+  const syncAll = useCallback(async () => {
+    const active = connections.filter(c => c.status === 'active');
+    if (active.length === 0) return;
+    setIsSyncing(true);
+    try {
+      await Promise.all(
+        active.map(c =>
+          fetch('/api/plaid?action=sync', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ connection_id: c.id }),
+          })
+        )
+      );
+      await Promise.all([fetchConnections(), fetchPending()]);
+    } finally {
+      setIsSyncing(false);
+    }
+  }, [connections, fetchConnections, fetchPending]);
+
+  const disableConnection = useCallback(async (connectionId: string, disabled: boolean) => {
+    await fetch('/api/plaid?action=disable', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ connection_id: connectionId, disabled }),
+    });
+    await fetchConnections();
+  }, [fetchConnections]);
+
   const connectBank = useCallback(async () => {
     const res = await fetch('/api/plaid?action=create-link-token', { method: 'POST' });
     if (!res.ok) return;
@@ -180,8 +211,10 @@ export function PlaidProvider({ children }: { children: React.ReactNode }) {
       isLoading,
       connectBank,
       sync,
+      syncAll,
       reviewTransaction,
       disconnect,
+      disableConnection,
       openReview,
       setOpenReview,
       linkToken,

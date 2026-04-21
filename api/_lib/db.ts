@@ -249,15 +249,17 @@ export type PlaidConnection = {
   institution: string | null;
   status: string;
   last_synced_at: string | null;
+  created_at?: string;
 };
 
 export async function getPlaidConnections(userId: string): Promise<PlaidConnection[]> {
   const supabase = getSupabaseAdmin();
   const { data, error } = await supabase
     .from('plaid_connections')
-    .select('id, institution, status, last_synced_at')
+    .select('id, institution, status, last_synced_at, created_at')
     .eq('user_id', userId)
-    .neq('status', 'disconnected');
+    .neq('status', 'disconnected')
+    .order('created_at', { ascending: true });
   if (error) throw error;
   return (data ?? []) as PlaidConnection[];
 }

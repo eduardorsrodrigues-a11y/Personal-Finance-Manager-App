@@ -1,4 +1,4 @@
-import { LayoutDashboard, List, PiggyBank, TrendingUp, Globe, ChevronDown, LogOut, LogIn, Languages, Settings, PiggyBank as SavingsIcon } from 'lucide-react';
+import { LayoutDashboard, List, PiggyBank, TrendingUp, Globe, ChevronDown, LogOut, LogIn, Languages, Settings, PiggyBank as SavingsIcon, Building2 } from 'lucide-react';
 import { Link, useLocation } from 'react-router';
 import { useCurrency, currencies } from '../context/CurrencyContext';
 import { useAuth } from '../context/AuthContext';
@@ -17,7 +17,8 @@ const planningNav = [
 ];
 
 const accountNav = [
-  { path: '/settings', label: 'Settings', icon: Settings },
+  { path: '/settings',      label: 'Settings',      icon: Settings  },
+  { path: '/bank-accounts', label: 'Bank Accounts',  icon: Building2 },
 ];
 
 export function Sidebar() {

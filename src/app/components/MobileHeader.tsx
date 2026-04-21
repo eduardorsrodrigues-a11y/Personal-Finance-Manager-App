@@ -1,4 +1,4 @@
-import { Menu, X, Globe, LogIn, LogOut, ChevronDown, PiggyBank, TrendingUp, Languages, Settings } from 'lucide-react';
+import { Menu, X, Globe, LogIn, LogOut, ChevronDown, PiggyBank, TrendingUp, Languages, Settings, Building2 } from 'lucide-react';
 import { useState } from 'react';
 import { Link } from 'react-router';
 import { useCurrency, currencies } from '../context/CurrencyContext';
@@ -86,6 +86,18 @@ export function MobileHeader() {
           >
             <Settings className="w-5 h-5 text-muted-foreground" />
             <span className="text-sm font-medium text-foreground">Settings</span>
+          </Link>
+        </div>
+
+        {/* Bank Accounts nav link */}
+        <div className="border-b border-border">
+          <Link
+            to="/bank-accounts"
+            onClick={closeMenu}
+            className="flex items-center gap-3 px-4 py-4 w-full hover:bg-muted transition-colors"
+          >
+            <Building2 className="w-5 h-5 text-muted-foreground" />
+            <span className="text-sm font-medium text-foreground">Bank Accounts</span>
           </Link>
         </div>
 

@@ -292,6 +292,25 @@ export default async function handler(req: any, res: any) {
     return;
   }
 
+  // POST /api/plaid?action=disable
+  if (req.method === 'POST' && action === 'disable') {
+    const body = await readBody(req);
+    const { connection_id, disabled } = body;
+    if (!connection_id) {
+      res.status(400).json({ error: 'Missing connection_id' });
+      return;
+    }
+    const supabase = (await import('../_lib/supabaseAdmin.js')).getSupabaseAdmin();
+    const { error } = await supabase
+      .from('plaid_connections')
+      .update({ status: disabled ? 'disabled' : 'active' })
+      .eq('id', connection_id)
+      .eq('user_id', userId);
+    if (error) { res.status(500).json({ error: error.message }); return; }
+    res.status(200).json({ ok: true });
+    return;
+  }
+
   // POST /api/plaid?action=disconnect
   if (req.method === 'POST' && action === 'disconnect') {
     const body = await readBody(req);
