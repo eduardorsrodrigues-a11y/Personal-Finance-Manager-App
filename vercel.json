@@ -6,6 +6,7 @@
     { "source": "/transactions", "destination": "/index.html" },
     { "source": "/budgets", "destination": "/index.html" },
     { "source": "/invest", "destination": "/index.html" },
-    { "source": "/settings", "destination": "/index.html" }
+    { "source": "/settings", "destination": "/index.html" },
+    { "source": "/bank-accounts", "destination": "/index.html" }
   ]
 }

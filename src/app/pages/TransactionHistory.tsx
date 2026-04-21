@@ -1,11 +1,11 @@
 import { useState, useMemo, useEffect, useRef, useCallback } from 'react';
-import { Plus, Search, Trash2, ShoppingCart } from 'lucide-react';
+import { Plus, Search, Trash2, ShoppingCart, RefreshCw } from 'lucide-react';
 import { useSearchParams } from 'react-router';
 import { Transaction, useTransactions } from '../context/TransactionContext';
 import { AddTransactionModal } from '../components/AddTransactionModal';
 import { DeleteConfirmationModal } from '../components/DeleteConfirmationModal';
 import { BankSyncBanner } from '../components/BankSyncBanner';
-import { PlaidConnectButton } from '../components/PlaidConnectButton';
+import { usePlaid } from '../context/PlaidContext';
 import { filterTransactionsByMonth } from '../utils/dateUtils';
 import { TimePeriodPicker } from '../components/TimePeriodPicker';
 import { useCurrency } from '../context/CurrencyContext';
@@ -22,6 +22,8 @@ export function TransactionHistory() {
   const { t, tCategory } = useLanguage();
   const { showToast } = useToast();
   const { user } = useAuth();
+  const { syncAll, isSyncing, connections } = usePlaid();
+  const hasConnections = connections.some(c => c.status === 'active');
   const [pendingDelete, setPendingDelete] = useState<Transaction | null>(null);
   const [searchParams] = useSearchParams();
   const initialMonthParam = searchParams.get('month');
@@ -166,7 +168,16 @@ export function TransactionHistory() {
           <div className="flex items-center justify-between mb-3">
             <h1 className="text-xl font-semibold">{t('transactions.title')}</h1>
             <div className="flex items-center gap-2">
-              {user && <PlaidConnectButton />}
+              {user && hasConnections && (
+                <button
+                  onClick={syncAll}
+                  disabled={isSyncing}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-muted hover:bg-muted/80 text-muted-foreground hover:text-foreground text-sm font-medium transition-colors shrink-0 disabled:opacity-60"
+                >
+                  <RefreshCw className={`w-4 h-4 ${isSyncing ? 'animate-spin' : ''}`} />
+                  <span className="hidden sm:inline">{isSyncing ? 'Syncing…' : 'Update bank transactions'}</span>
+                </button>
+              )}
               <button
                 onClick={openAdd}
                 className="bg-emerald-500 hover:bg-emerald-600 text-white px-3 py-1.5 rounded-lg flex items-center gap-1.5 text-sm font-medium transition-colors shrink-0"
