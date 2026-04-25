@@ -1,16 +1,8 @@
 import { getAuthenticatedUserId } from '../_lib/session.js';
 import { getUserById, updateUser } from '../_lib/db.js';
+import { readJsonBody, withErrorHandler, type ApiRequest, type ApiResponse } from '../_lib/request.js';
 
-async function readJsonBody(req: any): Promise<any> {
-  return new Promise((resolve, reject) => {
-    let data = '';
-    req.on('data', (chunk: any) => { data += chunk.toString(); });
-    req.on('end', () => { try { resolve(data ? JSON.parse(data) : {}); } catch (e) { reject(e); } });
-    req.on('error', reject);
-  });
-}
-
-export default async function handler(req: any, res: any) {
+export default withErrorHandler(async function handler(req: ApiRequest, res: ApiResponse) {
   const userId = await getAuthenticatedUserId(req);
   if (!userId) {
     res.status(401).json({ user: null });
@@ -25,11 +17,10 @@ export default async function handler(req: any, res: any) {
   }
 
   if (req.method === 'PUT') {
-    const body = await readJsonBody(req);
-    const { name, birthday } = body ?? {};
+    const body = (await readJsonBody(req)) as Record<string, unknown>;
     const updates: { name?: string; birthday?: string } = {};
-    if (name && typeof name === 'string') updates.name = name.trim();
-    if (birthday && typeof birthday === 'string') updates.birthday = birthday;
+    if (body.name && typeof body.name === 'string') updates.name = body.name.trim().slice(0, 100);
+    if (body.birthday && typeof body.birthday === 'string') updates.birthday = body.birthday;
     await updateUser({ userId, ...updates });
     const user = await getUserById(userId);
     res.status(200).json({ user });
@@ -37,4 +28,4 @@ export default async function handler(req: any, res: any) {
   }
 
   res.status(405).json({ error: 'Method not allowed' });
-}
+});

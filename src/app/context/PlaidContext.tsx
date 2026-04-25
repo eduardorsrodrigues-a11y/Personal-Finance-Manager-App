@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
+import { type ReactNode, createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import { useAuth } from './AuthContext';
 
 export type PlaidConnection = {
@@ -51,7 +51,7 @@ const PlaidContext = createContext<PlaidContextValue | null>(null);
 
 const AUTO_SYNC_HOURS = 24;
 
-export function PlaidProvider({ children }: { children: React.ReactNode }) {
+export function PlaidProvider({ children }: { children: ReactNode }) {
   const { user, isGuest } = useAuth();
   const [connections, setConnections] = useState<PlaidConnection[]>([]);
   const [pendingItems, setPendingItems] = useState<PendingTransaction[]>([]);

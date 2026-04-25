@@ -1,50 +1,39 @@
 import bcrypt from 'bcryptjs';
 import { createEmailUser, countEmailUsers, getUserByEmail } from '../../_lib/db.js';
 import { createSessionToken, setSessionCookie } from '../../_lib/session.js';
+import { readJsonBody, withErrorHandler, type ApiRequest, type ApiResponse } from '../../_lib/request.js';
+import { isRateLimited } from '../../_lib/rateLimit.js';
 
 const EMAIL_ACCOUNT_CAP = 10;
 
-async function readBody(req: any): Promise<any> {
-  return new Promise((resolve, reject) => {
-    let data = '';
-    req.on('data', (chunk: any) => { data += chunk.toString(); });
-    req.on('end', () => { try { resolve(data ? JSON.parse(data) : {}); } catch (e) { reject(e); } });
-    req.on('error', reject);
-  });
-}
-
-export default async function handler(req: any, res: any) {
+export default withErrorHandler(async function handler(req: ApiRequest, res: ApiResponse) {
   if (req.method !== 'POST') {
     res.status(405).json({ error: 'Method not allowed' });
     return;
   }
 
-  let body: any;
+  // Rate limit: 10 attempts per 15 minutes per IP
+  if (await isRateLimited(req, 'auth/email', { maxRequests: 10, windowMinutes: 15 })) {
+    res.status(429).json({ error: 'Too many attempts. Please wait 15 minutes and try again.' });
+    return;
+  }
+
+  let body: Record<string, unknown>;
   try {
-    body = await readBody(req);
+    body = (await readJsonBody(req)) as Record<string, unknown>;
   } catch {
     res.status(400).json({ error: 'Invalid request body.' });
     return;
   }
 
-  try {
-    return await handleRequest(req, res, body);
-  } catch (err: any) {
-    console.error('[auth/email] unhandled error:', err);
-    res.status(500).json({ error: err?.message ?? 'Internal server error.' });
-  }
-}
-
-async function handleRequest(req: any, res: any, body: any) {
   const { action, name, email, birthday, password } = body ?? {};
 
   if (action === 'signup') {
-    // ── Sign Up ───────────────────────────────────────────────────────────────
-    if (!name || typeof name !== 'string' || name.trim().length < 2) {
-      res.status(400).json({ error: 'Name must be at least 2 characters.' });
+    if (!name || typeof name !== 'string' || name.trim().length < 2 || name.trim().length > 100) {
+      res.status(400).json({ error: 'Name must be between 2 and 100 characters.' });
       return;
     }
-    if (!email || typeof email !== 'string' || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    if (!email || typeof email !== 'string' || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || email.length > 254) {
       res.status(400).json({ error: 'Invalid email address.' });
       return;
     }
@@ -52,8 +41,8 @@ async function handleRequest(req: any, res: any, body: any) {
       res.status(400).json({ error: 'Invalid birthday.' });
       return;
     }
-    if (!password || typeof password !== 'string' || password.length < 8) {
-      res.status(400).json({ error: 'Password must be at least 8 characters.' });
+    if (!password || typeof password !== 'string' || password.length < 8 || password.length > 128) {
+      res.status(400).json({ error: 'Password must be between 8 and 128 characters.' });
       return;
     }
 
@@ -82,7 +71,6 @@ async function handleRequest(req: any, res: any, body: any) {
   }
 
   if (action === 'signin') {
-    // ── Sign In ───────────────────────────────────────────────────────────────
     if (!email || typeof email !== 'string') {
       res.status(400).json({ error: 'Email is required.' });
       return;
@@ -114,4 +102,4 @@ async function handleRequest(req: any, res: any, body: any) {
   }
 
   res.status(400).json({ error: 'Invalid action.' });
-}
+});
