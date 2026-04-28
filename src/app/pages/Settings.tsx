@@ -16,7 +16,9 @@ export function Settings() {
   const [name, setName] = useState('');
   const [birthday, setBirthday] = useState('');
   const [riskProfile, setRiskProfile] = useState<RiskProfileSetting>('');
-  const [saving, setSaving] = useState(false);
+
+  const [savingProfile, setSavingProfile] = useState(false);
+  const [savingRisk, setSavingRisk] = useState(false);
 
   useEffect(() => {
     if (!loading) {
@@ -26,15 +28,30 @@ export function Settings() {
     }
   }, [loading, settings]);
 
-  const handleSave = async () => {
-    setSaving(true);
+  const profileDirty = !loading && (name !== settings.name || birthday !== settings.birthday);
+  const riskDirty = !loading && riskProfile !== settings.riskProfile;
+
+  const handleSaveProfile = async () => {
+    setSavingProfile(true);
     try {
-      await saveSettings({ name, birthday, riskProfile });
-      showToast('Settings saved');
+      await saveSettings({ name, birthday, riskProfile: settings.riskProfile });
+      showToast('Profile saved');
     } catch {
-      showToast('Failed to save settings');
+      showToast('Failed to save profile');
     } finally {
-      setSaving(false);
+      setSavingProfile(false);
+    }
+  };
+
+  const handleSaveRisk = async () => {
+    setSavingRisk(true);
+    try {
+      await saveSettings({ name: settings.name, birthday: settings.birthday, riskProfile });
+      showToast('Investment preferences saved');
+    } catch {
+      showToast('Failed to save preferences');
+    } finally {
+      setSavingRisk(false);
     }
   };
 
@@ -43,16 +60,8 @@ export function Settings() {
   return (
     <div className="min-h-screen bg-background">
       <header className="border-b border-border bg-card sticky top-0 z-40">
-        <div className="px-4 lg:px-8 py-3 lg:py-5 flex items-center justify-between">
+        <div className="px-4 lg:px-8 py-3 lg:py-5">
           <h1 className="text-xl font-semibold">Settings</h1>
-          <button
-            onClick={handleSave}
-            disabled={saving || loading}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-teal-500 hover:bg-teal-600 text-white text-sm font-medium transition-colors disabled:opacity-50"
-          >
-            {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-            Save
-          </button>
         </div>
       </header>
 
@@ -60,8 +69,18 @@ export function Settings() {
 
         {/* Profile */}
         <div className="bg-card border border-border rounded-xl mb-4 overflow-hidden">
-          <div className="px-5 py-3.5 border-b border-border">
+          <div className="px-5 py-3.5 border-b border-border flex items-center justify-between">
             <p className="text-xs font-semibold text-muted-foreground uppercase tracking-widest">Profile</p>
+            {profileDirty && (
+              <button
+                onClick={handleSaveProfile}
+                disabled={savingProfile}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-teal-500 hover:bg-teal-600 text-white text-sm font-medium transition-colors disabled:opacity-50"
+              >
+                {savingProfile ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                Save
+              </button>
+            )}
           </div>
           <div className="p-5 flex flex-col gap-4">
             <div>
@@ -98,8 +117,18 @@ export function Settings() {
 
         {/* Investment preferences */}
         <div className="bg-card border border-border rounded-xl overflow-hidden">
-          <div className="px-5 py-3.5 border-b border-border">
+          <div className="px-5 py-3.5 border-b border-border flex items-center justify-between">
             <p className="text-xs font-semibold text-muted-foreground uppercase tracking-widest">Investment preferences</p>
+            {riskDirty && (
+              <button
+                onClick={handleSaveRisk}
+                disabled={savingRisk}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-teal-500 hover:bg-teal-600 text-white text-sm font-medium transition-colors disabled:opacity-50"
+              >
+                {savingRisk ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                Save
+              </button>
+            )}
           </div>
           <div className="p-5">
             <label className="text-xs font-medium text-muted-foreground mb-3 block">Default risk profile</label>
