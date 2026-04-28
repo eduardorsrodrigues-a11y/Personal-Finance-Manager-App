@@ -73,9 +73,7 @@ interface ChartPoint {
   contrib: number;
 }
 
-interface WeightedProduct extends AnyProduct {
-  weight: number;
-}
+type WeightedProduct = AnyProduct & { weight: number };
 
 type ExtProduct = AnyProduct & {
   tan?: number; couponRate?: number; ticker?: string; ter?: number;
