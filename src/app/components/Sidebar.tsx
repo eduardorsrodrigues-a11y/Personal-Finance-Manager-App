@@ -183,7 +183,7 @@ export function Sidebar() {
       </div>
 
       {/* Language Selector */}
-      <div className="px-3 pb-4 pt-2">
+      <div className="px-3 pb-2 pt-2">
         <div className="relative">
           <button
             onClick={() => { setIsLanguageMenuOpen(!isLanguageMenuOpen); setIsCurrencyMenuOpen(false); }}
@@ -214,6 +214,15 @@ export function Sidebar() {
             </>
           )}
         </div>
+      </div>
+      {/* Contact */}
+      <div className="px-3 pb-4 pt-1 text-center">
+        <a
+          href="mailto:hello@mymoneymate.app"
+          className="text-[10px] text-sidebar-foreground/30 hover:text-sidebar-foreground/60 transition-colors"
+        >
+          hello@mymoneymate.app
+        </a>
       </div>
     </aside>
   );

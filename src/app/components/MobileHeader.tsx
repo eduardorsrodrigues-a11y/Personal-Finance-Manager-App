@@ -157,6 +157,16 @@ export function MobileHeader() {
           )}
         </div>
 
+        {/* Contact */}
+        <div className="border-t border-border px-4 py-3">
+          <a
+            href="mailto:hello@mymoneymate.app"
+            className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+          >
+            Contact us · hello@mymoneymate.app
+          </a>
+        </div>
+
         {/* Login / Logout / Guest section */}
         <div className="border-t border-border">
           {loading ? (
