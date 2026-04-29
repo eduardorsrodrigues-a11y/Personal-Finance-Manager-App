@@ -149,12 +149,23 @@ export function Dashboard() {
       });
   }, [transactions, chartCategory, chartIncomeCategory]);
 
-  const isSingleMonth = !!selectedMonth && selectedMonth !== 'all' && selectedMonth !== 'this-year' && !selectedMonth.startsWith('custom:');
+  const isSingleMonth = useMemo(() => {
+    if (!selectedMonth || selectedMonth === 'all' || selectedMonth === 'this-year') return false;
+    if (selectedMonth.startsWith('custom:')) {
+      const [, start, end] = selectedMonth.split(':');
+      const s = new Date(start), e = new Date(end);
+      return s.getFullYear() === e.getFullYear() && s.getMonth() === e.getMonth();
+    }
+    return true;
+  }, [selectedMonth]);
 
   // "Apr 26" label used on the bar chart X axis (month + 2-digit year)
   const monthYearLabel = useMemo(() => {
     if (!isSingleMonth) return '';
-    const date = selectedMonth === 'this-month' ? new Date() : new Date(selectedMonth);
+    let date: Date;
+    if (selectedMonth === 'this-month') date = new Date();
+    else if (selectedMonth.startsWith('custom:')) date = new Date(selectedMonth.split(':')[1]);
+    else date = new Date(selectedMonth);
     return date.toLocaleDateString('en-US', { month: 'short', year: '2-digit' });
   }, [isSingleMonth, selectedMonth]);
 
