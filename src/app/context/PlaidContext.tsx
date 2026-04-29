@@ -6,6 +6,7 @@ export type PlaidConnection = {
   institution: string | null;
   status: string;
   last_synced_at: string | null;
+  created_at: string | null;
 };
 
 export type PendingTransaction = {

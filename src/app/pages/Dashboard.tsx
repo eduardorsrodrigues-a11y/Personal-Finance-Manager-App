@@ -346,15 +346,16 @@ export function Dashboard() {
                     <LabelList
                       dataKey="income"
                       position="top"
-                      content={(props: { x?: number; y?: number; value?: number; index?: number }) => {
+                      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                      content={((props: any) => {
                         const { x, y, value, index } = props;
                         if (!monthlyData[index ?? -1]?.isCurrent) return null;
                         return (
-                          <text x={x} y={(y ?? 0) - 8} textAnchor="middle" fontSize={11} fill="#10b981" fontWeight={600}>
+                          <text x={x} y={(Number(y) ?? 0) - 8} textAnchor="middle" fontSize={11} fill="#10b981" fontWeight={600}>
                             {formatAmount(value ?? 0)}
                           </text>
                         );
-                      }}
+                      }) as any}
                     />
                   </Line>
 
@@ -375,15 +376,16 @@ export function Dashboard() {
                     <LabelList
                       dataKey="expense"
                       position="top"
-                      content={(props: { x?: number; y?: number; value?: number; index?: number }) => {
+                      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                      content={((props: any) => {
                         const { x, y, value, index } = props;
                         if (!monthlyData[index ?? -1]?.isCurrent) return null;
                         return (
-                          <text x={x} y={(y ?? 0) - 8} textAnchor="middle" fontSize={11} fill="#ef4444" fontWeight={600}>
+                          <text x={x} y={(Number(y) ?? 0) - 8} textAnchor="middle" fontSize={11} fill="#ef4444" fontWeight={600}>
                             {formatAmount(value ?? 0)}
                           </text>
                         );
-                      }}
+                      }) as any}
                     />
                   </Line>
                 </LineChart>
