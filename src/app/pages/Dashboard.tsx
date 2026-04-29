@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect, useRef } from 'react';
 import { TrendingUp, TrendingDown, Wallet, Plus } from 'lucide-react';
-import { Tooltip, LineChart, Line, XAxis, YAxis, CartesianGrid, ResponsiveContainer, ReferenceLine, LabelList } from 'recharts';
+import { Tooltip, LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer, ReferenceLine, LabelList } from 'recharts';
 import { useNavigate } from 'react-router';
 import { useTransactions } from '../context/TransactionContext';
 import { AddTransactionModal } from '../components/AddTransactionModal';
@@ -149,6 +149,31 @@ export function Dashboard() {
       });
   }, [transactions, chartCategory, chartIncomeCategory]);
 
+  const isSingleMonth = !!selectedMonth && selectedMonth !== 'all' && selectedMonth !== 'this-year' && !selectedMonth.startsWith('custom:');
+
+  // Daily data for single-month bar chart
+  const dailyData = useMemo(() => {
+    if (!isSingleMonth) return [];
+    const map: Record<number, { income: number; expense: number }> = {};
+    monthFilteredTransactions
+      .filter((t) => t.type === 'expense' && (chartCategory === 'all' || t.category === chartCategory))
+      .forEach((t) => {
+        const day = new Date(t.date).getDate();
+        if (!map[day]) map[day] = { income: 0, expense: 0 };
+        map[day].expense += t.amount;
+      });
+    monthFilteredTransactions
+      .filter((t) => t.type === 'income' && (chartIncomeCategory === 'all' || t.category === chartIncomeCategory))
+      .forEach((t) => {
+        const day = new Date(t.date).getDate();
+        if (!map[day]) map[day] = { income: 0, expense: 0 };
+        map[day].income += t.amount;
+      });
+    return Object.entries(map)
+      .sort(([a], [b]) => Number(a) - Number(b))
+      .map(([day, { income, expense }]) => ({ day, income, expense }));
+  }, [isSingleMonth, monthFilteredTransactions, chartCategory, chartIncomeCategory]);
+
   // Top 5 highest expenses for the selected period
   const topExpenses = useMemo(
     () =>
@@ -239,21 +264,25 @@ export function Dashboard() {
           </div>
         </div>
 
-        {/* Monthly View */}
-        {monthlyData.length >= 1 && (
+        {/* Monthly / Daily View */}
+        {(isSingleMonth ? dailyData.length >= 1 : monthlyData.length >= 1) && (
           <div className="bg-card border border-border rounded-xl p-6 mb-6 lg:mb-8">
             {/* Header row */}
             <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
               <div className="flex items-center gap-4">
-                <h2 className="font-semibold">Monthly View</h2>
+                <h2 className="font-semibold">{isSingleMonth ? 'Daily View' : 'Monthly View'}</h2>
                 {/* Legend */}
                 <div className="flex items-center gap-3 text-xs text-muted-foreground">
                   <span className="flex items-center gap-1.5">
-                    <span className="w-4 h-0.5 rounded-full bg-emerald-500 inline-block" />
+                    {isSingleMonth
+                      ? <span className="w-3 h-3 rounded-sm bg-emerald-500 inline-block" />
+                      : <span className="w-4 h-0.5 rounded-full bg-emerald-500 inline-block" />}
                     Income
                   </span>
                   <span className="flex items-center gap-1.5">
-                    <span className="w-4 h-0.5 rounded-full bg-red-500 inline-block" />
+                    {isSingleMonth
+                      ? <span className="w-3 h-3 rounded-sm bg-red-500 inline-block" />
+                      : <span className="w-4 h-0.5 rounded-full bg-red-500 inline-block" />}
                     Expenses
                   </span>
                 </div>
@@ -285,110 +314,147 @@ export function Dashboard() {
 
             <div className="h-44 lg:h-64">
               <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={monthlyData} margin={{ top: 24, right: 16, left: 0, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
-                  <XAxis
-                    dataKey="label"
-                    tick={{ fontSize: 11, fill: 'var(--muted-foreground)' }}
-                    axisLine={false}
-                    tickLine={false}
-                  />
-                  <YAxis
-                    tick={{ fontSize: 11, fill: 'var(--muted-foreground)' }}
-                    axisLine={false}
-                    tickLine={false}
-                    width={40}
-                    tickFormatter={(v: number) => {
-                      if (v >= 1000000) return `${(v / 1000000).toFixed(1).replace(/\.0$/, '')}M`;
-                      if (v >= 1000) return `${(v / 1000).toFixed(1).replace(/\.0$/, '')}k`;
-                      return `${v}`;
-                    }}
-                  />
-                  <Tooltip
-                    formatter={(value: number, name: string) => [
-                      formatAmount(value),
-                      name === 'expense'
-                        ? (chartCategory === 'all' ? 'Expenses' : tCategory(chartCategory))
-                        : (chartIncomeCategory === 'all' ? 'Income' : tCategory(chartIncomeCategory)),
-                    ]}
-                    labelStyle={{ fontSize: 12 }}
-                    contentStyle={{
-                      backgroundColor: 'var(--card)',
-                      border: '1px solid var(--border)',
-                      borderRadius: '8px',
-                      fontSize: '12px',
-                    }}
-                  />
-                  {monthlyData.find(m => m.isCurrent) && (
-                    <ReferenceLine
-                      x={monthlyData.find(m => m.isCurrent)!.label}
-                      stroke="var(--muted-foreground)"
-                      strokeDasharray="4 3"
-                      strokeWidth={1}
-                      opacity={0.5}
+                {isSingleMonth ? (
+                  <BarChart data={dailyData} margin={{ top: 8, right: 16, left: 0, bottom: 0 }} barCategoryGap="30%">
+                    <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
+                    <XAxis
+                      dataKey="day"
+                      tick={{ fontSize: 11, fill: 'var(--muted-foreground)' }}
+                      axisLine={false}
+                      tickLine={false}
                     />
-                  )}
-
-                  {/* Income line — green */}
-                  <Line
-                    type="monotone"
-                    dataKey="income"
-                    stroke="#10b981"
-                    strokeWidth={2}
-                    dot={(props: { cx: number; cy: number; payload: { isCurrent: boolean } }) => {
-                      const { cx, cy, payload } = props;
-                      return payload.isCurrent
-                        ? <circle key={`inc-dot-cur-${cx}`} cx={cx} cy={cy} r={5} fill="#10b981" stroke="var(--card)" strokeWidth={2} />
-                        : <circle key={`inc-dot-${cx}`} cx={cx} cy={cy} r={3} fill="#10b981" stroke="var(--card)" strokeWidth={1.5} />;
-                    }}
-                    activeDot={{ r: 5, fill: '#10b981', stroke: 'var(--card)', strokeWidth: 2 }}
-                  >
-                    <LabelList
+                    <YAxis
+                      tick={{ fontSize: 11, fill: 'var(--muted-foreground)' }}
+                      axisLine={false}
+                      tickLine={false}
+                      width={40}
+                      tickFormatter={(v: number) => {
+                        if (v >= 1000000) return `${(v / 1000000).toFixed(1).replace(/\.0$/, '')}M`;
+                        if (v >= 1000) return `${(v / 1000).toFixed(1).replace(/\.0$/, '')}k`;
+                        return `${v}`;
+                      }}
+                    />
+                    <Tooltip
+                      formatter={(value: number, name: string) => [
+                        formatAmount(value),
+                        name === 'expense'
+                          ? (chartCategory === 'all' ? 'Expenses' : tCategory(chartCategory))
+                          : (chartIncomeCategory === 'all' ? 'Income' : tCategory(chartIncomeCategory)),
+                      ]}
+                      labelFormatter={(label) => `Day ${label}`}
+                      labelStyle={{ fontSize: 12 }}
+                      contentStyle={{
+                        backgroundColor: 'var(--card)',
+                        border: '1px solid var(--border)',
+                        borderRadius: '8px',
+                        fontSize: '12px',
+                      }}
+                    />
+                    <Bar dataKey="income" fill="#10b981" radius={[3, 3, 0, 0]} />
+                    <Bar dataKey="expense" fill="#ef4444" radius={[3, 3, 0, 0]} />
+                  </BarChart>
+                ) : (
+                  <LineChart data={monthlyData} margin={{ top: 24, right: 16, left: 0, bottom: 0 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
+                    <XAxis
+                      dataKey="label"
+                      tick={{ fontSize: 11, fill: 'var(--muted-foreground)' }}
+                      axisLine={false}
+                      tickLine={false}
+                    />
+                    <YAxis
+                      tick={{ fontSize: 11, fill: 'var(--muted-foreground)' }}
+                      axisLine={false}
+                      tickLine={false}
+                      width={40}
+                      tickFormatter={(v: number) => {
+                        if (v >= 1000000) return `${(v / 1000000).toFixed(1).replace(/\.0$/, '')}M`;
+                        if (v >= 1000) return `${(v / 1000).toFixed(1).replace(/\.0$/, '')}k`;
+                        return `${v}`;
+                      }}
+                    />
+                    <Tooltip
+                      formatter={(value: number, name: string) => [
+                        formatAmount(value),
+                        name === 'expense'
+                          ? (chartCategory === 'all' ? 'Expenses' : tCategory(chartCategory))
+                          : (chartIncomeCategory === 'all' ? 'Income' : tCategory(chartIncomeCategory)),
+                      ]}
+                      labelStyle={{ fontSize: 12 }}
+                      contentStyle={{
+                        backgroundColor: 'var(--card)',
+                        border: '1px solid var(--border)',
+                        borderRadius: '8px',
+                        fontSize: '12px',
+                      }}
+                    />
+                    {monthlyData.find(m => m.isCurrent) && (
+                      <ReferenceLine
+                        x={monthlyData.find(m => m.isCurrent)!.label}
+                        stroke="var(--muted-foreground)"
+                        strokeDasharray="4 3"
+                        strokeWidth={1}
+                        opacity={0.5}
+                      />
+                    )}
+                    <Line
+                      type="monotone"
                       dataKey="income"
-                      position="top"
-                      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                      content={((props: any) => {
-                        const { x, y, value, index } = props;
-                        if (!monthlyData[index ?? -1]?.isCurrent) return null;
-                        return (
-                          <text x={x} y={(Number(y) ?? 0) - 8} textAnchor="middle" fontSize={11} fill="#10b981" fontWeight={600}>
-                            {formatAmount(value ?? 0)}
-                          </text>
-                        );
-                      }) as any}
-                    />
-                  </Line>
-
-                  {/* Expense line — red */}
-                  <Line
-                    type="monotone"
-                    dataKey="expense"
-                    stroke="#ef4444"
-                    strokeWidth={2}
-                    dot={(props: { cx: number; cy: number; payload: { isCurrent: boolean } }) => {
-                      const { cx, cy, payload } = props;
-                      return payload.isCurrent
-                        ? <circle key={`exp-dot-cur-${cx}`} cx={cx} cy={cy} r={5} fill="#ef4444" stroke="var(--card)" strokeWidth={2} />
-                        : <circle key={`exp-dot-${cx}`} cx={cx} cy={cy} r={3} fill="#ef4444" stroke="var(--card)" strokeWidth={1.5} />;
-                    }}
-                    activeDot={{ r: 5, fill: '#ef4444', stroke: 'var(--card)', strokeWidth: 2 }}
-                  >
-                    <LabelList
+                      stroke="#10b981"
+                      strokeWidth={2}
+                      dot={(props: { cx: number; cy: number; payload: { isCurrent: boolean } }) => {
+                        const { cx, cy, payload } = props;
+                        return payload.isCurrent
+                          ? <circle key={`inc-dot-cur-${cx}`} cx={cx} cy={cy} r={5} fill="#10b981" stroke="var(--card)" strokeWidth={2} />
+                          : <circle key={`inc-dot-${cx}`} cx={cx} cy={cy} r={3} fill="#10b981" stroke="var(--card)" strokeWidth={1.5} />;
+                      }}
+                      activeDot={{ r: 5, fill: '#10b981', stroke: 'var(--card)', strokeWidth: 2 }}
+                    >
+                      <LabelList
+                        dataKey="income"
+                        position="top"
+                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                        content={((props: any) => {
+                          const { x, y, value, index } = props;
+                          if (!monthlyData[index ?? -1]?.isCurrent) return null;
+                          return (
+                            <text x={x} y={(Number(y) ?? 0) - 8} textAnchor="middle" fontSize={11} fill="#10b981" fontWeight={600}>
+                              {formatAmount(value ?? 0)}
+                            </text>
+                          );
+                        }) as any}
+                      />
+                    </Line>
+                    <Line
+                      type="monotone"
                       dataKey="expense"
-                      position="top"
-                      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                      content={((props: any) => {
-                        const { x, y, value, index } = props;
-                        if (!monthlyData[index ?? -1]?.isCurrent) return null;
-                        return (
-                          <text x={x} y={(Number(y) ?? 0) - 8} textAnchor="middle" fontSize={11} fill="#ef4444" fontWeight={600}>
-                            {formatAmount(value ?? 0)}
-                          </text>
-                        );
-                      }) as any}
-                    />
-                  </Line>
-                </LineChart>
+                      stroke="#ef4444"
+                      strokeWidth={2}
+                      dot={(props: { cx: number; cy: number; payload: { isCurrent: boolean } }) => {
+                        const { cx, cy, payload } = props;
+                        return payload.isCurrent
+                          ? <circle key={`exp-dot-cur-${cx}`} cx={cx} cy={cy} r={5} fill="#ef4444" stroke="var(--card)" strokeWidth={2} />
+                          : <circle key={`exp-dot-${cx}`} cx={cx} cy={cy} r={3} fill="#ef4444" stroke="var(--card)" strokeWidth={1.5} />;
+                      }}
+                      activeDot={{ r: 5, fill: '#ef4444', stroke: 'var(--card)', strokeWidth: 2 }}
+                    >
+                      <LabelList
+                        dataKey="expense"
+                        position="top"
+                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                        content={((props: any) => {
+                          const { x, y, value, index } = props;
+                          if (!monthlyData[index ?? -1]?.isCurrent) return null;
+                          return (
+                            <text x={x} y={(Number(y) ?? 0) - 8} textAnchor="middle" fontSize={11} fill="#ef4444" fontWeight={600}>
+                              {formatAmount(value ?? 0)}
+                            </text>
+                          );
+                        }) as any}
+                      />
+                    </Line>
+                  </LineChart>
+                )}
               </ResponsiveContainer>
             </div>
           </div>
