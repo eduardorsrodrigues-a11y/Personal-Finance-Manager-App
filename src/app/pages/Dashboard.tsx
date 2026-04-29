@@ -326,10 +326,10 @@ export function Dashboard() {
                     <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
                     <XAxis
                       dataKey="day"
-                      tick={{ fontSize: 11, fill: 'var(--muted-foreground)' }}
+                      tick={false}
                       axisLine={false}
                       tickLine={false}
-                      label={{ value: monthYearLabel, position: 'insideBottom', offset: -8, fontSize: 11, fill: 'var(--muted-foreground)' }}
+                      label={{ value: monthYearLabel, position: 'insideBottom', offset: -4, fontSize: 11, fill: 'var(--muted-foreground)' }}
                     />
                     <YAxis
                       tick={{ fontSize: 11, fill: 'var(--muted-foreground)' }}
