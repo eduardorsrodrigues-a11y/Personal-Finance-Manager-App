@@ -169,28 +169,17 @@ export function Dashboard() {
     return date.toLocaleDateString('en-US', { month: 'short', year: '2-digit' });
   }, [isSingleMonth, selectedMonth]);
 
-  // Daily data for single-month bar chart
-  const dailyData = useMemo(() => {
+  // Single bar chart data — total income and expenses for the selected month
+  const barData = useMemo(() => {
     if (!isSingleMonth) return [];
-    const map: Record<number, { income: number; expense: number }> = {};
-    monthFilteredTransactions
-      .filter((t) => t.type === 'expense' && (chartCategory === 'all' || t.category === chartCategory))
-      .forEach((t) => {
-        const day = new Date(t.date).getDate();
-        if (!map[day]) map[day] = { income: 0, expense: 0 };
-        map[day].expense += t.amount;
-      });
-    monthFilteredTransactions
+    const income = monthFilteredTransactions
       .filter((t) => t.type === 'income' && (chartIncomeCategory === 'all' || t.category === chartIncomeCategory))
-      .forEach((t) => {
-        const day = new Date(t.date).getDate();
-        if (!map[day]) map[day] = { income: 0, expense: 0 };
-        map[day].income += t.amount;
-      });
-    return Object.entries(map)
-      .sort(([a], [b]) => Number(a) - Number(b))
-      .map(([day, { income, expense }]) => ({ day, income, expense }));
-  }, [isSingleMonth, monthFilteredTransactions, chartCategory, chartIncomeCategory]);
+      .reduce((s, t) => s + t.amount, 0);
+    const expense = monthFilteredTransactions
+      .filter((t) => t.type === 'expense' && (chartCategory === 'all' || t.category === chartCategory))
+      .reduce((s, t) => s + t.amount, 0);
+    return [{ label: monthYearLabel, income, expense }];
+  }, [isSingleMonth, monthFilteredTransactions, chartCategory, chartIncomeCategory, monthYearLabel]);
 
   // Top 5 highest expenses for the selected period
   const topExpenses = useMemo(
@@ -283,7 +272,7 @@ export function Dashboard() {
         </div>
 
         {/* Monthly / Daily View */}
-        {(isSingleMonth ? dailyData.length >= 1 : monthlyData.length >= 1) && (
+        {(isSingleMonth ? barData.length >= 1 : monthlyData.length >= 1) && (
           <div className="bg-card border border-border rounded-xl p-6 mb-6 lg:mb-8">
             {/* Header row */}
             <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
@@ -333,14 +322,13 @@ export function Dashboard() {
             <div className="h-44 lg:h-64">
               <ResponsiveContainer width="100%" height="100%">
                 {isSingleMonth ? (
-                  <BarChart data={dailyData} margin={{ top: 8, right: 16, left: 0, bottom: 16 }} barCategoryGap="30%">
+                  <BarChart data={barData} margin={{ top: 8, right: 16, left: 0, bottom: 16 }} barCategoryGap="40%">
                     <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
                     <XAxis
-                      dataKey="day"
-                      tick={false}
+                      dataKey="label"
+                      tick={{ fontSize: 11, fill: 'var(--muted-foreground)' }}
                       axisLine={false}
                       tickLine={false}
-                      label={{ value: monthYearLabel, position: 'insideBottom', offset: -4, fontSize: 11, fill: 'var(--muted-foreground)' }}
                     />
                     <YAxis
                       tick={{ fontSize: 11, fill: 'var(--muted-foreground)' }}
@@ -360,7 +348,7 @@ export function Dashboard() {
                           ? (chartCategory === 'all' ? 'Expenses' : tCategory(chartCategory))
                           : (chartIncomeCategory === 'all' ? 'Income' : tCategory(chartIncomeCategory)),
                       ]}
-                      labelFormatter={(label) => `${monthYearLabel} — day ${label}`}
+                      labelFormatter={(label) => `${label}`}
                       labelStyle={{ fontSize: 12 }}
                       contentStyle={{
                         backgroundColor: 'var(--card)',
