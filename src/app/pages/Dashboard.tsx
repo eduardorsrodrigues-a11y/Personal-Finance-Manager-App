@@ -151,6 +151,16 @@ export function Dashboard() {
 
   const isSingleMonth = !!selectedMonth && selectedMonth !== 'all' && selectedMonth !== 'this-year' && !selectedMonth.startsWith('custom:');
 
+  // Short month label (e.g. "Apr") used on the bar chart X axis
+  const monthAbbrev = useMemo(() => {
+    if (!isSingleMonth) return '';
+    if (selectedMonth === 'this-month') {
+      return new Date().toLocaleDateString('en-US', { month: 'short' });
+    }
+    // selectedMonth is "January 2025" format
+    return new Date(selectedMonth).toLocaleDateString('en-US', { month: 'short' });
+  }, [isSingleMonth, selectedMonth]);
+
   // Daily data for single-month bar chart
   const dailyData = useMemo(() => {
     if (!isSingleMonth) return [];
@@ -319,6 +329,7 @@ export function Dashboard() {
                     <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
                     <XAxis
                       dataKey="day"
+                      tickFormatter={(day) => `${monthAbbrev} ${day}`}
                       tick={{ fontSize: 11, fill: 'var(--muted-foreground)' }}
                       axisLine={false}
                       tickLine={false}
@@ -341,7 +352,7 @@ export function Dashboard() {
                           ? (chartCategory === 'all' ? 'Expenses' : tCategory(chartCategory))
                           : (chartIncomeCategory === 'all' ? 'Income' : tCategory(chartIncomeCategory)),
                       ]}
-                      labelFormatter={(label) => `Day ${label}`}
+                      labelFormatter={(label) => `${monthAbbrev} ${label}`}
                       labelStyle={{ fontSize: 12 }}
                       contentStyle={{
                         backgroundColor: 'var(--card)',
@@ -350,8 +361,38 @@ export function Dashboard() {
                         fontSize: '12px',
                       }}
                     />
-                    <Bar dataKey="income" fill="#10b981" radius={[3, 3, 0, 0]} />
-                    <Bar dataKey="expense" fill="#ef4444" radius={[3, 3, 0, 0]} />
+                    <Bar dataKey="income" fill="#10b981" radius={[3, 3, 0, 0]}>
+                      <LabelList
+                        dataKey="income"
+                        position="center"
+                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                        content={((props: any) => {
+                          const { x, y, width, height, value } = props;
+                          if (!value || height < 20) return null;
+                          return (
+                            <text x={x + width / 2} y={y + height / 2} textAnchor="middle" dominantBaseline="middle" fontSize={10} fill="white" fontWeight={600}>
+                              {formatAmount(value)}
+                            </text>
+                          );
+                        }) as any}
+                      />
+                    </Bar>
+                    <Bar dataKey="expense" fill="#ef4444" radius={[3, 3, 0, 0]}>
+                      <LabelList
+                        dataKey="expense"
+                        position="center"
+                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                        content={((props: any) => {
+                          const { x, y, width, height, value } = props;
+                          if (!value || height < 20) return null;
+                          return (
+                            <text x={x + width / 2} y={y + height / 2} textAnchor="middle" dominantBaseline="middle" fontSize={10} fill="white" fontWeight={600}>
+                              {formatAmount(value)}
+                            </text>
+                          );
+                        }) as any}
+                      />
+                    </Bar>
                   </BarChart>
                 ) : (
                   <LineChart data={monthlyData} margin={{ top: 24, right: 16, left: 0, bottom: 0 }}>
