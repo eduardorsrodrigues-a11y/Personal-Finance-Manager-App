@@ -1,3 +1,4 @@
+import React from 'react';
 import { LayoutDashboard, List, PiggyBank, TrendingUp, Globe, ChevronDown, LogOut, LogIn, Languages, Settings, PiggyBank as SavingsIcon, Building2 } from 'lucide-react';
 import { Link, useLocation } from 'react-router';
 import { useCurrency, currencies } from '../context/CurrencyContext';
@@ -12,7 +13,7 @@ const mainNav = [
   { path: '/budgets',      label: 'nav.budgets',      icon: PiggyBank },
 ];
 
-const planningNav: never[] = [];
+const planningNav: { path: string; label: string; icon: React.ComponentType<{ className?: string }>; badge?: string }[] = [];
 
 const accountNav = [
   { path: '/settings',      label: 'Settings',      icon: Settings  },
