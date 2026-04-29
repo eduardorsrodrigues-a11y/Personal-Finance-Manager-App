@@ -66,15 +66,11 @@ export function MobileHeader() {
 
         {/* Invest nav link */}
         <div className="border-b border-border">
-          <Link
-            to="/invest"
-            onClick={closeMenu}
-            className="flex items-center gap-3 px-4 py-4 w-full hover:bg-muted transition-colors"
-          >
+          <div className="flex items-center gap-3 px-4 py-4 w-full opacity-50 cursor-default select-none">
             <TrendingUp className="w-5 h-5 text-muted-foreground" />
             <span className="text-sm font-medium text-foreground">Invest</span>
-            <span className="ml-auto text-[9px] font-bold bg-teal-500 text-white px-1.5 py-0.5 rounded-full tracking-wide">NEW</span>
-          </Link>
+            <span className="ml-auto text-[9px] font-bold bg-muted text-muted-foreground px-1.5 py-0.5 rounded-full tracking-wide">SOON</span>
+          </div>
         </div>
 
         {/* Settings nav link */}
