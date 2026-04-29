@@ -151,14 +151,11 @@ export function Dashboard() {
 
   const isSingleMonth = !!selectedMonth && selectedMonth !== 'all' && selectedMonth !== 'this-year' && !selectedMonth.startsWith('custom:');
 
-  // Short month label (e.g. "Apr") used on the bar chart X axis
-  const monthAbbrev = useMemo(() => {
+  // "Apr 26" label used on the bar chart X axis (month + 2-digit year)
+  const monthYearLabel = useMemo(() => {
     if (!isSingleMonth) return '';
-    if (selectedMonth === 'this-month') {
-      return new Date().toLocaleDateString('en-US', { month: 'short' });
-    }
-    // selectedMonth is "January 2025" format
-    return new Date(selectedMonth).toLocaleDateString('en-US', { month: 'short' });
+    const date = selectedMonth === 'this-month' ? new Date() : new Date(selectedMonth);
+    return date.toLocaleDateString('en-US', { month: 'short', year: '2-digit' });
   }, [isSingleMonth, selectedMonth]);
 
   // Daily data for single-month bar chart
@@ -325,14 +322,14 @@ export function Dashboard() {
             <div className="h-44 lg:h-64">
               <ResponsiveContainer width="100%" height="100%">
                 {isSingleMonth ? (
-                  <BarChart data={dailyData} margin={{ top: 8, right: 16, left: 0, bottom: 0 }} barCategoryGap="30%">
+                  <BarChart data={dailyData} margin={{ top: 8, right: 16, left: 0, bottom: 16 }} barCategoryGap="30%">
                     <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
                     <XAxis
                       dataKey="day"
-                      tickFormatter={(day) => `${monthAbbrev} ${day}`}
                       tick={{ fontSize: 11, fill: 'var(--muted-foreground)' }}
                       axisLine={false}
                       tickLine={false}
+                      label={{ value: monthYearLabel, position: 'insideBottom', offset: -8, fontSize: 11, fill: 'var(--muted-foreground)' }}
                     />
                     <YAxis
                       tick={{ fontSize: 11, fill: 'var(--muted-foreground)' }}
@@ -352,7 +349,7 @@ export function Dashboard() {
                           ? (chartCategory === 'all' ? 'Expenses' : tCategory(chartCategory))
                           : (chartIncomeCategory === 'all' ? 'Income' : tCategory(chartIncomeCategory)),
                       ]}
-                      labelFormatter={(label) => `${monthAbbrev} ${label}`}
+                      labelFormatter={(label) => `${monthYearLabel} — day ${label}`}
                       labelStyle={{ fontSize: 12 }}
                       contentStyle={{
                         backgroundColor: 'var(--card)',
