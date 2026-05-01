@@ -41,6 +41,16 @@ export function filterTransactionsByMonth(
     });
   }
 
+  if (selectedMonth === 'last-month') {
+    const now = new Date();
+    const lastMonth = now.getMonth() === 0 ? 11 : now.getMonth() - 1;
+    const lastMonthYear = now.getMonth() === 0 ? now.getFullYear() - 1 : now.getFullYear();
+    return transactions.filter((t) => {
+      const d = new Date(t.date);
+      return d.getFullYear() === lastMonthYear && d.getMonth() === lastMonth;
+    });
+  }
+
   if (selectedMonth.startsWith('custom:')) {
     const [, start, end] = selectedMonth.split(':');
     const startDate = new Date(start);
@@ -66,6 +76,11 @@ export function formatPeriodLabel(selectedMonth: string): string {
   if (!selectedMonth || selectedMonth === 'all') return 'All time';
   if (selectedMonth === 'this-year') return 'This year';
   if (selectedMonth === 'this-month') return 'This month';
+  if (selectedMonth === 'last-month') {
+    const now = new Date();
+    const d = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    return d.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+  }
   if (selectedMonth.startsWith('custom:')) {
     const [, start, end] = selectedMonth.split(':');
     const fmt = (s: string) => new Date(s).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });

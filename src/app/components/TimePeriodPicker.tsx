@@ -3,19 +3,21 @@ import { createPortal } from 'react-dom';
 import { X, Calendar } from 'lucide-react';
 import { formatPeriodLabel } from '../utils/dateUtils';
 
-type Period = 'all' | 'this-year' | 'this-month' | 'custom';
+type Period = 'all' | 'this-year' | 'this-month' | 'last-month' | 'custom';
 
 const PERIODS: { value: Period; label: string }[] = [
-  { value: 'all',        label: 'All time'   },
-  { value: 'this-year',  label: 'This year'  },
-  { value: 'this-month', label: 'This month' },
-  { value: 'custom',     label: 'Custom'     },
+  { value: 'all',        label: 'All time'    },
+  { value: 'this-year',  label: 'This year'   },
+  { value: 'this-month', label: 'This month'  },
+  { value: 'last-month', label: 'Last month'  },
+  { value: 'custom',     label: 'Custom'      },
 ];
 
 function activePeriod(selected: string): Period {
   if (!selected || selected === 'all') return 'all';
   if (selected === 'this-year') return 'this-year';
   if (selected === 'this-month') return 'this-month';
+  if (selected === 'last-month') return 'last-month';
   if (selected.startsWith('custom:')) return 'custom';
   return 'all';
 }

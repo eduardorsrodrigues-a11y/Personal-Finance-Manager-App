@@ -151,6 +151,7 @@ export function Dashboard() {
 
   const isSingleMonth = useMemo(() => {
     if (!selectedMonth || selectedMonth === 'all' || selectedMonth === 'this-year') return false;
+    if (selectedMonth === 'last-month') return true;
     if (selectedMonth.startsWith('custom:')) {
       const [, start, end] = selectedMonth.split(':');
       const s = new Date(start), e = new Date(end);
@@ -164,6 +165,7 @@ export function Dashboard() {
     if (!isSingleMonth) return '';
     let date: Date;
     if (selectedMonth === 'this-month') date = new Date();
+    else if (selectedMonth === 'last-month') { const n = new Date(); date = new Date(n.getFullYear(), n.getMonth() - 1, 1); }
     else if (selectedMonth.startsWith('custom:')) date = new Date(selectedMonth.split(':')[1]);
     else date = new Date(selectedMonth);
     return date.toLocaleDateString('en-US', { month: 'short', year: '2-digit' });
