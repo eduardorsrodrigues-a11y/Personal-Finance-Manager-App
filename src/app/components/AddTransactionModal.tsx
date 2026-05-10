@@ -172,6 +172,22 @@ export function AddTransactionModal({
             />
           </div>
 
+          {/* Category */}
+          <div>
+            <label className="block text-sm mb-2 text-muted-foreground">{t('modal.category')}</label>
+            <select
+              value={category}
+              onChange={(e) => setCategory(e.target.value)}
+              className="w-full px-4 py-3 bg-input-background rounded-lg border border-border focus:outline-none focus:ring-2 focus:ring-ring"
+              required
+            >
+              <option value="">{t('modal.selectCategory')}</option>
+              {categories.map((cat) => (
+                <option key={cat} value={cat}>{tCategory(cat)}</option>
+              ))}
+            </select>
+          </div>
+
           {/* Date */}
           <div>
             <label className="block text-sm mb-2 text-muted-foreground">{t('modal.date')}</label>
@@ -209,22 +225,6 @@ export function AddTransactionModal({
                 );
               })}
             </div>
-          </div>
-
-          {/* Category */}
-          <div>
-            <label className="block text-sm mb-2 text-muted-foreground">{t('modal.category')}</label>
-            <select
-              value={category}
-              onChange={(e) => setCategory(e.target.value)}
-              className="w-full px-4 py-3 bg-input-background rounded-lg border border-border focus:outline-none focus:ring-2 focus:ring-ring"
-              required
-            >
-              <option value="">{t('modal.selectCategory')}</option>
-              {categories.map((cat) => (
-                <option key={cat} value={cat}>{tCategory(cat)}</option>
-              ))}
-            </select>
           </div>
 
           {/* Submit */}
