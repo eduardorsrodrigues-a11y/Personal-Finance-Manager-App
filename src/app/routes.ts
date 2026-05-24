@@ -10,6 +10,7 @@ const Budgets           = lazy(() => import('./pages/Budgets').then(m => ({ defa
 const Invest            = lazy(() => import('./pages/Invest').then(m => ({ default: m.Invest })));
 const Settings          = lazy(() => import('./pages/Settings').then(m => ({ default: m.Settings })));
 const BankAccounts      = lazy(() => import('./pages/BankAccounts').then(m => ({ default: m.BankAccounts })));
+const Portfolio         = lazy(() => import('./pages/Portfolio').then(m => ({ default: m.Portfolio })));
 const Login             = lazy(() => import('./pages/Login').then(m => ({ default: m.Login })));
 
 function withSuspense(Component: React.ComponentType) {
@@ -35,6 +36,7 @@ export const router = createBrowserRouter([
       { path: "invest",           Component: withAccess(Invest) },
       { path: "settings",         Component: withAccess(Settings) },
       { path: "bank-accounts",    Component: withAccess(BankAccounts) },
+      { path: "portfolio",        Component: withAccess(Portfolio) },
       { path: "login",            Component: withSuspense(Login) },
     ],
   },
