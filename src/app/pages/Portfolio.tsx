@@ -226,12 +226,12 @@ interface LedgerSectionProps {
 function LedgerSection({ name, icon, iconBg, total, totalLabel, isLiability, count, columns, children, defaultOpen, fmt }: LedgerSectionProps) {
   const [open, setOpen] = useState(defaultOpen ?? false);
   return (
-    <div className="border-b border-border last:border-b-0">
+    <div className="bg-card border border-border rounded-xl overflow-hidden">
       <button
-        className="w-full flex items-center gap-3 px-5 py-3.5 text-left hover:bg-background transition-colors"
+        className={`w-full flex items-center gap-3 px-5 py-4 text-left transition-colors ${open ? 'bg-muted/30' : 'hover:bg-muted/20'}`}
         onClick={() => setOpen(o => !o)}
       >
-        <div className="w-[30px] h-[30px] rounded-lg flex items-center justify-center shrink-0" style={{ background: iconBg }}>
+        <div className="w-[32px] h-[32px] rounded-xl flex items-center justify-center shrink-0" style={{ background: iconBg }}>
           {icon}
         </div>
         <div className="flex-1 min-w-0">
@@ -244,23 +244,25 @@ function LedgerSection({ name, icon, iconBg, total, totalLabel, isLiability, cou
         <ChevronDown className={`w-3.5 h-3.5 text-muted-foreground transition-transform duration-200 shrink-0 ${open ? 'rotate-180' : ''}`} />
       </button>
       {open && (
-        <div className="bg-[#fafcfe] border-t border-border">
-          <table className="w-full border-collapse">
-            <thead>
-              <tr>
-                {columns.map((col, i) => (
-                  <th
-                    key={i}
-                    className={`text-[10px] font-semibold text-muted-foreground uppercase tracking-[0.06em] py-2.5 px-4 border-b border-border text-left ${col.num ? 'text-right' : ''}`}
-                    style={col.width ? { width: col.width } : undefined}
-                  >
-                    {col.label}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-border">{children}</tbody>
-          </table>
+        <div className="px-3 pb-3 pt-0 bg-muted/20 border-t border-border">
+          <div className="bg-card border border-border rounded-lg overflow-hidden mt-3">
+            <table className="w-full border-collapse">
+              <thead>
+                <tr className="bg-muted/40">
+                  {columns.map((col, i) => (
+                    <th
+                      key={i}
+                      className={`text-[10px] font-semibold text-muted-foreground uppercase tracking-[0.08em] py-2 px-4 border-b border-border text-left ${col.num ? 'text-right' : ''}`}
+                      style={col.width ? { width: col.width } : undefined}
+                    >
+                      {col.label}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border">{children}</tbody>
+            </table>
+          </div>
         </div>
       )}
     </div>
@@ -317,9 +319,11 @@ function UpdatePortfolioSlideover({ open, onClose, items, onSave, fmt }: {
 }) {
   const [values, setValues] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
+  const [asOfDate, setAsOfDate] = useState(new Date().toISOString().slice(0, 10));
 
   useEffect(() => {
     if (!open) return;
+    setAsOfDate(new Date().toISOString().slice(0, 10));
     const init: Record<string, string> = {};
     items.forEach(item => { init[item.id] = item.current_value.toFixed(2); });
     setValues(init);
@@ -327,8 +331,8 @@ function UpdatePortfolioSlideover({ open, onClose, items, onSave, fmt }: {
 
   const update = (k: string, v: string) => setValues(prev => ({ ...prev, [k]: v }));
 
-  const monthLabel = new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
-  const snapshotMonth = new Date().toISOString().slice(0, 7);
+  const snapshotMonth = asOfDate.slice(0, 7);
+  const monthLabel = new Date(asOfDate + 'T12:00:00').toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
 
   const handleSave = async () => {
     setSaving(true);
@@ -367,7 +371,7 @@ function UpdatePortfolioSlideover({ open, onClose, items, onSave, fmt }: {
         <div className="flex items-center justify-between px-6 py-[18px] bg-card border-b border-border shrink-0">
           <div>
             <div className="text-[15px] font-semibold text-foreground">Update Portfolio</div>
-            <div className="text-[11px] text-muted-foreground mt-0.5">{monthLabel} snapshot · review and adjust each value</div>
+            <div className="text-[11px] text-muted-foreground mt-0.5">Review and adjust each value, then save a snapshot</div>
           </div>
           <button
             className="w-[30px] h-[30px] rounded-lg bg-muted flex items-center justify-center text-muted-foreground hover:bg-muted/80 transition-colors"
@@ -375,6 +379,19 @@ function UpdatePortfolioSlideover({ open, onClose, items, onSave, fmt }: {
           >
             <X className="w-4 h-4" />
           </button>
+        </div>
+        {/* As of Date */}
+        <div className="flex items-center justify-between gap-4 px-6 py-3 bg-muted/30 border-b border-border shrink-0">
+          <div>
+            <p className="text-xs font-semibold text-foreground">As of Date</p>
+            <p className="text-[10px] text-muted-foreground mt-0.5">Snapshot saved for {monthLabel}</p>
+          </div>
+          <input
+            type="date"
+            className="px-3 py-1.5 border border-border rounded-lg text-sm bg-card text-foreground outline-none focus:border-teal-500 transition-colors cursor-pointer"
+            value={asOfDate}
+            onChange={e => setAsOfDate(e.target.value || new Date().toISOString().slice(0, 10))}
+          />
         </div>
         <div className="flex-1 overflow-y-auto p-[18px] space-y-3.5">
           {items.length === 0 && (
@@ -774,12 +791,11 @@ export function Portfolio() {
             </div>
 
             {/* Portfolio ledger */}
-            <div className="bg-card border border-border rounded-xl overflow-hidden">
-              <div className="flex items-center justify-between px-5 py-4 border-b border-border">
-                <p className="text-sm font-semibold text-foreground">Current Portfolio</p>
-                <p className="text-xs text-muted-foreground">Last snapshot: {lastUpdated}</p>
-              </div>
-
+            <div className="flex items-center justify-between mb-3">
+              <p className="text-sm font-semibold text-foreground">Current Portfolio</p>
+              <p className="text-xs text-muted-foreground">Last snapshot: {lastUpdated}</p>
+            </div>
+            <div className="space-y-3">
               <LedgerSection
                 name="Cash" icon={<Wallet className="w-4 h-4 text-white" />} iconBg="#14b8a6"
                 total={totalCash} totalLabel="Total balance" count={cash.length} defaultOpen fmt={fmt}
