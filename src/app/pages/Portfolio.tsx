@@ -428,21 +428,26 @@ export function Portfolio() {
   const [soOpen, setSoOpen] = useState(false);
 
   return (
-    <div className="px-4 lg:px-8 py-6 lg:py-8 max-w-[1240px] mx-auto">
-      {/* Header */}
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight text-foreground">Portfolio Manager</h1>
-          <p className="text-sm text-muted-foreground">Manually track your assets and liabilities to monitor your total net worth over time.</p>
+    <div className="min-h-screen bg-background">
+      <header className="border-b border-border bg-card sticky top-0 z-40">
+        <div className="px-4 lg:px-8 py-3 lg:py-5">
+          <div className="flex items-center justify-between gap-4">
+            <div>
+              <h1 className="text-xl font-semibold">Portfolio Manager</h1>
+              <p className="text-sm text-muted-foreground">Manually track your assets and liabilities to monitor your total net worth over time.</p>
+            </div>
+            <button
+              className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-teal-500 hover:bg-teal-600 text-white text-sm font-semibold transition-colors shrink-0"
+              onClick={() => setSoOpen(true)}
+            >
+              <Clock className="w-3.5 h-3.5" />
+              Update Portfolio
+            </button>
+          </div>
         </div>
-        <button
-          className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-teal-500 hover:bg-teal-600 text-white text-sm font-semibold transition-colors shrink-0"
-          onClick={() => setSoOpen(true)}
-        >
-          <Clock className="w-3.5 h-3.5" />
-          Update Portfolio
-        </button>
-      </div>
+      </header>
+
+    <div className="px-4 lg:px-8 py-6 lg:py-8 max-w-[1240px] mx-auto">
 
       {/* Overview grid */}
       <div className="grid grid-cols-1 lg:grid-cols-[2fr_1fr] gap-3.5 mb-3.5">
@@ -635,6 +640,7 @@ export function Portfolio() {
       </div>
 
       <UpdatePortfolioSlideover open={soOpen} onClose={() => setSoOpen(false)} fmt={fmt} />
+    </div>
     </div>
   );
 }
