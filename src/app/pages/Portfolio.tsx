@@ -434,7 +434,6 @@ export function Portfolio() {
           <div className="flex items-center justify-between gap-4">
             <div>
               <h1 className="text-xl font-semibold">Portfolio Manager</h1>
-              <p className="text-sm text-muted-foreground">Manually track your assets and liabilities to monitor your total net worth over time.</p>
             </div>
             <button
               className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-teal-500 hover:bg-teal-600 text-white text-sm font-semibold transition-colors shrink-0"

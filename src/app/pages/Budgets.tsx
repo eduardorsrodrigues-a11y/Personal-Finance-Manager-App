@@ -293,7 +293,6 @@ export function Budgets() {
           <div className="flex items-center justify-between gap-4">
             <div>
               <h1 className="text-xl font-semibold">{t('budgets.title')}</h1>
-              <p className="text-sm text-muted-foreground">{t('budgets.subtitle')}</p>
             </div>
             {tab === 'monthly' && (isSmartMode ? (
               <button
