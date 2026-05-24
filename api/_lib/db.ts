@@ -469,3 +469,139 @@ export async function createTransactionFromPlaid(params: {
   });
   if (error) throw error;
 }
+
+// ── Portfolio ──────────────────────────────────────────────────────────────────
+
+export type PortfolioItem = {
+  id: string;
+  section: 'cash' | 'savings' | 'investment' | 'physical' | 'liability';
+  name: string;
+  meta: string | null;
+  abbr: string;
+  color: string;
+  type_label: string | null;
+  type_class: string | null;
+  current_value: number;
+  invested_value: number | null;
+  sort_order: number;
+};
+
+export type PortfolioSnapshot = {
+  id: string;
+  snapshot_month: string;
+  net_worth: number;
+};
+
+export async function listPortfolioItems(userId: string): Promise<PortfolioItem[]> {
+  const supabase = getSupabaseAdmin();
+  const { data, error } = await supabase
+    .from('portfolio_items')
+    .select('id, section, name, meta, abbr, color, type_label, type_class, current_value, invested_value, sort_order')
+    .eq('user_id', userId)
+    .order('sort_order', { ascending: true })
+    .order('created_at', { ascending: true });
+  if (error) throw error;
+  return ((data ?? []) as Array<Record<string, unknown>>).map((r) => ({
+    id: r.id as string,
+    section: r.section as PortfolioItem['section'],
+    name: r.name as string,
+    meta: (r.meta as string | null) ?? null,
+    abbr: r.abbr as string,
+    color: r.color as string,
+    type_label: (r.type_label as string | null) ?? null,
+    type_class: (r.type_class as string | null) ?? null,
+    current_value: Number(r.current_value),
+    invested_value: r.invested_value != null ? Number(r.invested_value) : null,
+    sort_order: Number(r.sort_order ?? 0),
+  }));
+}
+
+export async function createPortfolioItem(params: {
+  userId: string;
+  section: string;
+  name: string;
+  meta: string | null;
+  abbr: string;
+  color: string;
+  typeLabel: string | null;
+  typeClass: string | null;
+  currentValue: number;
+  investedValue: number | null;
+  sortOrder: number;
+}): Promise<{ id: string }> {
+  const supabase = getSupabaseAdmin();
+  const { data, error } = await supabase
+    .from('portfolio_items')
+    .insert({
+      user_id: params.userId,
+      section: params.section,
+      name: params.name,
+      meta: params.meta,
+      abbr: params.abbr,
+      color: params.color,
+      type_label: params.typeLabel,
+      type_class: params.typeClass,
+      current_value: params.currentValue,
+      invested_value: params.investedValue,
+      sort_order: params.sortOrder,
+    })
+    .select('id')
+    .single();
+  if (error) throw error;
+  return data as { id: string };
+}
+
+export async function updatePortfolioItemValue(params: {
+  userId: string;
+  id: string;
+  currentValue: number;
+}): Promise<void> {
+  const supabase = getSupabaseAdmin();
+  const { error } = await supabase
+    .from('portfolio_items')
+    .update({ current_value: params.currentValue, updated_at: new Date().toISOString() })
+    .eq('id', params.id)
+    .eq('user_id', params.userId);
+  if (error) throw error;
+}
+
+export async function deletePortfolioItem(params: { userId: string; id: string }): Promise<void> {
+  const supabase = getSupabaseAdmin();
+  const { error } = await supabase
+    .from('portfolio_items')
+    .delete()
+    .eq('id', params.id)
+    .eq('user_id', params.userId);
+  if (error) throw error;
+}
+
+export async function listPortfolioSnapshots(userId: string): Promise<PortfolioSnapshot[]> {
+  const supabase = getSupabaseAdmin();
+  const { data, error } = await supabase
+    .from('portfolio_snapshots')
+    .select('id, snapshot_month, net_worth')
+    .eq('user_id', userId)
+    .order('snapshot_month', { ascending: true })
+    .limit(24);
+  if (error) throw error;
+  return ((data ?? []) as Array<Record<string, unknown>>).map((r) => ({
+    id: r.id as string,
+    snapshot_month: r.snapshot_month as string,
+    net_worth: Number(r.net_worth),
+  }));
+}
+
+export async function upsertPortfolioSnapshot(params: {
+  userId: string;
+  snapshotMonth: string;
+  netWorth: number;
+}): Promise<void> {
+  const supabase = getSupabaseAdmin();
+  const { error } = await supabase
+    .from('portfolio_snapshots')
+    .upsert(
+      { user_id: params.userId, snapshot_month: params.snapshotMonth, net_worth: params.netWorth },
+      { onConflict: 'user_id,snapshot_month' },
+    );
+  if (error) throw error;
+}
