@@ -722,9 +722,7 @@ export function Portfolio() {
 
   const displayNW = histPoints.length > 0 ? histPoints[histPoints.length - 1].v : netWorth;
   const latestInRange   = filteredPoints.length > 0 ? filteredPoints[filteredPoints.length - 1] : null;
-  const baselineInRange = filteredPoints.length >= 2
-    ? (range === 'All' ? filteredPoints[filteredPoints.length - 2] : filteredPoints[0])
-    : null;
+  const baselineInRange = filteredPoints.length >= 2 ? filteredPoints[0] : null;
   const nwChange      = latestInRange && baselineInRange ? latestInRange.v - baselineInRange.v : 0;
   const nwChangePct   = baselineInRange && baselineInRange.v !== 0 ? (nwChange / baselineInRange.v) * 100 : 0;
   const showComparison = latestInRange !== null && baselineInRange !== null;
@@ -732,7 +730,7 @@ export function Portfolio() {
     range === '1M'  ? 'vs 1 month ago'
     : range === '6M'  ? 'vs 6 months ago'
     : range === 'YTD' ? 'vs start of year'
-    : 'vs previous snapshot';
+    : 'vs oldest snapshot';
 
   const distribution: DistEntry[] = [
     { id: 'cash',        name: 'Cash',           value: totalCash,    color: '#14b8a6', isNeg: false },
