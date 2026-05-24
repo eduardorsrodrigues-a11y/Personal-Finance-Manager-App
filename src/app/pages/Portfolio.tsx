@@ -763,14 +763,14 @@ export function Portfolio() {
                 onClick={() => setAddOpen(true)}
               >
                 <Plus className="w-3.5 h-3.5" />
-                Add Item
+                <span className="hidden sm:inline">Add Item</span>
               </button>
               <button
                 className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-teal-500 hover:bg-teal-600 text-white text-sm font-semibold transition-colors"
                 onClick={() => setSoOpen(true)}
               >
                 <Clock className="w-3.5 h-3.5" />
-                Update Portfolio
+                <span className="hidden sm:inline">Update Portfolio</span>
               </button>
             </div>
           </div>
@@ -787,12 +787,12 @@ export function Portfolio() {
             <div className="grid grid-cols-1 lg:grid-cols-[2fr_1fr] gap-3.5 mb-3.5">
               {/* Net worth card */}
               <div className="bg-card border border-border rounded-xl p-5 flex flex-col">
-                <div className="flex items-start justify-between gap-3">
+                <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
                   <div>
                     <p className="text-xs font-semibold text-muted-foreground uppercase tracking-[0.06em]">Total Net Worth</p>
-                    <p className="text-[42px] font-bold tracking-[-1.5px] text-foreground mt-1 leading-none">{fmt(displayNW)}</p>
+                    <p className="text-[32px] sm:text-[42px] font-bold tracking-[-1.5px] text-foreground mt-1 leading-none">{fmt(displayNW)}</p>
                     {showComparison && (
-                      <div className="flex items-center gap-2.5 mt-2 text-xs">
+                      <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 mt-2 text-xs">
                         <span className={`font-semibold flex items-center gap-1 ${nwChange >= 0 ? 'text-emerald-600' : 'text-red-500'}`}>
                           {nwChange >= 0 ? '↑' : '↓'} {fmt(Math.abs(nwChange))}
                           <span className="font-medium opacity-80 ml-0.5">({fmtPct(nwChangePct)})</span>
@@ -801,7 +801,7 @@ export function Portfolio() {
                       </div>
                     )}
                   </div>
-                  <div className="flex gap-px bg-muted rounded-lg p-0.5 shrink-0">
+                  <div className="flex gap-px bg-muted rounded-lg p-0.5 self-start shrink-0">
                     {(['1M', '6M', 'YTD', 'All'] as RangeKey[]).map(r => (
                       <button
                         key={r}
