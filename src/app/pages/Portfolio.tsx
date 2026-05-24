@@ -228,7 +228,7 @@ function LedgerSection({ name, icon, iconBg, total, totalLabel, isLiability, cou
   return (
     <div className="bg-card border border-border rounded-xl overflow-hidden">
       <button
-        className={`w-full flex items-center gap-3 px-5 py-4 text-left transition-colors ${open ? 'bg-muted/30' : 'hover:bg-muted/20'}`}
+        className={`w-full flex items-center gap-3 px-5 py-4 text-left transition-colors ${open ? 'bg-muted/50' : 'hover:bg-muted/20'}`}
         onClick={() => setOpen(o => !o)}
       >
         <div className="w-[32px] h-[32px] rounded-xl flex items-center justify-center shrink-0" style={{ background: iconBg }}>
@@ -244,7 +244,7 @@ function LedgerSection({ name, icon, iconBg, total, totalLabel, isLiability, cou
         <ChevronDown className={`w-3.5 h-3.5 text-muted-foreground transition-transform duration-200 shrink-0 ${open ? 'rotate-180' : ''}`} />
       </button>
       {open && (
-        <div className="px-3 pb-3 pt-0 bg-muted/20 border-t border-border">
+        <div className="px-3 pb-3 pt-0 bg-muted/50 border-t border-border">
           <div className="bg-card border border-border rounded-lg overflow-hidden mt-3">
             <table className="w-full border-collapse">
               <thead>
@@ -798,7 +798,7 @@ export function Portfolio() {
             <div className="space-y-3">
               <LedgerSection
                 name="Cash" icon={<Wallet className="w-4 h-4 text-white" />} iconBg="#14b8a6"
-                total={totalCash} totalLabel="Total balance" count={cash.length} defaultOpen fmt={fmt}
+                total={totalCash} totalLabel="Total balance" count={cash.length} fmt={fmt}
                 columns={[{ label: 'Account Name' }, { label: 'Current Balance', num: true, width: '200px' }, { label: '', width: '40px' }]}
               >
                 {cash.length === 0 ? (
@@ -826,7 +826,7 @@ export function Portfolio() {
 
               <LedgerSection
                 name="Savings" icon={<Landmark className="w-4 h-4 text-white" />} iconBg="#06b6d4"
-                total={totalSavCur} totalLabel={`Profit ${fmt(totalSavCur - totalSavInv)}`} count={savings.length} defaultOpen fmt={fmt}
+                total={totalSavCur} totalLabel={`Profit ${fmt(totalSavCur - totalSavInv)}`} count={savings.length} fmt={fmt}
                 columns={[
                   { label: 'Name' }, { label: 'Invested', num: true }, { label: 'Actual', num: true },
                   { label: 'Profit', num: true }, { label: 'Profit %', num: true }, { label: '', width: '40px' },
@@ -869,7 +869,7 @@ export function Portfolio() {
 
               <LedgerSection
                 name="Investments" icon={<TrendingUp className="w-4 h-4 text-white" />} iconBg="#7c3aed"
-                total={totalInvCur} totalLabel={`Profit ${fmt(totalInvCur - totalInvInv)}`} count={investments.length} defaultOpen fmt={fmt}
+                total={totalInvCur} totalLabel={`Profit ${fmt(totalInvCur - totalInvInv)}`} count={investments.length} fmt={fmt}
                 columns={[
                   { label: 'Name' }, { label: 'Type' }, { label: 'Invested', num: true },
                   { label: 'Actual', num: true }, { label: 'Profit %', num: true }, { label: 'Profit', num: true }, { label: '', width: '40px' },
