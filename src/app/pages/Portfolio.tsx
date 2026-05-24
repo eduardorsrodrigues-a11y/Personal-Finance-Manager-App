@@ -707,25 +707,32 @@ export function Portfolio() {
     v: s.net_worth,
   }));
 
-  // Range-aware comparison — built from snapshot data, not items.current_value.
-  // items.current_value is overwritten on every save (including backdated ones), so it
-  // cannot be relied on as the "current" net worth. The latest snapshot by date is the
-  // source of truth for the hero number.
+  // Hero number = always live sum from items (what you own right now).
+  // Snapshots are historical records only — they must not override the live value.
+  const displayNW = netWorth;
+
+  // Comparison baseline = a historical snapshot chosen by range.
+  // "most recent snapshot at-or-before a cutoff date" gives the cleanest UX:
+  // e.g. "1M" finds what your NW was ~30 days ago per your last recorded snapshot.
   const _now = new Date();
   const _cutoff = (days: number) => new Date(_now.getTime() - days * 86_400_000).toISOString().slice(0, 10);
   const _ytdStart = `${_now.getFullYear()}-01-01`;
-  const filteredPoints =
-    range === '1M'  ? histPoints.filter(d => d.date >= _cutoff(30))
-    : range === '6M'  ? histPoints.filter(d => d.date >= _cutoff(180))
-    : range === 'YTD' ? histPoints.filter(d => d.date >= _ytdStart)
-    : histPoints;
 
-  const displayNW = histPoints.length > 0 ? histPoints[histPoints.length - 1].v : netWorth;
-  const latestInRange   = filteredPoints.length > 0 ? filteredPoints[filteredPoints.length - 1] : null;
-  const baselineInRange = filteredPoints.length >= 2 ? filteredPoints[0] : null;
-  const nwChange      = latestInRange && baselineInRange ? latestInRange.v - baselineInRange.v : 0;
-  const nwChangePct   = baselineInRange && baselineInRange.v !== 0 ? (nwChange / baselineInRange.v) * 100 : 0;
-  const showComparison = latestInRange !== null && baselineInRange !== null;
+  const lastSnapshotAtOrBefore = (date: string): HistPoint | null => {
+    const hits = histPoints.filter(d => d.date <= date);
+    return hits.length > 0 ? hits[hits.length - 1] : null;
+  };
+
+  const baselinePoint: HistPoint | null =
+    range === 'All' ? (histPoints.length >= 1 ? histPoints[0] : null)
+    : range === '1M'  ? lastSnapshotAtOrBefore(_cutoff(30))
+    : range === '6M'  ? lastSnapshotAtOrBefore(_cutoff(180))
+    : /* YTD */         lastSnapshotAtOrBefore(`${_now.getFullYear() - 1}-12-31`)
+                        ?? (histPoints.find(d => d.date >= _ytdStart) ?? null);
+
+  const nwChange      = baselinePoint ? displayNW - baselinePoint.v : 0;
+  const nwChangePct   = baselinePoint && baselinePoint.v !== 0 ? (nwChange / baselinePoint.v) * 100 : 0;
+  const showComparison = baselinePoint !== null;
   const rangeLabel =
     range === '1M'  ? 'vs 1 month ago'
     : range === '6M'  ? 'vs 6 months ago'
