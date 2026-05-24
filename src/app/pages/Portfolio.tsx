@@ -1,80 +1,12 @@
 import { useState, useEffect, type ReactNode } from 'react';
-import { ChevronDown, X, Clock, Wallet, Landmark, TrendingUp, TrendingDown, Home } from 'lucide-react';
+import { ChevronDown, X, Clock, Wallet, Landmark, TrendingUp, TrendingDown, Home, Plus, Trash2 } from 'lucide-react';
 import { useCurrency } from '../context/CurrencyContext';
+import { usePortfolio, type PortfolioItem, type PortfolioSection } from '../context/PortfolioContext';
 
 type RangeKey = '1M' | '6M' | 'YTD' | 'All';
 
-interface CashItem    { id: string; name: string; meta: string; balance: number; prev: number; color: string; abbr: string; }
-interface SavingsItem { id: string; name: string; meta: string; invested: number; current: number; color: string; abbr: string; }
-interface InvestItem  { id: string; name: string; type: string; typeClass: string; invested: number; current: number; color: string; abbr: string; }
-interface PhysItem    { id: string; name: string; meta: string; invested: number; current: number; color: string; abbr: string; }
-interface LiabItem    { id: string; name: string; type: string; typeClass: string; total: number; remaining: number; prev: number; color: string; abbr: string; }
-interface DistEntry   { id: string; name: string; value: number; color: string; isNeg: boolean; }
-interface HistPoint   { m: string; v: number; }
-
-// ── Mock data ──────────────────────────────────────────────────────────────────
-const LAST_UPDATED = 'May 24, 2026';
-
-const CASH: CashItem[] = [
-  { id: 'cgd-current', name: 'CGD — Current Account', meta: 'Caixa Geral de Depósitos', balance: 3240.50, prev: 3580.20, color: '#005a8c', abbr: 'CGD' },
-  { id: 'mil-current', name: 'Millennium — Current',  meta: 'Millennium BCP',           balance: 1820.00, prev: 1645.30, color: '#c8102e', abbr: 'MIL' },
-  { id: 'revolut-eur', name: 'Revolut EUR',           meta: 'E-money',                  balance: 580.75,  prev: 910.00,  color: '#000000', abbr: 'REV' },
-];
-
-const SAVINGS: SavingsItem[] = [
-  { id: 'cgd-poup',  name: 'Caixa Poupança Plus',        meta: 'Caixa Geral de Depósitos', invested: 15000, current: 15412.50, color: '#005a8c', abbr: 'CGD' },
-  { id: 'ot-2029',   name: 'Obrigações do Tesouro 2029', meta: 'República Portuguesa',     invested: 5000,  current: 5210.00,  color: '#006600', abbr: 'OT'  },
-  { id: 'mil-super', name: 'Super Poupança Millennium',  meta: 'Millennium BCP',           invested: 8000,  current: 8104.00,  color: '#c8102e', abbr: 'MIL' },
-];
-
-const INVESTMENTS: InvestItem[] = [
-  { id: 'vwce',    name: 'Vanguard FTSE All-World', type: 'ETF',    typeClass: 'etf',    invested: 22000, current: 26840.75, color: '#6b0d14', abbr: 'VAN' },
-  { id: 'eqqq',    name: 'Invesco NASDAQ-100',      type: 'ETF',    typeClass: 'etf',    invested: 8500,  current: 9912.30,  color: '#0056a2', abbr: 'INV' },
-  { id: 'btc',     name: 'Bitcoin',                 type: 'Crypto', typeClass: 'crypto', invested: 3200,  current: 4815.60,  color: '#f7931a', abbr: 'BTC' },
-  { id: 'eth',     name: 'Ethereum',                type: 'Crypto', typeClass: 'crypto', invested: 1500,  current: 1342.20,  color: '#627eea', abbr: 'ETH' },
-  { id: 'xtb-ppr', name: 'XTB PPR Global Equity',  type: 'Fund',   typeClass: 'fund',   invested: 4800,  current: 5260.00,  color: '#1e3a8a', abbr: 'XTB' },
-];
-
-const PHYSICAL: PhysItem[] = [
-  { id: 'apt', name: 'Apartment — Lisbon', meta: 'Primary residence', invested: 285000, current: 312000, color: '#15803d', abbr: 'APT' },
-  { id: 'car', name: 'Honda Civic 2022',   meta: 'Personal vehicle',  invested: 24000,  current: 18500,  color: '#475569', abbr: 'CAR' },
-];
-
-const LIABILITIES: LiabItem[] = [
-  { id: 'mort',     name: 'Mortgage — Lisbon Apt',   type: 'Mortgage', typeClass: 'mortgage', total: 228000, remaining: 214380.50, prev: 215120, color: '#92400e', abbr: 'MOR' },
-  { id: 'car-loan', name: 'Honda Civic Loan',         type: 'Loan',     typeClass: 'loan',     total: 18000,  remaining: 9420.00,   prev: 9685,   color: '#b91c1c', abbr: 'CL'  },
-  { id: 'cc-1',     name: 'Credit Card — Millennium', type: 'Card',     typeClass: 'card',     total: 5000,   remaining: 412.00,    prev: 0,      color: '#6b21a8', abbr: 'CC'  },
-];
-
-const NW_HISTORY: HistPoint[] = [
-  { m: 'Jun 25', v: 118200 }, { m: 'Jul 25', v: 121400 }, { m: 'Aug 25', v: 120100 },
-  { m: 'Sep 25', v: 124800 }, { m: 'Oct 25', v: 127500 }, { m: 'Nov 25', v: 129100 },
-  { m: 'Dec 25', v: 131200 }, { m: 'Jan 26', v: 128900 }, { m: 'Feb 26', v: 133600 },
-  { m: 'Mar 26', v: 136400 }, { m: 'Apr 26', v: 139800 }, { m: 'May 26', v: 142500 },
-];
-
-// ── Module-level totals ────────────────────────────────────────────────────────
-const totalCash    = CASH.reduce((s, a) => s + a.balance, 0);
-const totalSavInv  = SAVINGS.reduce((s, a) => s + a.invested, 0);
-const totalSavCur  = SAVINGS.reduce((s, a) => s + a.current, 0);
-const totalInvInv  = INVESTMENTS.reduce((s, a) => s + a.invested, 0);
-const totalInvCur  = INVESTMENTS.reduce((s, a) => s + a.current, 0);
-const totalPhysInv = PHYSICAL.reduce((s, a) => s + a.invested, 0);
-const totalPhysCur = PHYSICAL.reduce((s, a) => s + a.current, 0);
-const totalLiabs   = LIABILITIES.reduce((s, a) => s + a.remaining, 0);
-const totalAssets  = totalCash + totalSavCur + totalInvCur + totalPhysCur;
-const netWorth     = totalAssets - totalLiabs;
-const prevNW       = NW_HISTORY[NW_HISTORY.length - 2].v;
-const nwChange     = netWorth - prevNW;
-const nwChangePct  = (nwChange / prevNW) * 100;
-
-const DISTRIBUTION: DistEntry[] = [
-  { id: 'cash',        name: 'Cash',           value: totalCash,    color: '#14b8a6', isNeg: false },
-  { id: 'savings',     name: 'Savings',         value: totalSavCur,  color: '#06b6d4', isNeg: false },
-  { id: 'investments', name: 'Investments',     value: totalInvCur,  color: '#7c3aed', isNeg: false },
-  { id: 'physical',    name: 'Physical Assets', value: totalPhysCur, color: '#f59e0b', isNeg: false },
-  { id: 'liabilities', name: 'Liabilities',     value: -totalLiabs,  color: '#ef4444', isNeg: true  },
-];
+interface HistPoint { m: string; v: number; }
+interface DistEntry  { id: string; name: string; value: number; color: string; isNeg: boolean; }
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
 const fmtPct = (n: number) => (n >= 0 ? '+' : '') + n.toFixed(2) + '%';
@@ -89,6 +21,26 @@ const TYPE_PILL: Record<string, string> = {
   mortgage: 'bg-amber-100 text-amber-800',
   card:     'bg-purple-100 text-purple-800',
 };
+
+const INVESTMENT_TYPES = [
+  { label: 'ETF',    class: 'etf'    },
+  { label: 'Crypto', class: 'crypto' },
+  { label: 'Stock',  class: 'stock'  },
+  { label: 'Bond',   class: 'bond'   },
+  { label: 'Fund',   class: 'fund'   },
+];
+
+const LIABILITY_TYPES = [
+  { label: 'Loan',     class: 'loan'     },
+  { label: 'Mortgage', class: 'mortgage' },
+  { label: 'Card',     class: 'card'     },
+];
+
+const COLOR_PALETTE = [
+  '#14b8a6', '#06b6d4', '#3b82f6', '#6366f1', '#8b5cf6',
+  '#ec4899', '#f43f5e', '#ef4444', '#f97316', '#f59e0b',
+  '#10b981', '#22c55e', '#0d2d52', '#475569', '#000000',
+];
 
 // ── Sub-components ─────────────────────────────────────────────────────────────
 function AssetIcon({ color, abbr }: { color: string; abbr: string }) {
@@ -119,7 +71,11 @@ function NetWorthChart({ data, range, fmt }: { data: HistPoint[]; range: RangeKe
     : range === 'YTD' ? data.slice(-5)
     : data;
 
-  if (!sliced.length) return null;
+  if (!sliced.length) return (
+    <div className="flex-1 min-h-[200px] mt-3.5 flex items-center justify-center">
+      <p className="text-xs text-muted-foreground">No snapshot history yet — save your first snapshot to start tracking</p>
+    </div>
+  );
 
   const W = 760, H = 220;
   const pad = { top: 16, right: 14, bottom: 28, left: 56 };
@@ -190,11 +146,21 @@ function NetWorthChart({ data, range, fmt }: { data: HistPoint[]; range: RangeKe
 }
 
 // ── DonutChart ─────────────────────────────────────────────────────────────────
-function DonutChart({ data, fmt }: { data: DistEntry[]; fmt: (n: number) => string }) {
+function DonutChart({ data, fmt, totalPositiveAssets }: { data: DistEntry[]; fmt: (n: number) => string; totalPositiveAssets: number }) {
   const positive = data.filter(d => !d.isNeg);
   const totalPos = positive.reduce((s, d) => s + d.value, 0);
   const R = 64, r = 42, cx = 80, cy = 80;
   let cumAngle = -Math.PI / 2;
+
+  if (totalPos === 0) {
+    return (
+      <div className="flex flex-col items-center pt-2">
+        <div className="w-40 h-40 rounded-full border-4 border-muted flex items-center justify-center">
+          <p className="text-xs text-muted-foreground text-center px-3">No assets yet</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col items-center pt-2">
@@ -222,7 +188,7 @@ function DonutChart({ data, fmt }: { data: DistEntry[]; fmt: (n: number) => stri
       <div className="flex flex-col gap-1.5 mt-4 w-full">
         {data.map(seg => {
           const pct = seg.isNeg
-            ? (Math.abs(seg.value) / totalAssets) * 100
+            ? (Math.abs(seg.value) / (totalPositiveAssets || 1)) * 100
             : (seg.value / totalPos) * 100;
           return (
             <div key={seg.id} className="flex items-center gap-2 text-xs">
@@ -342,24 +308,54 @@ function SoRow({ name, meta, valueKey, prevValue, values, update, fmt }: {
 }
 
 // ── UpdatePortfolioSlideover ───────────────────────────────────────────────────
-function UpdatePortfolioSlideover({ open, onClose, fmt }: {
-  open: boolean; onClose: () => void; fmt: (n: number) => string;
+function UpdatePortfolioSlideover({ open, onClose, items, onSave, fmt }: {
+  open: boolean;
+  onClose: () => void;
+  items: PortfolioItem[];
+  onSave: (params: { itemValues: Record<string, number>; netWorth: number; snapshotMonth: string }) => Promise<void>;
+  fmt: (n: number) => string;
 }) {
   const [values, setValues] = useState<Record<string, string>>({});
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     if (!open) return;
     const init: Record<string, string> = {};
-    CASH.forEach(a => { init[`cash-${a.id}`] = a.balance.toFixed(2); });
-    SAVINGS.forEach(a => { init[`sav-${a.id}`] = a.current.toFixed(2); });
-    INVESTMENTS.forEach(a => { init[`inv-${a.id}`] = a.current.toFixed(2); });
-    PHYSICAL.forEach(a => { init[`phys-${a.id}`] = a.current.toFixed(2); });
-    LIABILITIES.forEach(a => { init[`liab-${a.id}`] = a.remaining.toFixed(2); });
+    items.forEach(item => { init[item.id] = item.current_value.toFixed(2); });
     setValues(init);
-  }, [open]);
+  }, [open, items]);
 
   const update = (k: string, v: string) => setValues(prev => ({ ...prev, [k]: v }));
+
   const monthLabel = new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+  const snapshotMonth = new Date().toISOString().slice(0, 7);
+
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      const itemValues: Record<string, number> = {};
+      items.forEach(item => {
+        const raw = values[item.id];
+        const n = parseFloat(raw ?? '');
+        itemValues[item.id] = Number.isFinite(n) && n >= 0 ? n : item.current_value;
+      });
+
+      const sum = (section: PortfolioSection) =>
+        items.filter(i => i.section === section).reduce((s, i) => s + (itemValues[i.id] ?? 0), 0);
+
+      const netWorth = sum('cash') + sum('savings') + sum('investment') + sum('physical') - sum('liability');
+      await onSave({ itemValues, netWorth, snapshotMonth });
+      onClose();
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const cash        = items.filter(i => i.section === 'cash');
+  const savings     = items.filter(i => i.section === 'savings');
+  const investments = items.filter(i => i.section === 'investment');
+  const physical    = items.filter(i => i.section === 'physical');
+  const liabilities = items.filter(i => i.section === 'liability');
 
   return (
     <>
@@ -381,38 +377,55 @@ function UpdatePortfolioSlideover({ open, onClose, fmt }: {
           </button>
         </div>
         <div className="flex-1 overflow-y-auto p-[18px] space-y-3.5">
-          <SoSection icon={<Wallet className="w-3.5 h-3.5 text-white" />} iconBg="#14b8a6" title="Cash" count={CASH.length}>
-            {CASH.map(a => (
-              <SoRow key={a.id} name={a.name} meta={a.meta} valueKey={`cash-${a.id}`} prevValue={a.prev} values={values} update={update} fmt={fmt} />
-            ))}
-          </SoSection>
-          <SoSection icon={<Landmark className="w-3.5 h-3.5 text-white" />} iconBg="#06b6d4" title="Savings" count={SAVINGS.length}>
-            {SAVINGS.map(a => (
-              <SoRow key={a.id} name={a.name} meta={`Invested: ${fmt(a.invested)}`} valueKey={`sav-${a.id}`} prevValue={a.current} values={values} update={update} fmt={fmt} />
-            ))}
-          </SoSection>
-          <SoSection icon={<TrendingUp className="w-3.5 h-3.5 text-white" />} iconBg="#7c3aed" title="Investments" count={INVESTMENTS.length}>
-            {INVESTMENTS.map(a => (
-              <SoRow key={a.id} name={a.name} meta={`${a.type} · Invested: ${fmt(a.invested)}`} valueKey={`inv-${a.id}`} prevValue={a.current} values={values} update={update} fmt={fmt} />
-            ))}
-          </SoSection>
-          <SoSection icon={<Home className="w-3.5 h-3.5 text-white" />} iconBg="#f59e0b" title="Physical Assets" count={PHYSICAL.length}>
-            {PHYSICAL.map(a => (
-              <SoRow key={a.id} name={a.name} meta={a.meta} valueKey={`phys-${a.id}`} prevValue={a.current} values={values} update={update} fmt={fmt} />
-            ))}
-          </SoSection>
-          <SoSection icon={<TrendingDown className="w-3.5 h-3.5 text-white" />} iconBg="#ef4444" title="Liabilities" count={LIABILITIES.length}>
-            {LIABILITIES.map(a => (
-              <SoRow key={a.id} name={a.name} meta={`${a.type} · Original: ${fmt(a.total)}`} valueKey={`liab-${a.id}`} prevValue={a.prev || a.remaining} values={values} update={update} fmt={fmt} />
-            ))}
-          </SoSection>
+          {items.length === 0 && (
+            <p className="text-sm text-muted-foreground text-center py-8">Add items to your portfolio first.</p>
+          )}
+          {cash.length > 0 && (
+            <SoSection icon={<Wallet className="w-3.5 h-3.5 text-white" />} iconBg="#14b8a6" title="Cash" count={cash.length}>
+              {cash.map(a => (
+                <SoRow key={a.id} name={a.name} meta={a.meta ?? undefined} valueKey={a.id} prevValue={a.current_value} values={values} update={update} fmt={fmt} />
+              ))}
+            </SoSection>
+          )}
+          {savings.length > 0 && (
+            <SoSection icon={<Landmark className="w-3.5 h-3.5 text-white" />} iconBg="#06b6d4" title="Savings" count={savings.length}>
+              {savings.map(a => (
+                <SoRow key={a.id} name={a.name} meta={a.invested_value != null ? `Invested: ${fmt(a.invested_value)}` : undefined} valueKey={a.id} prevValue={a.current_value} values={values} update={update} fmt={fmt} />
+              ))}
+            </SoSection>
+          )}
+          {investments.length > 0 && (
+            <SoSection icon={<TrendingUp className="w-3.5 h-3.5 text-white" />} iconBg="#7c3aed" title="Investments" count={investments.length}>
+              {investments.map(a => (
+                <SoRow key={a.id} name={a.name} meta={a.type_label && a.invested_value != null ? `${a.type_label} · Invested: ${fmt(a.invested_value)}` : (a.type_label ?? undefined)} valueKey={a.id} prevValue={a.current_value} values={values} update={update} fmt={fmt} />
+              ))}
+            </SoSection>
+          )}
+          {physical.length > 0 && (
+            <SoSection icon={<Home className="w-3.5 h-3.5 text-white" />} iconBg="#f59e0b" title="Physical Assets" count={physical.length}>
+              {physical.map(a => (
+                <SoRow key={a.id} name={a.name} meta={a.meta ?? undefined} valueKey={a.id} prevValue={a.current_value} values={values} update={update} fmt={fmt} />
+              ))}
+            </SoSection>
+          )}
+          {liabilities.length > 0 && (
+            <SoSection icon={<TrendingDown className="w-3.5 h-3.5 text-white" />} iconBg="#ef4444" title="Liabilities" count={liabilities.length}>
+              {liabilities.map(a => (
+                <SoRow key={a.id} name={a.name} meta={a.type_label && a.invested_value != null ? `${a.type_label} · Original: ${fmt(a.invested_value)}` : (a.type_label ?? undefined)} valueKey={a.id} prevValue={a.current_value} values={values} update={update} fmt={fmt} />
+              ))}
+            </SoSection>
+          )}
         </div>
         <div className="flex gap-2.5 px-6 py-3.5 bg-card border-t border-border shrink-0">
           <button className="flex-1 py-2.5 rounded-xl bg-muted text-foreground text-sm font-semibold hover:bg-muted/80 transition-colors" onClick={onClose}>
             Cancel
           </button>
-          <button className="flex-[2] py-2.5 rounded-xl bg-teal-500 hover:bg-teal-600 text-white text-sm font-semibold transition-colors" onClick={onClose}>
-            Save {monthLabel} Snapshot
+          <button
+            className="flex-[2] py-2.5 rounded-xl bg-teal-500 hover:bg-teal-600 text-white text-sm font-semibold transition-colors disabled:opacity-60"
+            onClick={handleSave}
+            disabled={saving || items.length === 0}
+          >
+            {saving ? 'Saving…' : `Save ${monthLabel} Snapshot`}
           </button>
         </div>
       </div>
@@ -420,226 +433,553 @@ function UpdatePortfolioSlideover({ open, onClose, fmt }: {
   );
 }
 
+// ── AddItemModal ───────────────────────────────────────────────────────────────
+const SECTION_OPTIONS: { value: PortfolioSection; label: string }[] = [
+  { value: 'cash',       label: 'Cash'           },
+  { value: 'savings',    label: 'Savings'         },
+  { value: 'investment', label: 'Investment'      },
+  { value: 'physical',   label: 'Physical Asset'  },
+  { value: 'liability',  label: 'Liability'       },
+];
+
+function AddItemModal({ onClose, onAdd }: {
+  onClose: () => void;
+  onAdd: (item: Omit<PortfolioItem, 'id'>) => Promise<void>;
+}) {
+  const [section, setSection] = useState<PortfolioSection>('cash');
+  const [name, setName] = useState('');
+  const [abbr, setAbbr] = useState('');
+  const [meta, setMeta] = useState('');
+  const [color, setColor] = useState('#14b8a6');
+  const [typeClass, setTypeClass] = useState('');
+  const [currentValue, setCurrentValue] = useState('');
+  const [investedValue, setInvestedValue] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
+
+  const needsType = section === 'investment' || section === 'liability';
+  const needsInvested = section !== 'cash';
+  const typeOptions = section === 'investment' ? INVESTMENT_TYPES : LIABILITY_TYPES;
+  const selectedType = typeOptions.find(t => t.class === typeClass);
+
+  const handleSubmit = async () => {
+    setError('');
+    if (!name.trim()) { setError('Name is required.'); return; }
+    if (!abbr.trim()) { setError('Abbreviation is required.'); return; }
+    const cv = parseFloat(currentValue);
+    if (!Number.isFinite(cv) || cv < 0) { setError('Enter a valid current value.'); return; }
+    const iv = investedValue.trim() ? parseFloat(investedValue) : null;
+    if (needsInvested && investedValue.trim() && (!Number.isFinite(iv!) || iv! < 0)) { setError('Enter a valid invested / original value.'); return; }
+    if (needsType && !typeClass) { setError('Select a type.'); return; }
+
+    setSaving(true);
+    try {
+      await onAdd({
+        section,
+        name: name.trim(),
+        abbr: abbr.trim().toUpperCase().slice(0, 5),
+        meta: meta.trim() || null,
+        color,
+        type_label: selectedType?.label ?? null,
+        type_class: typeClass || null,
+        current_value: cv,
+        invested_value: needsInvested ? (iv ?? cv) : null,
+        sort_order: 0,
+      });
+      onClose();
+    } catch {
+      setError('Failed to add item. Please try again.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const currentValueLabel =
+    section === 'cash'       ? 'Current Balance'      :
+    section === 'liability'  ? 'Remaining Balance'     :
+    'Current Value';
+
+  const investedLabel =
+    section === 'liability'  ? 'Original Amount'       :
+    section === 'savings'    ? 'Amount Deposited'      :
+    'Amount Invested';
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40" onClick={onClose}>
+      <div className="bg-card w-full max-w-md rounded-t-2xl sm:rounded-2xl shadow-xl overflow-hidden" onClick={e => e.stopPropagation()}>
+        <div className="flex items-center justify-between px-5 py-4 border-b border-border">
+          <p className="font-semibold text-sm">Add Portfolio Item</p>
+          <button onClick={onClose} className="p-1.5 rounded-lg text-muted-foreground hover:bg-muted transition-colors">
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+
+        <div className="px-5 py-5 space-y-4 max-h-[70vh] overflow-y-auto">
+          {/* Section */}
+          <div>
+            <label className="block text-xs font-semibold text-muted-foreground mb-1.5">Category</label>
+            <div className="flex flex-wrap gap-1.5">
+              {SECTION_OPTIONS.map(opt => (
+                <button
+                  key={opt.value}
+                  onClick={() => { setSection(opt.value); setTypeClass(''); }}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition-colors ${
+                    section === opt.value
+                      ? 'bg-teal-500 text-white border-teal-500'
+                      : 'border-border text-muted-foreground hover:border-teal-500 hover:text-teal-600'
+                  }`}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Name & Abbr */}
+          <div className="grid grid-cols-[1fr_100px] gap-3">
+            <div>
+              <label className="block text-xs font-semibold text-muted-foreground mb-1.5">Name</label>
+              <input
+                className="w-full px-3 py-2 border border-border rounded-lg text-sm bg-input-background outline-none focus:border-teal-500 transition-colors"
+                placeholder="e.g. Vanguard FTSE All-World"
+                value={name}
+                onChange={e => setName(e.target.value)}
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-muted-foreground mb-1.5">Abbr</label>
+              <input
+                className="w-full px-3 py-2 border border-border rounded-lg text-sm bg-input-background outline-none focus:border-teal-500 transition-colors uppercase"
+                placeholder="VAN"
+                maxLength={5}
+                value={abbr}
+                onChange={e => setAbbr(e.target.value.toUpperCase())}
+              />
+            </div>
+          </div>
+
+          {/* Description */}
+          <div>
+            <label className="block text-xs font-semibold text-muted-foreground mb-1.5">Description <span className="font-normal opacity-60">(optional)</span></label>
+            <input
+              className="w-full px-3 py-2 border border-border rounded-lg text-sm bg-input-background outline-none focus:border-teal-500 transition-colors"
+              placeholder={section === 'cash' ? 'e.g. Revolut, Millennium BCP' : section === 'physical' ? 'e.g. Primary residence' : ''}
+              value={meta}
+              onChange={e => setMeta(e.target.value)}
+            />
+          </div>
+
+          {/* Type (investments / liabilities only) */}
+          {needsType && (
+            <div>
+              <label className="block text-xs font-semibold text-muted-foreground mb-1.5">Type</label>
+              <div className="flex flex-wrap gap-1.5">
+                {typeOptions.map(t => (
+                  <button
+                    key={t.class}
+                    onClick={() => setTypeClass(t.class)}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition-colors ${
+                      typeClass === t.class
+                        ? 'bg-teal-500 text-white border-teal-500'
+                        : 'border-border text-muted-foreground hover:border-teal-500 hover:text-teal-600'
+                    }`}
+                  >
+                    {t.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Values */}
+          <div className={`grid gap-3 ${needsInvested ? 'grid-cols-2' : 'grid-cols-1'}`}>
+            {needsInvested && (
+              <div>
+                <label className="block text-xs font-semibold text-muted-foreground mb-1.5">{investedLabel}</label>
+                <input
+                  className="w-full px-3 py-2 border border-border rounded-lg text-sm bg-input-background outline-none focus:border-teal-500 transition-colors text-right tabular-nums"
+                  inputMode="decimal"
+                  placeholder="0.00"
+                  value={investedValue}
+                  onChange={e => setInvestedValue(e.target.value)}
+                />
+              </div>
+            )}
+            <div>
+              <label className="block text-xs font-semibold text-muted-foreground mb-1.5">{currentValueLabel}</label>
+              <input
+                className="w-full px-3 py-2 border border-border rounded-lg text-sm bg-input-background outline-none focus:border-teal-500 transition-colors text-right tabular-nums"
+                inputMode="decimal"
+                placeholder="0.00"
+                value={currentValue}
+                onChange={e => setCurrentValue(e.target.value)}
+              />
+            </div>
+          </div>
+
+          {/* Color */}
+          <div>
+            <label className="block text-xs font-semibold text-muted-foreground mb-1.5">Color</label>
+            <div className="flex flex-wrap gap-2">
+              {COLOR_PALETTE.map(c => (
+                <button
+                  key={c}
+                  onClick={() => setColor(c)}
+                  className={`w-6 h-6 rounded-md transition-transform ${color === c ? 'ring-2 ring-offset-1 ring-teal-500 scale-110' : 'hover:scale-110'}`}
+                  style={{ background: c }}
+                />
+              ))}
+            </div>
+          </div>
+
+          {error && <p className="text-xs text-red-500">{error}</p>}
+        </div>
+
+        <div className="flex gap-3 px-5 pb-5 pt-3 border-t border-border">
+          <button onClick={onClose} className="flex-1 py-2.5 rounded-xl bg-muted text-foreground text-sm font-semibold hover:bg-muted/80 transition-colors">
+            Cancel
+          </button>
+          <button
+            onClick={handleSubmit}
+            disabled={saving}
+            className="flex-[2] py-2.5 rounded-xl bg-teal-500 hover:bg-teal-600 text-white text-sm font-semibold transition-colors disabled:opacity-60"
+          >
+            {saving ? 'Adding…' : 'Add Item'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ── Main export ────────────────────────────────────────────────────────────────
 export function Portfolio() {
   const { formatAmount } = useCurrency();
+  const { items, snapshots, isLoading, addItem, deleteItem, saveSnapshot } = usePortfolio();
   const fmt = formatAmount;
   const [range, setRange] = useState<RangeKey>('All');
   const [soOpen, setSoOpen] = useState(false);
+  const [addOpen, setAddOpen] = useState(false);
+
+  // Derived totals
+  const cash        = items.filter(i => i.section === 'cash');
+  const savings     = items.filter(i => i.section === 'savings');
+  const investments = items.filter(i => i.section === 'investment');
+  const physical    = items.filter(i => i.section === 'physical');
+  const liabilities = items.filter(i => i.section === 'liability');
+
+  const totalCash    = cash.reduce((s, a) => s + a.current_value, 0);
+  const totalSavCur  = savings.reduce((s, a) => s + a.current_value, 0);
+  const totalSavInv  = savings.reduce((s, a) => s + (a.invested_value ?? 0), 0);
+  const totalInvCur  = investments.reduce((s, a) => s + a.current_value, 0);
+  const totalInvInv  = investments.reduce((s, a) => s + (a.invested_value ?? 0), 0);
+  const totalPhysCur = physical.reduce((s, a) => s + a.current_value, 0);
+  const totalPhysInv = physical.reduce((s, a) => s + (a.invested_value ?? 0), 0);
+  const totalLiabs   = liabilities.reduce((s, a) => s + a.current_value, 0);
+  const totalAssets  = totalCash + totalSavCur + totalInvCur + totalPhysCur;
+  const netWorth     = totalAssets - totalLiabs;
+
+  // Net worth history from snapshots
+  const histPoints: HistPoint[] = snapshots.map(s => ({
+    m: new Date(s.snapshot_month + '-01').toLocaleDateString('en-US', { month: 'short', year: '2-digit' }),
+    v: s.net_worth,
+  }));
+
+  const prevNW      = histPoints.length >= 2 ? histPoints[histPoints.length - 2].v : null;
+  const nwChange    = prevNW !== null ? netWorth - prevNW : 0;
+  const nwChangePct = prevNW ? (nwChange / prevNW) * 100 : 0;
+
+  const distribution: DistEntry[] = [
+    { id: 'cash',        name: 'Cash',           value: totalCash,    color: '#14b8a6', isNeg: false },
+    { id: 'savings',     name: 'Savings',         value: totalSavCur,  color: '#06b6d4', isNeg: false },
+    { id: 'investments', name: 'Investments',     value: totalInvCur,  color: '#7c3aed', isNeg: false },
+    { id: 'physical',    name: 'Physical Assets', value: totalPhysCur, color: '#f59e0b', isNeg: false },
+    { id: 'liabilities', name: 'Liabilities',     value: -totalLiabs,  color: '#ef4444', isNeg: true  },
+  ].filter(d => Math.abs(d.value) > 0);
+
+  const lastUpdated = snapshots.length > 0
+    ? new Date(snapshots[snapshots.length - 1].snapshot_month + '-01').toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
+    : 'Never';
 
   return (
     <div className="min-h-screen bg-background">
       <header className="border-b border-border bg-card sticky top-0 z-40">
         <div className="px-4 lg:px-8 py-3 lg:py-5">
-          <div className="flex items-center justify-between gap-4">
-            <div>
-              <h1 className="text-xl font-semibold">Portfolio Manager</h1>
+          <div className="flex items-center justify-between gap-3">
+            <h1 className="text-xl font-semibold">Portfolio Manager</h1>
+            <div className="flex items-center gap-2 shrink-0">
+              <button
+                className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-border text-sm font-semibold text-foreground hover:bg-muted transition-colors"
+                onClick={() => setAddOpen(true)}
+              >
+                <Plus className="w-3.5 h-3.5" />
+                Add Item
+              </button>
+              <button
+                className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-teal-500 hover:bg-teal-600 text-white text-sm font-semibold transition-colors"
+                onClick={() => setSoOpen(true)}
+              >
+                <Clock className="w-3.5 h-3.5" />
+                Update Portfolio
+              </button>
             </div>
-            <button
-              className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-teal-500 hover:bg-teal-600 text-white text-sm font-semibold transition-colors shrink-0"
-              onClick={() => setSoOpen(true)}
-            >
-              <Clock className="w-3.5 h-3.5" />
-              Update Portfolio
-            </button>
           </div>
         </div>
       </header>
 
-    <div className="px-4 lg:px-8 py-6 lg:py-8 max-w-[1240px] mx-auto">
+      <div className="px-4 lg:px-8 py-6 lg:py-8 max-w-[1240px] mx-auto">
 
-      {/* Overview grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-[2fr_1fr] gap-3.5 mb-3.5">
-        {/* Net worth card */}
-        <div className="bg-card border border-border rounded-xl p-5 flex flex-col">
-          <div className="flex items-start justify-between gap-3">
-            <div>
-              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-[0.06em]">Total Net Worth</p>
-              <p className="text-[42px] font-bold tracking-[-1.5px] text-foreground mt-1 leading-none">{fmt(netWorth)}</p>
-              <div className="flex items-center gap-2.5 mt-2 text-xs">
-                <span className={`font-semibold flex items-center gap-1 ${nwChange >= 0 ? 'text-emerald-600' : 'text-red-500'}`}>
-                  {nwChange >= 0 ? '↑' : '↓'} {fmt(Math.abs(nwChange))}
-                  <span className="font-medium opacity-80 ml-0.5">({fmtPct(nwChangePct)})</span>
-                </span>
-                <span className="text-muted-foreground">vs last month</span>
+        {isLoading && items.length === 0 ? (
+          <div className="flex items-center justify-center py-24 text-muted-foreground text-sm">Loading…</div>
+        ) : (
+          <>
+            {/* Overview grid */}
+            <div className="grid grid-cols-1 lg:grid-cols-[2fr_1fr] gap-3.5 mb-3.5">
+              {/* Net worth card */}
+              <div className="bg-card border border-border rounded-xl p-5 flex flex-col">
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-[0.06em]">Total Net Worth</p>
+                    <p className="text-[42px] font-bold tracking-[-1.5px] text-foreground mt-1 leading-none">{fmt(netWorth)}</p>
+                    {prevNW !== null && (
+                      <div className="flex items-center gap-2.5 mt-2 text-xs">
+                        <span className={`font-semibold flex items-center gap-1 ${nwChange >= 0 ? 'text-emerald-600' : 'text-red-500'}`}>
+                          {nwChange >= 0 ? '↑' : '↓'} {fmt(Math.abs(nwChange))}
+                          <span className="font-medium opacity-80 ml-0.5">({fmtPct(nwChangePct)})</span>
+                        </span>
+                        <span className="text-muted-foreground">vs last snapshot</span>
+                      </div>
+                    )}
+                  </div>
+                  <div className="flex gap-px bg-muted rounded-lg p-0.5 shrink-0">
+                    {(['1M', '6M', 'YTD', 'All'] as RangeKey[]).map(r => (
+                      <button
+                        key={r}
+                        className={`px-2.5 py-1.5 text-[11px] font-medium rounded-md transition-all ${range === r ? 'bg-card text-foreground font-semibold shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}
+                        onClick={() => setRange(r)}
+                      >
+                        {r}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <NetWorthChart data={histPoints} range={range} fmt={fmt} />
+              </div>
+
+              {/* Wealth distribution card */}
+              <div className="bg-card border border-border rounded-xl p-5 flex flex-col">
+                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-[0.06em] mb-1">Wealth Distribution</p>
+                <DonutChart data={distribution} fmt={fmt} totalPositiveAssets={totalAssets} />
               </div>
             </div>
-            <div className="flex gap-px bg-muted rounded-lg p-0.5 shrink-0">
-              {(['1M', '6M', 'YTD', 'All'] as RangeKey[]).map(r => (
-                <button
-                  key={r}
-                  className={`px-2.5 py-1.5 text-[11px] font-medium rounded-md transition-all ${range === r ? 'bg-card text-foreground font-semibold shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}
-                  onClick={() => setRange(r)}
-                >
-                  {r}
-                </button>
-              ))}
+
+            {/* Portfolio ledger */}
+            <div className="bg-card border border-border rounded-xl overflow-hidden">
+              <div className="flex items-center justify-between px-5 py-4 border-b border-border">
+                <p className="text-sm font-semibold text-foreground">Current Portfolio</p>
+                <p className="text-xs text-muted-foreground">Last snapshot: {lastUpdated}</p>
+              </div>
+
+              <LedgerSection
+                name="Cash" icon={<Wallet className="w-4 h-4 text-white" />} iconBg="#14b8a6"
+                total={totalCash} totalLabel="Total balance" count={cash.length} defaultOpen fmt={fmt}
+                columns={[{ label: 'Account Name' }, { label: 'Current Balance', num: true, width: '200px' }, { label: '', width: '40px' }]}
+              >
+                {cash.length === 0 ? (
+                  <tr><td colSpan={3} className="px-4 py-4 text-xs text-muted-foreground text-center">No cash accounts yet</td></tr>
+                ) : cash.map(a => (
+                  <tr key={a.id} className="group hover:bg-teal-500/[0.04] transition-colors">
+                    <td className="px-4 py-3 font-medium text-[13px]">
+                      <div className="flex items-center gap-2.5">
+                        <AssetIcon color={a.color} abbr={a.abbr} />
+                        <div>
+                          <div>{a.name}</div>
+                          {a.meta && <div className="text-[11px] text-muted-foreground font-normal mt-0.5">{a.meta}</div>}
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-4 py-3 text-right tabular-nums text-[13px]">{fmt(a.current_value)}</td>
+                    <td className="px-4 py-3 text-right">
+                      <button onClick={() => deleteItem(a.id)} className="opacity-0 group-hover:opacity-100 p-1 rounded text-muted-foreground hover:text-red-500 transition-all">
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </LedgerSection>
+
+              <LedgerSection
+                name="Savings" icon={<Landmark className="w-4 h-4 text-white" />} iconBg="#06b6d4"
+                total={totalSavCur} totalLabel={`Profit ${fmt(totalSavCur - totalSavInv)}`} count={savings.length} defaultOpen fmt={fmt}
+                columns={[
+                  { label: 'Name' }, { label: 'Invested', num: true }, { label: 'Actual', num: true },
+                  { label: 'Profit', num: true }, { label: 'Profit %', num: true }, { label: '', width: '40px' },
+                ]}
+              >
+                {savings.length === 0 ? (
+                  <tr><td colSpan={6} className="px-4 py-4 text-xs text-muted-foreground text-center">No savings accounts yet</td></tr>
+                ) : savings.map(a => {
+                  const invested = a.invested_value ?? a.current_value;
+                  const profit = a.current_value - invested;
+                  const pct = invested > 0 ? (profit / invested) * 100 : 0;
+                  return (
+                    <tr key={a.id} className="group hover:bg-teal-500/[0.04] transition-colors">
+                      <td className="px-4 py-3 font-medium text-[13px]">
+                        <div className="flex items-center gap-2.5">
+                          <AssetIcon color={a.color} abbr={a.abbr} />
+                          <div>
+                            <div>{a.name}</div>
+                            {a.meta && <div className="text-[11px] text-muted-foreground font-normal mt-0.5">{a.meta}</div>}
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-4 py-3 text-right tabular-nums text-[13px]">{fmt(invested)}</td>
+                      <td className="px-4 py-3 text-right tabular-nums text-[13px]">{fmt(a.current_value)}</td>
+                      <td className={`px-4 py-3 text-right tabular-nums text-[13px] font-semibold ${profit >= 0 ? 'text-emerald-600' : 'text-red-500'}`}>
+                        {profit >= 0 ? '+' : ''}{fmt(profit)}
+                      </td>
+                      <td className={`px-4 py-3 text-right tabular-nums text-[13px] font-semibold ${profit >= 0 ? 'text-emerald-600' : 'text-red-500'}`}>
+                        {fmtPct(pct)}
+                      </td>
+                      <td className="px-4 py-3 text-right">
+                        <button onClick={() => deleteItem(a.id)} className="opacity-0 group-hover:opacity-100 p-1 rounded text-muted-foreground hover:text-red-500 transition-all">
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </LedgerSection>
+
+              <LedgerSection
+                name="Investments" icon={<TrendingUp className="w-4 h-4 text-white" />} iconBg="#7c3aed"
+                total={totalInvCur} totalLabel={`Profit ${fmt(totalInvCur - totalInvInv)}`} count={investments.length} defaultOpen fmt={fmt}
+                columns={[
+                  { label: 'Name' }, { label: 'Type' }, { label: 'Invested', num: true },
+                  { label: 'Actual', num: true }, { label: 'Profit %', num: true }, { label: 'Profit', num: true }, { label: '', width: '40px' },
+                ]}
+              >
+                {investments.length === 0 ? (
+                  <tr><td colSpan={7} className="px-4 py-4 text-xs text-muted-foreground text-center">No investments yet</td></tr>
+                ) : investments.map(a => {
+                  const invested = a.invested_value ?? a.current_value;
+                  const profit = a.current_value - invested;
+                  const pct = invested > 0 ? (profit / invested) * 100 : 0;
+                  return (
+                    <tr key={a.id} className="group hover:bg-teal-500/[0.04] transition-colors">
+                      <td className="px-4 py-3 font-medium text-[13px]">
+                        <div className="flex items-center gap-2.5">
+                          <AssetIcon color={a.color} abbr={a.abbr} />
+                          <div>{a.name}</div>
+                        </div>
+                      </td>
+                      <td className="px-4 py-3">{a.type_label && a.type_class ? <TypePill type={a.type_label} typeClass={a.type_class} /> : null}</td>
+                      <td className="px-4 py-3 text-right tabular-nums text-[13px]">{fmt(invested)}</td>
+                      <td className="px-4 py-3 text-right tabular-nums text-[13px]">{fmt(a.current_value)}</td>
+                      <td className={`px-4 py-3 text-right tabular-nums text-[13px] font-semibold ${profit >= 0 ? 'text-emerald-600' : 'text-red-500'}`}>
+                        {fmtPct(pct)}
+                      </td>
+                      <td className={`px-4 py-3 text-right tabular-nums text-[13px] font-semibold ${profit >= 0 ? 'text-emerald-600' : 'text-red-500'}`}>
+                        {profit >= 0 ? '+' : ''}{fmt(profit)}
+                      </td>
+                      <td className="px-4 py-3 text-right">
+                        <button onClick={() => deleteItem(a.id)} className="opacity-0 group-hover:opacity-100 p-1 rounded text-muted-foreground hover:text-red-500 transition-all">
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </LedgerSection>
+
+              <LedgerSection
+                name="Physical Assets" icon={<Home className="w-4 h-4 text-white" />} iconBg="#f59e0b"
+                total={totalPhysCur} totalLabel={`Profit ${fmt(totalPhysCur - totalPhysInv)}`} count={physical.length} fmt={fmt}
+                columns={[
+                  { label: 'Name' }, { label: 'Purchased', num: true }, { label: 'Actual', num: true },
+                  { label: 'Profit %', num: true }, { label: 'Profit', num: true }, { label: '', width: '40px' },
+                ]}
+              >
+                {physical.length === 0 ? (
+                  <tr><td colSpan={6} className="px-4 py-4 text-xs text-muted-foreground text-center">No physical assets yet</td></tr>
+                ) : physical.map(a => {
+                  const invested = a.invested_value ?? a.current_value;
+                  const profit = a.current_value - invested;
+                  const pct = invested > 0 ? (profit / invested) * 100 : 0;
+                  return (
+                    <tr key={a.id} className="group hover:bg-teal-500/[0.04] transition-colors">
+                      <td className="px-4 py-3 font-medium text-[13px]">
+                        <div className="flex items-center gap-2.5">
+                          <AssetIcon color={a.color} abbr={a.abbr} />
+                          <div>
+                            <div>{a.name}</div>
+                            {a.meta && <div className="text-[11px] text-muted-foreground font-normal mt-0.5">{a.meta}</div>}
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-4 py-3 text-right tabular-nums text-[13px]">{fmt(invested)}</td>
+                      <td className="px-4 py-3 text-right tabular-nums text-[13px]">{fmt(a.current_value)}</td>
+                      <td className={`px-4 py-3 text-right tabular-nums text-[13px] font-semibold ${profit >= 0 ? 'text-emerald-600' : 'text-red-500'}`}>
+                        {fmtPct(pct)}
+                      </td>
+                      <td className={`px-4 py-3 text-right tabular-nums text-[13px] font-semibold ${profit >= 0 ? 'text-emerald-600' : 'text-red-500'}`}>
+                        {profit >= 0 ? '+' : ''}{fmt(profit)}
+                      </td>
+                      <td className="px-4 py-3 text-right">
+                        <button onClick={() => deleteItem(a.id)} className="opacity-0 group-hover:opacity-100 p-1 rounded text-muted-foreground hover:text-red-500 transition-all">
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </LedgerSection>
+
+              <LedgerSection
+                name="Liabilities" icon={<TrendingDown className="w-4 h-4 text-white" />} iconBg="#ef4444" isLiability
+                total={totalLiabs} totalLabel="Total outstanding" count={liabilities.length} fmt={fmt}
+                columns={[{ label: 'Name' }, { label: 'Type' }, { label: 'Original', num: true }, { label: 'Remaining', num: true }, { label: '', width: '40px' }]}
+              >
+                {liabilities.length === 0 ? (
+                  <tr><td colSpan={5} className="px-4 py-4 text-xs text-muted-foreground text-center">No liabilities yet</td></tr>
+                ) : liabilities.map(a => (
+                  <tr key={a.id} className="group hover:bg-teal-500/[0.04] transition-colors">
+                    <td className="px-4 py-3 font-medium text-[13px]">
+                      <div className="flex items-center gap-2.5">
+                        <AssetIcon color={a.color} abbr={a.abbr} />
+                        <div>{a.name}</div>
+                      </div>
+                    </td>
+                    <td className="px-4 py-3">{a.type_label && a.type_class ? <TypePill type={a.type_label} typeClass={a.type_class} /> : null}</td>
+                    <td className="px-4 py-3 text-right tabular-nums text-[13px]">{a.invested_value != null ? fmt(a.invested_value) : '—'}</td>
+                    <td className="px-4 py-3 text-right tabular-nums text-[13px] font-semibold text-red-500">−{fmt(a.current_value)}</td>
+                    <td className="px-4 py-3 text-right">
+                      <button onClick={() => deleteItem(a.id)} className="opacity-0 group-hover:opacity-100 p-1 rounded text-muted-foreground hover:text-red-500 transition-all">
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </LedgerSection>
             </div>
-          </div>
-          <NetWorthChart data={NW_HISTORY} range={range} fmt={fmt} />
-        </div>
+          </>
+        )}
 
-        {/* Wealth distribution card */}
-        <div className="bg-card border border-border rounded-xl p-5 flex flex-col">
-          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-[0.06em] mb-1">Wealth Distribution</p>
-          <DonutChart data={DISTRIBUTION} fmt={fmt} />
-        </div>
+        <UpdatePortfolioSlideover
+          open={soOpen}
+          onClose={() => setSoOpen(false)}
+          items={items}
+          onSave={saveSnapshot}
+          fmt={fmt}
+        />
+
+        {addOpen && (
+          <AddItemModal
+            onClose={() => setAddOpen(false)}
+            onAdd={addItem}
+          />
+        )}
       </div>
-
-      {/* Portfolio ledger */}
-      <div className="bg-card border border-border rounded-xl overflow-hidden">
-        <div className="flex items-center justify-between px-5 py-4 border-b border-border">
-          <p className="text-sm font-semibold text-foreground">Current Portfolio</p>
-          <p className="text-xs text-muted-foreground">Last updated: {LAST_UPDATED}</p>
-        </div>
-
-        <LedgerSection
-          name="Cash" icon={<Wallet className="w-4 h-4 text-white" />} iconBg="#14b8a6"
-          total={totalCash} totalLabel="Total balance" count={CASH.length} defaultOpen fmt={fmt}
-          columns={[{ label: 'Account Name' }, { label: 'Current Balance', num: true, width: '200px' }]}
-        >
-          {CASH.map(a => (
-            <tr key={a.id} className="hover:bg-teal-500/[0.04] transition-colors">
-              <td className="px-4 py-3 font-medium text-[13px]">
-                <div className="flex items-center gap-2.5">
-                  <AssetIcon color={a.color} abbr={a.abbr} />
-                  <div>
-                    <div>{a.name}</div>
-                    <div className="text-[11px] text-muted-foreground font-normal mt-0.5">{a.meta}</div>
-                  </div>
-                </div>
-              </td>
-              <td className="px-4 py-3 text-right tabular-nums text-[13px]">{fmt(a.balance)}</td>
-            </tr>
-          ))}
-        </LedgerSection>
-
-        <LedgerSection
-          name="Savings" icon={<Landmark className="w-4 h-4 text-white" />} iconBg="#06b6d4"
-          total={totalSavCur} totalLabel={`Profit ${fmt(totalSavCur - totalSavInv)}`} count={SAVINGS.length} defaultOpen fmt={fmt}
-          columns={[
-            { label: 'Name' }, { label: 'Invested', num: true }, { label: 'Actual', num: true },
-            { label: 'Profit', num: true }, { label: 'Profit %', num: true },
-          ]}
-        >
-          {SAVINGS.map(a => {
-            const profit = a.current - a.invested;
-            const pct = (profit / a.invested) * 100;
-            return (
-              <tr key={a.id} className="hover:bg-teal-500/[0.04] transition-colors">
-                <td className="px-4 py-3 font-medium text-[13px]">
-                  <div className="flex items-center gap-2.5">
-                    <AssetIcon color={a.color} abbr={a.abbr} />
-                    <div>
-                      <div>{a.name}</div>
-                      <div className="text-[11px] text-muted-foreground font-normal mt-0.5">{a.meta}</div>
-                    </div>
-                  </div>
-                </td>
-                <td className="px-4 py-3 text-right tabular-nums text-[13px]">{fmt(a.invested)}</td>
-                <td className="px-4 py-3 text-right tabular-nums text-[13px]">{fmt(a.current)}</td>
-                <td className={`px-4 py-3 text-right tabular-nums text-[13px] font-semibold ${profit >= 0 ? 'text-emerald-600' : 'text-red-500'}`}>
-                  {profit >= 0 ? '+' : ''}{fmt(profit)}
-                </td>
-                <td className={`px-4 py-3 text-right tabular-nums text-[13px] font-semibold ${profit >= 0 ? 'text-emerald-600' : 'text-red-500'}`}>
-                  {fmtPct(pct)}
-                </td>
-              </tr>
-            );
-          })}
-        </LedgerSection>
-
-        <LedgerSection
-          name="Investments" icon={<TrendingUp className="w-4 h-4 text-white" />} iconBg="#7c3aed"
-          total={totalInvCur} totalLabel={`Profit ${fmt(totalInvCur - totalInvInv)}`} count={INVESTMENTS.length} defaultOpen fmt={fmt}
-          columns={[
-            { label: 'Name' }, { label: 'Type' }, { label: 'Invested', num: true },
-            { label: 'Actual', num: true }, { label: 'Profit %', num: true }, { label: 'Profit', num: true },
-          ]}
-        >
-          {INVESTMENTS.map(a => {
-            const profit = a.current - a.invested;
-            const pct = (profit / a.invested) * 100;
-            return (
-              <tr key={a.id} className="hover:bg-teal-500/[0.04] transition-colors">
-                <td className="px-4 py-3 font-medium text-[13px]">
-                  <div className="flex items-center gap-2.5">
-                    <AssetIcon color={a.color} abbr={a.abbr} />
-                    <div>{a.name}</div>
-                  </div>
-                </td>
-                <td className="px-4 py-3"><TypePill type={a.type} typeClass={a.typeClass} /></td>
-                <td className="px-4 py-3 text-right tabular-nums text-[13px]">{fmt(a.invested)}</td>
-                <td className="px-4 py-3 text-right tabular-nums text-[13px]">{fmt(a.current)}</td>
-                <td className={`px-4 py-3 text-right tabular-nums text-[13px] font-semibold ${profit >= 0 ? 'text-emerald-600' : 'text-red-500'}`}>
-                  {fmtPct(pct)}
-                </td>
-                <td className={`px-4 py-3 text-right tabular-nums text-[13px] font-semibold ${profit >= 0 ? 'text-emerald-600' : 'text-red-500'}`}>
-                  {profit >= 0 ? '+' : ''}{fmt(profit)}
-                </td>
-              </tr>
-            );
-          })}
-        </LedgerSection>
-
-        <LedgerSection
-          name="Physical Assets" icon={<Home className="w-4 h-4 text-white" />} iconBg="#f59e0b"
-          total={totalPhysCur} totalLabel={`Profit ${fmt(totalPhysCur - totalPhysInv)}`} count={PHYSICAL.length} fmt={fmt}
-          columns={[
-            { label: 'Name' }, { label: 'Invested', num: true }, { label: 'Actual', num: true },
-            { label: 'Profit %', num: true }, { label: 'Profit', num: true },
-          ]}
-        >
-          {PHYSICAL.map(a => {
-            const profit = a.current - a.invested;
-            const pct = (profit / a.invested) * 100;
-            return (
-              <tr key={a.id} className="hover:bg-teal-500/[0.04] transition-colors">
-                <td className="px-4 py-3 font-medium text-[13px]">
-                  <div className="flex items-center gap-2.5">
-                    <AssetIcon color={a.color} abbr={a.abbr} />
-                    <div>
-                      <div>{a.name}</div>
-                      <div className="text-[11px] text-muted-foreground font-normal mt-0.5">{a.meta}</div>
-                    </div>
-                  </div>
-                </td>
-                <td className="px-4 py-3 text-right tabular-nums text-[13px]">{fmt(a.invested)}</td>
-                <td className="px-4 py-3 text-right tabular-nums text-[13px]">{fmt(a.current)}</td>
-                <td className={`px-4 py-3 text-right tabular-nums text-[13px] font-semibold ${profit >= 0 ? 'text-emerald-600' : 'text-red-500'}`}>
-                  {fmtPct(pct)}
-                </td>
-                <td className={`px-4 py-3 text-right tabular-nums text-[13px] font-semibold ${profit >= 0 ? 'text-emerald-600' : 'text-red-500'}`}>
-                  {profit >= 0 ? '+' : ''}{fmt(profit)}
-                </td>
-              </tr>
-            );
-          })}
-        </LedgerSection>
-
-        <LedgerSection
-          name="Liabilities" icon={<TrendingDown className="w-4 h-4 text-white" />} iconBg="#ef4444" isLiability
-          total={totalLiabs} totalLabel="Total outstanding" count={LIABILITIES.length} fmt={fmt}
-          columns={[{ label: 'Name' }, { label: 'Type' }, { label: 'Original', num: true }, { label: 'Remaining', num: true }]}
-        >
-          {LIABILITIES.map(a => (
-            <tr key={a.id} className="hover:bg-teal-500/[0.04] transition-colors">
-              <td className="px-4 py-3 font-medium text-[13px]">
-                <div className="flex items-center gap-2.5">
-                  <AssetIcon color={a.color} abbr={a.abbr} />
-                  <div>{a.name}</div>
-                </div>
-              </td>
-              <td className="px-4 py-3"><TypePill type={a.type} typeClass={a.typeClass} /></td>
-              <td className="px-4 py-3 text-right tabular-nums text-[13px]">{fmt(a.total)}</td>
-              <td className="px-4 py-3 text-right tabular-nums text-[13px] font-semibold text-red-500">−{fmt(a.remaining)}</td>
-            </tr>
-          ))}
-        </LedgerSection>
-      </div>
-
-      <UpdatePortfolioSlideover open={soOpen} onClose={() => setSoOpen(false)} fmt={fmt} />
-    </div>
     </div>
   );
 }
