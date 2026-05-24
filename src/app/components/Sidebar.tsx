@@ -1,5 +1,5 @@
 import React from 'react';
-import { LayoutDashboard, List, PiggyBank, TrendingUp, Globe, ChevronDown, LogOut, LogIn, Languages, Settings, PiggyBank as SavingsIcon, Building2 } from 'lucide-react';
+import { LayoutDashboard, List, PiggyBank, TrendingUp, Globe, ChevronDown, LogOut, LogIn, Languages, Settings, PiggyBank as SavingsIcon, Building2, Briefcase } from 'lucide-react';
 import { Link, useLocation } from 'react-router';
 import { useCurrency, currencies } from '../context/CurrencyContext';
 import { useAuth } from '../context/AuthContext';
@@ -74,6 +74,13 @@ export function Sidebar() {
 
         {sectionLabel('Planning')}
         <ul className="space-y-0.5">
+          <li>
+            <Link to="/portfolio" className={linkClass('/portfolio')}>
+              <Briefcase className="w-5 h-5 shrink-0" />
+              <span>Portfolio Manager</span>
+              <span className="ml-auto text-[9px] font-bold bg-teal-500 text-white px-1.5 py-0.5 rounded-full tracking-wide">NEW</span>
+            </Link>
+          </li>
           {planningNav.map(item => {
             const Icon = item.icon;
             return (
