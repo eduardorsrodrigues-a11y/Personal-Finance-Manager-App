@@ -5,7 +5,7 @@ import { usePortfolio, type PortfolioItem, type PortfolioSection } from '../cont
 
 type RangeKey = '1M' | '6M' | 'YTD' | 'All';
 
-interface HistPoint { m: string; v: number; }
+interface HistPoint { m: string; v: number; date: string; }
 interface DistEntry  { id: string; name: string; value: number; color: string; isNeg: boolean; }
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
@@ -66,9 +66,13 @@ function TypePill({ type, typeClass }: { type: string; typeClass: string }) {
 function NetWorthChart({ data, range, fmt }: { data: HistPoint[]; range: RangeKey; fmt: (n: number) => string }) {
   const [tip, setTip] = useState<{ d: HistPoint; x: number; y: number } | null>(null);
 
-  const sliced: HistPoint[] = range === '1M' ? data.slice(-2)
-    : range === '6M' ? data.slice(-6)
-    : range === 'YTD' ? data.slice(-5)
+  const now = new Date();
+  const cutoff = (days: number) => new Date(now.getTime() - days * 86_400_000).toISOString().slice(0, 10);
+  const ytdStart = `${now.getFullYear()}-01-01`;
+  const sliced: HistPoint[] =
+    range === '1M'  ? data.filter(d => d.date >= cutoff(30))
+    : range === '6M'  ? data.filter(d => d.date >= cutoff(180))
+    : range === 'YTD' ? data.filter(d => d.date >= ytdStart)
     : data;
 
   if (!sliced.length) return (
@@ -331,8 +335,8 @@ function UpdatePortfolioSlideover({ open, onClose, items, onSave, fmt }: {
 
   const update = (k: string, v: string) => setValues(prev => ({ ...prev, [k]: v }));
 
-  const snapshotMonth = asOfDate.slice(0, 7);
-  const monthLabel = new Date(asOfDate + 'T12:00:00').toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+  const snapshotMonth = asOfDate; // full YYYY-MM-DD — daily granularity
+  const monthLabel = new Date(asOfDate + 'T12:00:00').toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
 
   const handleSave = async () => {
     setSaving(true);
@@ -696,9 +700,10 @@ export function Portfolio() {
   const totalAssets  = totalCash + totalSavCur + totalInvCur + totalPhysCur;
   const netWorth     = totalAssets - totalLiabs;
 
-  // Net worth history from snapshots
+  // Net worth history from snapshots (daily granularity)
   const histPoints: HistPoint[] = snapshots.map(s => ({
-    m: new Date(s.snapshot_month + '-01').toLocaleDateString('en-US', { month: 'short', year: '2-digit' }),
+    date: s.snapshot_month,
+    m: new Date(s.snapshot_month + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
     v: s.net_worth,
   }));
 
@@ -715,7 +720,7 @@ export function Portfolio() {
   ].filter(d => Math.abs(d.value) > 0);
 
   const lastUpdated = snapshots.length > 0
-    ? new Date(snapshots[snapshots.length - 1].snapshot_month + '-01').toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
+    ? new Date(snapshots[snapshots.length - 1].snapshot_month + 'T12:00:00').toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })
     : 'Never';
 
   return (
