@@ -156,28 +156,30 @@ function DonutChart({ data, fmt, hiddenIds, onToggle }: {
   hiddenIds: Set<string>;
   onToggle: (id: string) => void;
 }) {
-  const visiblePositive = data.filter(d => !d.isNeg && !hiddenIds.has(d.id));
-  const totalPos = visiblePositive.reduce((s, d) => s + d.value, 0);
+  const visibleItems = data.filter(d => !hiddenIds.has(d.id));
+  // Use absolute values to size each slice (liabilities get their own slice)
+  const totalForSlices = visibleItems.reduce((s, d) => s + Math.abs(d.value), 0);
+  // Center shows net: assets − liabilities (liabilities stored as negative)
+  const centerValue = visibleItems.reduce((s, d) => s + d.value, 0);
   const R = 64, r = 42, cx = 80, cy = 80;
   let cumAngle = -Math.PI / 2;
 
-  const isFiltered = hiddenIds.size > 0;
-  const allPositiveHidden = data.filter(d => !d.isNeg).every(d => hiddenIds.has(d.id));
+  const allHidden = data.length > 0 && visibleItems.length === 0;
 
   return (
     <div className="flex flex-col items-center pt-2">
       <div className="relative w-40 h-40">
-        {allPositiveHidden || totalPos === 0 ? (
+        {allHidden || totalForSlices === 0 ? (
           <div className="w-full h-full rounded-full border-4 border-muted flex items-center justify-center">
             <p className="text-[10px] text-muted-foreground text-center px-3">
-              {allPositiveHidden ? 'All hidden' : 'No assets yet'}
+              {allHidden ? 'All hidden' : 'No assets yet'}
             </p>
           </div>
         ) : (
           <>
             <svg viewBox="0 0 160 160" className="w-full h-full">
-              {visiblePositive.map(seg => {
-                const a = (seg.value / totalPos) * Math.PI * 2;
+              {visibleItems.map(seg => {
+                const a = (Math.abs(seg.value) / totalForSlices) * Math.PI * 2;
                 const start = cumAngle;
                 const end = cumAngle + a;
                 cumAngle = end;
@@ -191,10 +193,8 @@ function DonutChart({ data, fmt, hiddenIds, onToggle }: {
               })}
             </svg>
             <div className="absolute inset-0 flex flex-col items-center justify-center text-center pointer-events-none">
-              <div className="text-[10px] font-semibold text-muted-foreground uppercase tracking-[0.06em]">
-                {isFiltered ? 'Visible' : 'Total Assets'}
-              </div>
-              <div className="text-lg font-bold text-foreground tracking-tight leading-tight">{fmt(totalPos)}</div>
+              <div className="text-[10px] font-semibold text-muted-foreground uppercase tracking-[0.06em]">Total</div>
+              <div className="text-lg font-bold text-foreground tracking-tight leading-tight">{fmt(centerValue)}</div>
             </div>
           </>
         )}
@@ -202,8 +202,8 @@ function DonutChart({ data, fmt, hiddenIds, onToggle }: {
       <div className="flex flex-col gap-0.5 mt-4 w-full">
         {data.map(seg => {
           const hidden = hiddenIds.has(seg.id);
-          const pct = !hidden && totalPos > 0
-            ? (Math.abs(seg.value) / totalPos) * 100
+          const pct = !hidden && totalForSlices > 0
+            ? (Math.abs(seg.value) / totalForSlices) * 100
             : null;
           return (
             <button
