@@ -707,9 +707,32 @@ export function Portfolio() {
     v: s.net_worth,
   }));
 
-  const prevNW      = histPoints.length >= 2 ? histPoints[histPoints.length - 2].v : null;
-  const nwChange    = prevNW !== null ? netWorth - prevNW : 0;
-  const nwChangePct = prevNW ? (nwChange / prevNW) * 100 : 0;
+  // Range-aware comparison — built from snapshot data, not items.current_value.
+  // items.current_value is overwritten on every save (including backdated ones), so it
+  // cannot be relied on as the "current" net worth. The latest snapshot by date is the
+  // source of truth for the hero number.
+  const _now = new Date();
+  const _cutoff = (days: number) => new Date(_now.getTime() - days * 86_400_000).toISOString().slice(0, 10);
+  const _ytdStart = `${_now.getFullYear()}-01-01`;
+  const filteredPoints =
+    range === '1M'  ? histPoints.filter(d => d.date >= _cutoff(30))
+    : range === '6M'  ? histPoints.filter(d => d.date >= _cutoff(180))
+    : range === 'YTD' ? histPoints.filter(d => d.date >= _ytdStart)
+    : histPoints;
+
+  const displayNW = histPoints.length > 0 ? histPoints[histPoints.length - 1].v : netWorth;
+  const latestInRange   = filteredPoints.length > 0 ? filteredPoints[filteredPoints.length - 1] : null;
+  const baselineInRange = filteredPoints.length >= 2
+    ? (range === 'All' ? filteredPoints[filteredPoints.length - 2] : filteredPoints[0])
+    : null;
+  const nwChange      = latestInRange && baselineInRange ? latestInRange.v - baselineInRange.v : 0;
+  const nwChangePct   = baselineInRange && baselineInRange.v !== 0 ? (nwChange / baselineInRange.v) * 100 : 0;
+  const showComparison = latestInRange !== null && baselineInRange !== null;
+  const rangeLabel =
+    range === '1M'  ? 'vs 1 month ago'
+    : range === '6M'  ? 'vs 6 months ago'
+    : range === 'YTD' ? 'vs start of year'
+    : 'vs previous snapshot';
 
   const distribution: DistEntry[] = [
     { id: 'cash',        name: 'Cash',           value: totalCash,    color: '#14b8a6', isNeg: false },
@@ -762,14 +785,14 @@ export function Portfolio() {
                 <div className="flex items-start justify-between gap-3">
                   <div>
                     <p className="text-xs font-semibold text-muted-foreground uppercase tracking-[0.06em]">Total Net Worth</p>
-                    <p className="text-[42px] font-bold tracking-[-1.5px] text-foreground mt-1 leading-none">{fmt(netWorth)}</p>
-                    {prevNW !== null && (
+                    <p className="text-[42px] font-bold tracking-[-1.5px] text-foreground mt-1 leading-none">{fmt(displayNW)}</p>
+                    {showComparison && (
                       <div className="flex items-center gap-2.5 mt-2 text-xs">
                         <span className={`font-semibold flex items-center gap-1 ${nwChange >= 0 ? 'text-emerald-600' : 'text-red-500'}`}>
                           {nwChange >= 0 ? '↑' : '↓'} {fmt(Math.abs(nwChange))}
                           <span className="font-medium opacity-80 ml-0.5">({fmtPct(nwChangePct)})</span>
                         </span>
-                        <span className="text-muted-foreground">vs last snapshot</span>
+                        <span className="text-muted-foreground">{rangeLabel}</span>
                       </div>
                     )}
                   </div>
