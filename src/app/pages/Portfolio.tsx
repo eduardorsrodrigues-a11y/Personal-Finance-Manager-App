@@ -1,5 +1,5 @@
 import { useState, useEffect, type ReactNode } from 'react';
-import { Info, ChevronDown, X, Clock, Wallet, Landmark, TrendingUp, TrendingDown, Home } from 'lucide-react';
+import { ChevronDown, X, Clock, Wallet, Landmark, TrendingUp, TrendingDown, Home } from 'lucide-react';
 import { useCurrency } from '../context/CurrencyContext';
 
 type RangeKey = '1M' | '6M' | 'YTD' | 'All';
@@ -430,21 +430,18 @@ export function Portfolio() {
   return (
     <div className="px-4 lg:px-8 py-6 lg:py-8 max-w-[1240px] mx-auto">
       {/* Header */}
-      <div className="flex items-center justify-between mb-2">
-        <h1 className="text-2xl font-bold tracking-tight text-foreground">Portfolio Manager</h1>
+      <div className="flex items-center justify-between mb-6">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight text-foreground">Portfolio Manager</h1>
+          <p className="text-sm text-muted-foreground">Manually track your assets and liabilities to monitor your total net worth over time.</p>
+        </div>
         <button
-          className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-teal-500 hover:bg-teal-600 text-white text-sm font-semibold transition-colors"
+          className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-teal-500 hover:bg-teal-600 text-white text-sm font-semibold transition-colors shrink-0"
           onClick={() => setSoOpen(true)}
         >
           <Clock className="w-3.5 h-3.5" />
           Update Portfolio
         </button>
-      </div>
-
-      {/* Info banner */}
-      <div className="flex items-center gap-2.5 bg-blue-50 border border-blue-200 rounded-xl px-3.5 py-2.5 text-xs text-blue-800 mb-6">
-        <Info className="w-3.5 h-3.5 shrink-0" />
-        <span>Manually track your assets and liabilities to monitor your total net worth over time.</span>
       </div>
 
       {/* Overview grid */}
