@@ -150,61 +150,81 @@ function NetWorthChart({ data, range, fmt }: { data: HistPoint[]; range: RangeKe
 }
 
 // ── DonutChart ─────────────────────────────────────────────────────────────────
-function DonutChart({ data, fmt, totalPositiveAssets }: { data: DistEntry[]; fmt: (n: number) => string; totalPositiveAssets: number }) {
-  const positive = data.filter(d => !d.isNeg);
-  const totalPos = positive.reduce((s, d) => s + d.value, 0);
+function DonutChart({ data, fmt, hiddenIds, onToggle }: {
+  data: DistEntry[];
+  fmt: (n: number) => string;
+  hiddenIds: Set<string>;
+  onToggle: (id: string) => void;
+}) {
+  const visiblePositive = data.filter(d => !d.isNeg && !hiddenIds.has(d.id));
+  const totalPos = visiblePositive.reduce((s, d) => s + d.value, 0);
   const R = 64, r = 42, cx = 80, cy = 80;
   let cumAngle = -Math.PI / 2;
 
-  if (totalPos === 0) {
-    return (
-      <div className="flex flex-col items-center pt-2">
-        <div className="w-40 h-40 rounded-full border-4 border-muted flex items-center justify-center">
-          <p className="text-xs text-muted-foreground text-center px-3">No assets yet</p>
-        </div>
-      </div>
-    );
-  }
+  const isFiltered = hiddenIds.size > 0;
+  const allPositiveHidden = data.filter(d => !d.isNeg).every(d => hiddenIds.has(d.id));
 
   return (
     <div className="flex flex-col items-center pt-2">
       <div className="relative w-40 h-40">
-        <svg viewBox="0 0 160 160" className="w-full h-full">
-          {positive.map(seg => {
-            const a = (seg.value / totalPos) * Math.PI * 2;
-            const start = cumAngle;
-            const end = cumAngle + a;
-            cumAngle = end;
-            const x1 = cx + R * Math.cos(start), y1 = cy + R * Math.sin(start);
-            const x2 = cx + R * Math.cos(end),   y2 = cy + R * Math.sin(end);
-            const x3 = cx + r * Math.cos(end),   y3 = cy + r * Math.sin(end);
-            const x4 = cx + r * Math.cos(start), y4 = cy + r * Math.sin(start);
-            const large = a > Math.PI ? 1 : 0;
-            const d = `M${x1},${y1} A${R},${R} 0 ${large} 1 ${x2},${y2} L${x3},${y3} A${r},${r} 0 ${large} 0 ${x4},${y4} Z`;
-            return <path key={seg.id} d={d} fill={seg.color} />;
-          })}
-        </svg>
-        <div className="absolute inset-0 flex flex-col items-center justify-center text-center pointer-events-none">
-          <div className="text-[10px] font-semibold text-muted-foreground uppercase tracking-[0.06em]">Total Assets</div>
-          <div className="text-lg font-bold text-foreground tracking-tight leading-tight">{fmt(totalPos)}</div>
-        </div>
-      </div>
-      <div className="flex flex-col gap-1.5 mt-4 w-full">
-        {data.map(seg => {
-          const pct = seg.isNeg
-            ? (Math.abs(seg.value) / (totalPositiveAssets || 1)) * 100
-            : (seg.value / totalPos) * 100;
-          return (
-            <div key={seg.id} className="flex items-center gap-2 text-xs">
-              <div className="w-2 h-2 rounded-[2px] shrink-0" style={{ background: seg.color }} />
-              <span className="flex-1 font-medium text-foreground">{seg.name}</span>
-              <span className="text-[11px] font-medium text-muted-foreground min-w-[38px] text-right">
-                {seg.isNeg ? '−' : ''}{pct.toFixed(0)}%
-              </span>
-              <span className={`font-semibold min-w-[80px] text-right tabular-nums ${seg.isNeg ? 'text-red-500' : 'text-foreground'}`}>
-                {fmt(Math.abs(seg.value))}
-              </span>
+        {allPositiveHidden || totalPos === 0 ? (
+          <div className="w-full h-full rounded-full border-4 border-muted flex items-center justify-center">
+            <p className="text-[10px] text-muted-foreground text-center px-3">
+              {allPositiveHidden ? 'All hidden' : 'No assets yet'}
+            </p>
+          </div>
+        ) : (
+          <>
+            <svg viewBox="0 0 160 160" className="w-full h-full">
+              {visiblePositive.map(seg => {
+                const a = (seg.value / totalPos) * Math.PI * 2;
+                const start = cumAngle;
+                const end = cumAngle + a;
+                cumAngle = end;
+                const x1 = cx + R * Math.cos(start), y1 = cy + R * Math.sin(start);
+                const x2 = cx + R * Math.cos(end),   y2 = cy + R * Math.sin(end);
+                const x3 = cx + r * Math.cos(end),   y3 = cy + r * Math.sin(end);
+                const x4 = cx + r * Math.cos(start), y4 = cy + r * Math.sin(start);
+                const large = a > Math.PI ? 1 : 0;
+                const path = `M${x1},${y1} A${R},${R} 0 ${large} 1 ${x2},${y2} L${x3},${y3} A${r},${r} 0 ${large} 0 ${x4},${y4} Z`;
+                return <path key={seg.id} d={path} fill={seg.color} />;
+              })}
+            </svg>
+            <div className="absolute inset-0 flex flex-col items-center justify-center text-center pointer-events-none">
+              <div className="text-[10px] font-semibold text-muted-foreground uppercase tracking-[0.06em]">
+                {isFiltered ? 'Visible' : 'Total Assets'}
+              </div>
+              <div className="text-lg font-bold text-foreground tracking-tight leading-tight">{fmt(totalPos)}</div>
             </div>
+          </>
+        )}
+      </div>
+      <div className="flex flex-col gap-0.5 mt-4 w-full">
+        {data.map(seg => {
+          const hidden = hiddenIds.has(seg.id);
+          const pct = !hidden && totalPos > 0
+            ? (Math.abs(seg.value) / totalPos) * 100
+            : null;
+          return (
+            <button
+              key={seg.id}
+              onClick={() => onToggle(seg.id)}
+              className={`flex items-center gap-2 text-xs w-full text-left px-1.5 py-1 rounded-lg transition-all hover:bg-muted/50 ${hidden ? 'opacity-40' : ''}`}
+            >
+              <div
+                className="w-2 h-2 rounded-[2px] shrink-0 transition-colors"
+                style={{ background: hidden ? '#94a3b8' : seg.color }}
+              />
+              <span className={`flex-1 font-medium text-foreground ${hidden ? 'line-through' : ''}`}>
+                {seg.name}
+              </span>
+              <span className="text-[11px] font-medium text-muted-foreground min-w-[38px] text-right">
+                {hidden ? '—' : `${seg.isNeg ? '−' : ''}${pct!.toFixed(0)}%`}
+              </span>
+              <span className={`font-semibold min-w-[80px] text-right tabular-nums ${hidden ? 'text-muted-foreground' : seg.isNeg ? 'text-red-500' : 'text-foreground'}`}>
+                {hidden ? '—' : fmt(Math.abs(seg.value))}
+              </span>
+            </button>
           );
         })}
       </div>
@@ -681,6 +701,13 @@ export function Portfolio() {
   const [range, setRange] = useState<RangeKey>('All');
   const [soOpen, setSoOpen] = useState(false);
   const [addOpen, setAddOpen] = useState(false);
+  const [hiddenCategories, setHiddenCategories] = useState<Set<string>>(new Set());
+
+  const toggleCategory = (id: string) => setHiddenCategories(prev => {
+    const next = new Set(prev);
+    next.has(id) ? next.delete(id) : next.add(id);
+    return next;
+  });
 
   // Derived totals
   const cash        = items.filter(i => i.section === 'cash');
@@ -707,9 +734,15 @@ export function Portfolio() {
     v: s.net_worth,
   }));
 
-  // Hero number = always live sum from items (what you own right now).
-  // Snapshots are historical records only — they must not override the live value.
-  const displayNW = netWorth;
+  // Hero number = live sum from items, filtered to visible categories when toggled.
+  const isFiltered = hiddenCategories.size > 0;
+  const visibleNW =
+    (!hiddenCategories.has('cash')       ? totalCash    : 0) +
+    (!hiddenCategories.has('savings')    ? totalSavCur  : 0) +
+    (!hiddenCategories.has('investment') ? totalInvCur  : 0) +
+    (!hiddenCategories.has('physical')   ? totalPhysCur : 0) -
+    (!hiddenCategories.has('liability')  ? totalLiabs   : 0);
+  const displayNW = isFiltered ? visibleNW : netWorth;
 
   // Comparison baseline = a historical snapshot chosen by range.
   // "most recent snapshot at-or-before a cutoff date" gives the cleanest UX:
@@ -732,7 +765,7 @@ export function Portfolio() {
 
   const nwChange      = baselinePoint ? displayNW - baselinePoint.v : 0;
   const nwChangePct   = baselinePoint && baselinePoint.v !== 0 ? (nwChange / baselinePoint.v) * 100 : 0;
-  const showComparison = baselinePoint !== null;
+  const showComparison = baselinePoint !== null && !isFiltered;
   const rangeLabel =
     range === '1M'  ? 'vs 1 month ago'
     : range === '6M'  ? 'vs 6 months ago'
@@ -740,11 +773,11 @@ export function Portfolio() {
     : 'vs oldest snapshot';
 
   const distribution: DistEntry[] = [
-    { id: 'cash',        name: 'Cash',           value: totalCash,    color: '#14b8a6', isNeg: false },
-    { id: 'savings',     name: 'Savings',         value: totalSavCur,  color: '#06b6d4', isNeg: false },
-    { id: 'investments', name: 'Investments',     value: totalInvCur,  color: '#7c3aed', isNeg: false },
-    { id: 'physical',    name: 'Physical Assets', value: totalPhysCur, color: '#f59e0b', isNeg: false },
-    { id: 'liabilities', name: 'Liabilities',     value: -totalLiabs,  color: '#ef4444', isNeg: true  },
+    { id: 'cash',       name: 'Cash',           value: totalCash,    color: '#14b8a6', isNeg: false },
+    { id: 'savings',    name: 'Savings',         value: totalSavCur,  color: '#06b6d4', isNeg: false },
+    { id: 'investment', name: 'Investments',     value: totalInvCur,  color: '#7c3aed', isNeg: false },
+    { id: 'physical',   name: 'Physical Assets', value: totalPhysCur, color: '#f59e0b', isNeg: false },
+    { id: 'liability',  name: 'Liabilities',     value: -totalLiabs,  color: '#ef4444', isNeg: true  },
   ].filter(d => Math.abs(d.value) > 0);
 
   const lastUpdated = snapshots.length > 0
@@ -800,6 +833,17 @@ export function Portfolio() {
                         <span className="text-muted-foreground">{rangeLabel}</span>
                       </div>
                     )}
+                    {isFiltered && (
+                      <div className="flex items-center gap-2 mt-2 text-xs">
+                        <span className="text-muted-foreground">Filtered view</span>
+                        <button
+                          onClick={() => setHiddenCategories(new Set())}
+                          className="text-teal-600 hover:text-teal-700 font-semibold underline underline-offset-2"
+                        >
+                          Reset
+                        </button>
+                      </div>
+                    )}
                   </div>
                   <div className="flex gap-px bg-muted rounded-lg p-0.5 self-start shrink-0">
                     {(['1M', '6M', 'YTD', 'All'] as RangeKey[]).map(r => (
@@ -819,7 +863,7 @@ export function Portfolio() {
               {/* Wealth distribution card */}
               <div className="bg-card border border-border rounded-xl p-5 flex flex-col">
                 <p className="text-xs font-semibold text-muted-foreground uppercase tracking-[0.06em] mb-1">Wealth Distribution</p>
-                <DonutChart data={distribution} fmt={fmt} totalPositiveAssets={totalAssets} />
+                <DonutChart data={distribution} fmt={fmt} hiddenIds={hiddenCategories} onToggle={toggleCategory} />
               </div>
             </div>
 
