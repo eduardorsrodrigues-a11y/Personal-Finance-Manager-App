@@ -262,8 +262,8 @@ function LedgerSection({ name, icon, iconBg, total, totalLabel, isLiability, cou
           <div className="text-sm font-semibold text-foreground">{name}</div>
           <div className="text-[11px] text-muted-foreground">{count} item{count !== 1 ? 's' : ''} · {totalLabel}</div>
         </div>
-        <div className={`text-base font-bold tracking-tight tabular-nums ${isLiability ? 'text-red-500' : 'text-foreground'}`}>
-          {isLiability ? '−' : ''}{fmt(total)}
+        <div className={`text-base font-bold tracking-tight tabular-nums ${isLiability && total > 0 ? 'text-red-500' : 'text-foreground'}`}>
+          {isLiability && total > 0 ? '−' : ''}{fmt(total)}
         </div>
         <ChevronDown className={`w-3.5 h-3.5 text-muted-foreground transition-transform duration-200 shrink-0 ${open ? 'rotate-180' : ''}`} />
       </button>
@@ -1045,7 +1045,9 @@ export function Portfolio() {
                     </td>
                     <td className="px-4 py-3">{a.type_label && a.type_class ? <TypePill type={a.type_label} typeClass={a.type_class} /> : null}</td>
                     <td className="px-4 py-3 text-right tabular-nums text-[13px]">{a.invested_value != null ? fmt(a.invested_value) : '—'}</td>
-                    <td className="px-4 py-3 text-right tabular-nums text-[13px] font-semibold text-red-500">−{fmt(a.current_value)}</td>
+                    <td className={`px-4 py-3 text-right tabular-nums text-[13px] font-semibold ${a.current_value > 0 ? 'text-red-500' : 'text-foreground'}`}>
+                      {a.current_value > 0 ? '−' : ''}{fmt(a.current_value)}
+                    </td>
                     <td className="px-4 py-3 text-right">
                       <button onClick={() => deleteItem(a.id)} className="opacity-0 group-hover:opacity-100 p-1 rounded text-muted-foreground hover:text-red-500 transition-all">
                         <Trash2 className="w-3.5 h-3.5" />
