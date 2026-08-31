@@ -1,7 +1,7 @@
-import { useState, useEffect, type ReactNode } from 'react';
+import { useState, useEffect, useRef, type ReactNode } from 'react';
 import { ChevronDown, X, Clock, Wallet, Landmark, TrendingUp, TrendingDown, Home, Plus, Trash2, Calendar } from 'lucide-react';
 import { useCurrency } from '../context/CurrencyContext';
-import { usePortfolio, type PortfolioItem, type PortfolioSection } from '../context/PortfolioContext';
+import { usePortfolio, type PortfolioItem, type PortfolioSection, type PortfolioSnapshot } from '../context/PortfolioContext';
 
 type RangeKey = '1M' | '6M' | 'YTD' | 'All';
 
@@ -309,9 +309,10 @@ function SoSection({ icon, iconBg, title, count, children }: {
   );
 }
 
-function SoRow({ name, meta, valueKey, prevValue, values, update, fmt }: {
+function SoRow({ name, meta, valueKey, prevValue, values, update, fmt, prevLabel = 'Prev' }: {
   name: string; meta?: string; valueKey: string; prevValue: number;
   values: Record<string, string>; update: (k: string, v: string) => void; fmt: (n: number) => string;
+  prevLabel?: string;
 }) {
   return (
     <div className="flex items-center gap-3 px-4 py-3 border-b border-border last:border-b-0">
@@ -327,7 +328,7 @@ function SoRow({ name, meta, valueKey, prevValue, values, update, fmt }: {
           value={values[valueKey] ?? ''}
           onChange={e => update(valueKey, e.target.value)}
         />
-        <div className="text-[10px] text-muted-foreground pr-0.5">Prev: {fmt(prevValue)}</div>
+        <div className="text-[10px] text-muted-foreground pr-0.5">{prevLabel}: {fmt(prevValue)}</div>
       </div>
     </div>
   );
@@ -467,6 +468,137 @@ function UpdatePortfolioSlideover({ open, onClose, items, onSave, fmt }: {
             disabled={saving || items.length === 0}
           >
             {saving ? 'Saving…' : `Save ${monthLabel} Snapshot`}
+          </button>
+        </div>
+      </div>
+    </>
+  );
+}
+
+// ── BackfillSlideover ──────────────────────────────────────────────────────────
+function BackfillSlideover({ open, onClose, snapshot, items, onSave, fmt }: {
+  open: boolean;
+  onClose: () => void;
+  snapshot: PortfolioSnapshot;
+  items: PortfolioItem[];
+  onSave: (params: { snapshotId: string; itemValues: Record<string, number>; netWorth: number }) => Promise<void>;
+  fmt: (n: number) => string;
+}) {
+  const [values, setValues] = useState<Record<string, string>>({});
+  const [saving, setSaving] = useState(false);
+
+  const dateLabel = new Date(snapshot.snapshot_month + 'T12:00:00').toLocaleDateString('en-US', {
+    month: 'long', day: 'numeric', year: 'numeric',
+  });
+
+  useEffect(() => {
+    if (!open) return;
+    const init: Record<string, string> = {};
+    items.forEach(item => { init[item.id] = ''; });
+    setValues(init);
+  }, [open, items]);
+
+  const update = (k: string, v: string) => setValues(prev => ({ ...prev, [k]: v }));
+
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      const itemValues: Record<string, number> = {};
+      items.forEach(item => {
+        const n = parseFloat(values[item.id] ?? '');
+        itemValues[item.id] = Number.isFinite(n) && n >= 0 ? n : item.current_value;
+      });
+      const sum = (section: PortfolioSection) =>
+        items.filter(i => i.section === section).reduce((s, i) => s + (itemValues[i.id] ?? 0), 0);
+      const netWorth = sum('cash') + sum('savings') + sum('investment') + sum('physical') - sum('liability');
+      await onSave({ snapshotId: snapshot.id, itemValues, netWorth });
+      onClose();
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const cash        = items.filter(i => i.section === 'cash');
+  const savings     = items.filter(i => i.section === 'savings');
+  const investments = items.filter(i => i.section === 'investment');
+  const physical    = items.filter(i => i.section === 'physical');
+  const liabilities = items.filter(i => i.section === 'liability');
+
+  return (
+    <>
+      <div
+        className={`fixed inset-0 bg-black/40 z-50 transition-opacity duration-200 ${open ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`}
+        onClick={onClose}
+      />
+      <div className={`fixed top-0 right-0 bottom-0 w-[480px] max-w-full bg-background z-[60] flex flex-col shadow-2xl transition-transform duration-[250ms] ease-out ${open ? 'translate-x-0' : 'translate-x-full'}`}>
+        <div className="flex items-center justify-between px-6 py-[18px] bg-card border-b border-border shrink-0">
+          <div>
+            <div className="text-[15px] font-semibold text-foreground">Fill in Historical Values</div>
+            <div className="text-[11px] text-muted-foreground mt-0.5">Enter what each item was worth on {dateLabel}</div>
+          </div>
+          <button
+            className="w-[30px] h-[30px] rounded-lg bg-muted flex items-center justify-center text-muted-foreground hover:bg-muted/80 transition-colors"
+            onClick={onClose}
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+        <div className="flex items-center gap-2.5 px-6 py-3 bg-amber-50 dark:bg-amber-900/10 border-b border-amber-200 dark:border-amber-800 shrink-0">
+          <Calendar className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400 shrink-0" />
+          <p className="text-xs text-amber-700 dark:text-amber-400">
+            Snapshot date: <span className="font-semibold">{dateLabel}</span> — current values shown as reference
+          </p>
+        </div>
+        <div className="flex-1 overflow-y-auto p-[18px] space-y-3.5">
+          {items.length === 0 && (
+            <p className="text-sm text-muted-foreground text-center py-8">Add items to your portfolio first.</p>
+          )}
+          {cash.length > 0 && (
+            <SoSection icon={<Wallet className="w-3.5 h-3.5 text-white" />} iconBg="#14b8a6" title="Cash" count={cash.length}>
+              {cash.map(a => (
+                <SoRow key={a.id} name={a.name} meta={a.meta ?? undefined} valueKey={a.id} prevValue={a.current_value} values={values} update={update} fmt={fmt} prevLabel="Current" />
+              ))}
+            </SoSection>
+          )}
+          {savings.length > 0 && (
+            <SoSection icon={<Landmark className="w-3.5 h-3.5 text-white" />} iconBg="#06b6d4" title="Savings" count={savings.length}>
+              {savings.map(a => (
+                <SoRow key={a.id} name={a.name} meta={undefined} valueKey={a.id} prevValue={a.current_value} values={values} update={update} fmt={fmt} prevLabel="Current" />
+              ))}
+            </SoSection>
+          )}
+          {investments.length > 0 && (
+            <SoSection icon={<TrendingUp className="w-3.5 h-3.5 text-white" />} iconBg="#7c3aed" title="Investments" count={investments.length}>
+              {investments.map(a => (
+                <SoRow key={a.id} name={a.name} meta={a.type_label ?? undefined} valueKey={a.id} prevValue={a.current_value} values={values} update={update} fmt={fmt} prevLabel="Current" />
+              ))}
+            </SoSection>
+          )}
+          {physical.length > 0 && (
+            <SoSection icon={<Home className="w-3.5 h-3.5 text-white" />} iconBg="#f59e0b" title="Physical Assets" count={physical.length}>
+              {physical.map(a => (
+                <SoRow key={a.id} name={a.name} meta={a.meta ?? undefined} valueKey={a.id} prevValue={a.current_value} values={values} update={update} fmt={fmt} prevLabel="Current" />
+              ))}
+            </SoSection>
+          )}
+          {liabilities.length > 0 && (
+            <SoSection icon={<TrendingDown className="w-3.5 h-3.5 text-white" />} iconBg="#ef4444" title="Liabilities" count={liabilities.length}>
+              {liabilities.map(a => (
+                <SoRow key={a.id} name={a.name} meta={a.type_label ?? undefined} valueKey={a.id} prevValue={a.current_value} values={values} update={update} fmt={fmt} prevLabel="Current" />
+              ))}
+            </SoSection>
+          )}
+        </div>
+        <div className="flex gap-2.5 px-6 py-3.5 bg-card border-t border-border shrink-0">
+          <button className="flex-1 py-2.5 rounded-xl bg-muted text-foreground text-sm font-semibold hover:bg-muted/80 transition-colors" onClick={onClose}>
+            Cancel
+          </button>
+          <button
+            className="flex-[2] py-2.5 rounded-xl bg-teal-500 hover:bg-teal-600 text-white text-sm font-semibold transition-colors disabled:opacity-60"
+            onClick={handleSave}
+            disabled={saving || items.length === 0}
+          >
+            {saving ? 'Saving…' : `Save ${dateLabel} Data`}
           </button>
         </div>
       </div>
@@ -696,13 +828,16 @@ function AddItemModal({ onClose, onAdd }: {
 // ── Main export ────────────────────────────────────────────────────────────────
 export function Portfolio() {
   const { formatAmount } = useCurrency();
-  const { items, snapshots, isLoading, addItem, deleteItem, saveSnapshot } = usePortfolio();
+  const { items, snapshots, isLoading, addItem, deleteItem, saveSnapshot, fetchSnapshotItems, backfillSnapshotItems } = usePortfolio();
   const fmt = formatAmount;
   const [range, setRange] = useState<RangeKey>('All');
   const [soOpen, setSoOpen] = useState(false);
   const [addOpen, setAddOpen] = useState(false);
   const [hiddenCategories, setHiddenCategories] = useState<Set<string>>(new Set());
   const [snapshotDate, setSnapshotDate] = useState<string | null>(null);
+  const [snapshotItemValues, setSnapshotItemValues] = useState<Record<string, number> | null>(null);
+  const [snapshotItemsLoading, setSnapshotItemsLoading] = useState(false);
+  const [backfillOpen, setBackfillOpen] = useState(false);
 
   const toggleCategory = (id: string) => setHiddenCategories(prev => {
     const next = new Set(prev);
@@ -740,6 +875,23 @@ export function Portfolio() {
     ? snapshots.find(s => s.snapshot_month === snapshotDate) ?? null
     : null;
   const isHistoricalView = selectedSnapshot !== null;
+
+  // Load per-item values whenever we switch to a snapshot that has item data
+  const prevSnapshotIdRef = useRef<string | null>(null);
+  useEffect(() => {
+    const id = selectedSnapshot?.has_item_data ? selectedSnapshot.id : null;
+    if (id === prevSnapshotIdRef.current) return;
+    prevSnapshotIdRef.current = id;
+    if (!id) { setSnapshotItemValues(null); return; }
+    setSnapshotItemsLoading(true);
+    fetchSnapshotItems(id)
+      .then(vals => setSnapshotItemValues(vals))
+      .finally(() => setSnapshotItemsLoading(false));
+  });
+
+  // Returns the value to display for an item: historical (if loaded) or current
+  const dv = (item: PortfolioItem): number =>
+    isHistoricalView && snapshotItemValues ? (snapshotItemValues[item.id] ?? 0) : item.current_value;
 
   // Chart data clipped to the selected snapshot date
   const chartHistPoints = snapshotDate
@@ -792,6 +944,17 @@ export function Portfolio() {
     : range === '6M'  ? 'vs 6 months ago'
     : range === 'YTD' ? 'vs start of year'
     : 'vs oldest snapshot';
+
+  // Ledger section totals — use historical item values when available, else live totals
+  const hasHistItems = isHistoricalView && snapshotItemValues !== null;
+  const ledgerCash  = hasHistItems ? cash.reduce((s, i) => s + dv(i), 0)        : totalCash;
+  const ledgerSav   = hasHistItems ? savings.reduce((s, i) => s + dv(i), 0)     : totalSavCur;
+  const ledgerSavInv = totalSavInv; // invested amounts never change historically
+  const ledgerInv   = hasHistItems ? investments.reduce((s, i) => s + dv(i), 0) : totalInvCur;
+  const ledgerInvInv = totalInvInv;
+  const ledgerPhys  = hasHistItems ? physical.reduce((s, i) => s + dv(i), 0)    : totalPhysCur;
+  const ledgerPhysInv = totalPhysInv;
+  const ledgerLiabs = hasHistItems ? liabilities.reduce((s, i) => s + dv(i), 0) : totalLiabs;
 
   const distribution: DistEntry[] = [
     { id: 'cash',       name: 'Cash',           value: totalCash,    color: '#14b8a6', isNeg: false },
@@ -941,18 +1104,38 @@ export function Portfolio() {
               <p className="text-sm font-semibold text-foreground">Current Portfolio</p>
               <p className="text-xs text-muted-foreground">Last snapshot: {lastUpdated}</p>
             </div>
-            {isHistoricalView && (
-              <div className="mb-3 px-4 py-2.5 bg-muted/60 border border-border rounded-xl">
-                <p className="text-xs text-muted-foreground">
-                  Item-level values reflect the current state — individual balances per snapshot are not stored.
-                </p>
-              </div>
+            {isHistoricalView && selectedSnapshot && (
+              selectedSnapshot.has_item_data ? (
+                snapshotItemsLoading ? (
+                  <div className="mb-3 px-4 py-2.5 bg-muted/60 border border-border rounded-xl">
+                    <p className="text-xs text-muted-foreground">Loading historical values…</p>
+                  </div>
+                ) : (
+                  <div className="mb-3 px-4 py-2.5 bg-teal-50 dark:bg-teal-900/20 border border-teal-200 dark:border-teal-800 rounded-xl">
+                    <p className="text-xs text-teal-700 dark:text-teal-400">
+                      Showing item balances as of {new Date(snapshotDate! + 'T12:00:00').toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}.
+                    </p>
+                  </div>
+                )
+              ) : (
+                <div className="mb-3 px-4 py-2.5 bg-amber-50 dark:bg-amber-900/10 border border-amber-200 dark:border-amber-800 rounded-xl flex items-center justify-between gap-3">
+                  <p className="text-xs text-amber-700 dark:text-amber-400">
+                    No item-level data for this snapshot — net worth only.
+                  </p>
+                  <button
+                    onClick={() => setBackfillOpen(true)}
+                    className="shrink-0 text-xs font-semibold px-3 py-1.5 rounded-lg bg-amber-600 hover:bg-amber-700 text-white transition-colors"
+                  >
+                    Fill in historical values
+                  </button>
+                </div>
+              )
             )}
             <div className="space-y-3">
               <LedgerSection
                 name="Cash" icon={<Wallet className="w-4 h-4 text-white" />} iconBg="#14b8a6"
-                total={totalCash} totalLabel="Total balance" count={cash.length} fmt={fmt}
-                columns={[{ label: 'Account Name' }, { label: 'Current Balance', num: true, width: '200px' }, { label: '', width: '40px' }]}
+                total={ledgerCash} totalLabel="Total balance" count={cash.length} fmt={fmt}
+                columns={[{ label: 'Account Name' }, { label: hasHistItems ? 'Balance on Date' : 'Current Balance', num: true, width: '200px' }, { label: '', width: '40px' }]}
               >
                 {cash.length === 0 ? (
                   <tr><td colSpan={3} className="px-4 py-4 text-xs text-muted-foreground text-center">No cash accounts yet</td></tr>
@@ -967,11 +1150,13 @@ export function Portfolio() {
                         </div>
                       </div>
                     </td>
-                    <td className="px-4 py-3 text-right tabular-nums text-[13px]">{fmt(a.current_value)}</td>
+                    <td className="px-4 py-3 text-right tabular-nums text-[13px]">{fmt(dv(a))}</td>
                     <td className="px-4 py-3 text-right">
-                      <button onClick={() => deleteItem(a.id)} className="opacity-0 group-hover:opacity-100 p-1 rounded text-muted-foreground hover:text-red-500 transition-all">
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
+                      {!isHistoricalView && (
+                        <button onClick={() => deleteItem(a.id)} className="opacity-0 group-hover:opacity-100 p-1 rounded text-muted-foreground hover:text-red-500 transition-all">
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      )}
                     </td>
                   </tr>
                 ))}
@@ -979,17 +1164,18 @@ export function Portfolio() {
 
               <LedgerSection
                 name="Savings" icon={<Landmark className="w-4 h-4 text-white" />} iconBg="#06b6d4"
-                total={totalSavCur} totalLabel={`Profit ${fmt(totalSavCur - totalSavInv)}`} count={savings.length} fmt={fmt}
+                total={ledgerSav} totalLabel={`Profit ${fmt(ledgerSav - ledgerSavInv)}`} count={savings.length} fmt={fmt}
                 columns={[
-                  { label: 'Name' }, { label: 'Invested', num: true }, { label: 'Actual', num: true },
+                  { label: 'Name' }, { label: 'Invested', num: true }, { label: hasHistItems ? 'Value on Date' : 'Actual', num: true },
                   { label: 'Profit', num: true }, { label: 'Profit %', num: true }, { label: '', width: '40px' },
                 ]}
               >
                 {savings.length === 0 ? (
                   <tr><td colSpan={6} className="px-4 py-4 text-xs text-muted-foreground text-center">No savings accounts yet</td></tr>
                 ) : savings.map(a => {
+                  const val = dv(a);
                   const invested = a.invested_value ?? a.current_value;
-                  const profit = a.current_value - invested;
+                  const profit = val - invested;
                   const pct = invested > 0 ? (profit / invested) * 100 : 0;
                   return (
                     <tr key={a.id} className="group hover:bg-teal-500/[0.04] transition-colors">
@@ -1003,7 +1189,7 @@ export function Portfolio() {
                         </div>
                       </td>
                       <td className="px-4 py-3 text-right tabular-nums text-[13px]">{fmt(invested)}</td>
-                      <td className="px-4 py-3 text-right tabular-nums text-[13px]">{fmt(a.current_value)}</td>
+                      <td className="px-4 py-3 text-right tabular-nums text-[13px]">{fmt(val)}</td>
                       <td className={`px-4 py-3 text-right tabular-nums text-[13px] font-semibold ${profit >= 0 ? 'text-emerald-600' : 'text-red-500'}`}>
                         {profit >= 0 ? '+' : ''}{fmt(profit)}
                       </td>
@@ -1011,9 +1197,11 @@ export function Portfolio() {
                         {fmtPct(pct)}
                       </td>
                       <td className="px-4 py-3 text-right">
-                        <button onClick={() => deleteItem(a.id)} className="opacity-0 group-hover:opacity-100 p-1 rounded text-muted-foreground hover:text-red-500 transition-all">
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
+                        {!isHistoricalView && (
+                          <button onClick={() => deleteItem(a.id)} className="opacity-0 group-hover:opacity-100 p-1 rounded text-muted-foreground hover:text-red-500 transition-all">
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        )}
                       </td>
                     </tr>
                   );
@@ -1022,17 +1210,18 @@ export function Portfolio() {
 
               <LedgerSection
                 name="Investments" icon={<TrendingUp className="w-4 h-4 text-white" />} iconBg="#7c3aed"
-                total={totalInvCur} totalLabel={`Profit ${fmt(totalInvCur - totalInvInv)}`} count={investments.length} fmt={fmt}
+                total={ledgerInv} totalLabel={`Profit ${fmt(ledgerInv - ledgerInvInv)}`} count={investments.length} fmt={fmt}
                 columns={[
                   { label: 'Name' }, { label: 'Type' }, { label: 'Invested', num: true },
-                  { label: 'Actual', num: true }, { label: 'Profit %', num: true }, { label: 'Profit', num: true }, { label: '', width: '40px' },
+                  { label: hasHistItems ? 'Value on Date' : 'Actual', num: true }, { label: 'Profit %', num: true }, { label: 'Profit', num: true }, { label: '', width: '40px' },
                 ]}
               >
                 {investments.length === 0 ? (
                   <tr><td colSpan={7} className="px-4 py-4 text-xs text-muted-foreground text-center">No investments yet</td></tr>
                 ) : investments.map(a => {
+                  const val = dv(a);
                   const invested = a.invested_value ?? a.current_value;
-                  const profit = a.current_value - invested;
+                  const profit = val - invested;
                   const pct = invested > 0 ? (profit / invested) * 100 : 0;
                   return (
                     <tr key={a.id} className="group hover:bg-teal-500/[0.04] transition-colors">
@@ -1044,7 +1233,7 @@ export function Portfolio() {
                       </td>
                       <td className="px-4 py-3">{a.type_label && a.type_class ? <TypePill type={a.type_label} typeClass={a.type_class} /> : null}</td>
                       <td className="px-4 py-3 text-right tabular-nums text-[13px]">{fmt(invested)}</td>
-                      <td className="px-4 py-3 text-right tabular-nums text-[13px]">{fmt(a.current_value)}</td>
+                      <td className="px-4 py-3 text-right tabular-nums text-[13px]">{fmt(val)}</td>
                       <td className={`px-4 py-3 text-right tabular-nums text-[13px] font-semibold ${profit >= 0 ? 'text-emerald-600' : 'text-red-500'}`}>
                         {fmtPct(pct)}
                       </td>
@@ -1052,9 +1241,11 @@ export function Portfolio() {
                         {profit >= 0 ? '+' : ''}{fmt(profit)}
                       </td>
                       <td className="px-4 py-3 text-right">
-                        <button onClick={() => deleteItem(a.id)} className="opacity-0 group-hover:opacity-100 p-1 rounded text-muted-foreground hover:text-red-500 transition-all">
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
+                        {!isHistoricalView && (
+                          <button onClick={() => deleteItem(a.id)} className="opacity-0 group-hover:opacity-100 p-1 rounded text-muted-foreground hover:text-red-500 transition-all">
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        )}
                       </td>
                     </tr>
                   );
@@ -1063,17 +1254,18 @@ export function Portfolio() {
 
               <LedgerSection
                 name="Physical Assets" icon={<Home className="w-4 h-4 text-white" />} iconBg="#f59e0b"
-                total={totalPhysCur} totalLabel={`Profit ${fmt(totalPhysCur - totalPhysInv)}`} count={physical.length} fmt={fmt}
+                total={ledgerPhys} totalLabel={`Profit ${fmt(ledgerPhys - ledgerPhysInv)}`} count={physical.length} fmt={fmt}
                 columns={[
-                  { label: 'Name' }, { label: 'Purchased', num: true }, { label: 'Actual', num: true },
+                  { label: 'Name' }, { label: 'Purchased', num: true }, { label: hasHistItems ? 'Value on Date' : 'Actual', num: true },
                   { label: 'Profit %', num: true }, { label: 'Profit', num: true }, { label: '', width: '40px' },
                 ]}
               >
                 {physical.length === 0 ? (
                   <tr><td colSpan={6} className="px-4 py-4 text-xs text-muted-foreground text-center">No physical assets yet</td></tr>
                 ) : physical.map(a => {
+                  const val = dv(a);
                   const invested = a.invested_value ?? a.current_value;
-                  const profit = a.current_value - invested;
+                  const profit = val - invested;
                   const pct = invested > 0 ? (profit / invested) * 100 : 0;
                   return (
                     <tr key={a.id} className="group hover:bg-teal-500/[0.04] transition-colors">
@@ -1087,7 +1279,7 @@ export function Portfolio() {
                         </div>
                       </td>
                       <td className="px-4 py-3 text-right tabular-nums text-[13px]">{fmt(invested)}</td>
-                      <td className="px-4 py-3 text-right tabular-nums text-[13px]">{fmt(a.current_value)}</td>
+                      <td className="px-4 py-3 text-right tabular-nums text-[13px]">{fmt(val)}</td>
                       <td className={`px-4 py-3 text-right tabular-nums text-[13px] font-semibold ${profit >= 0 ? 'text-emerald-600' : 'text-red-500'}`}>
                         {fmtPct(pct)}
                       </td>
@@ -1095,9 +1287,11 @@ export function Portfolio() {
                         {profit >= 0 ? '+' : ''}{fmt(profit)}
                       </td>
                       <td className="px-4 py-3 text-right">
-                        <button onClick={() => deleteItem(a.id)} className="opacity-0 group-hover:opacity-100 p-1 rounded text-muted-foreground hover:text-red-500 transition-all">
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
+                        {!isHistoricalView && (
+                          <button onClick={() => deleteItem(a.id)} className="opacity-0 group-hover:opacity-100 p-1 rounded text-muted-foreground hover:text-red-500 transition-all">
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        )}
                       </td>
                     </tr>
                   );
@@ -1106,31 +1300,36 @@ export function Portfolio() {
 
               <LedgerSection
                 name="Liabilities" icon={<TrendingDown className="w-4 h-4 text-white" />} iconBg="#ef4444" isLiability
-                total={totalLiabs} totalLabel="Total outstanding" count={liabilities.length} fmt={fmt}
-                columns={[{ label: 'Name' }, { label: 'Type' }, { label: 'Original', num: true }, { label: 'Remaining', num: true }, { label: '', width: '40px' }]}
+                total={ledgerLiabs} totalLabel="Total outstanding" count={liabilities.length} fmt={fmt}
+                columns={[{ label: 'Name' }, { label: 'Type' }, { label: 'Original', num: true }, { label: hasHistItems ? 'Balance on Date' : 'Remaining', num: true }, { label: '', width: '40px' }]}
               >
                 {liabilities.length === 0 ? (
                   <tr><td colSpan={5} className="px-4 py-4 text-xs text-muted-foreground text-center">No liabilities yet</td></tr>
-                ) : liabilities.map(a => (
-                  <tr key={a.id} className="group hover:bg-teal-500/[0.04] transition-colors">
-                    <td className="px-4 py-3 font-medium text-[13px]">
-                      <div className="flex items-center gap-2.5">
-                        <AssetIcon color={a.color} abbr={a.abbr} />
-                        <div>{a.name}</div>
-                      </div>
-                    </td>
-                    <td className="px-4 py-3">{a.type_label && a.type_class ? <TypePill type={a.type_label} typeClass={a.type_class} /> : null}</td>
-                    <td className="px-4 py-3 text-right tabular-nums text-[13px]">{a.invested_value != null ? fmt(a.invested_value) : '—'}</td>
-                    <td className={`px-4 py-3 text-right tabular-nums text-[13px] font-semibold ${a.current_value > 0 ? 'text-red-500' : 'text-foreground'}`}>
-                      {a.current_value > 0 ? '−' : ''}{fmt(a.current_value)}
-                    </td>
-                    <td className="px-4 py-3 text-right">
-                      <button onClick={() => deleteItem(a.id)} className="opacity-0 group-hover:opacity-100 p-1 rounded text-muted-foreground hover:text-red-500 transition-all">
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
-                    </td>
-                  </tr>
-                ))}
+                ) : liabilities.map(a => {
+                  const val = dv(a);
+                  return (
+                    <tr key={a.id} className="group hover:bg-teal-500/[0.04] transition-colors">
+                      <td className="px-4 py-3 font-medium text-[13px]">
+                        <div className="flex items-center gap-2.5">
+                          <AssetIcon color={a.color} abbr={a.abbr} />
+                          <div>{a.name}</div>
+                        </div>
+                      </td>
+                      <td className="px-4 py-3">{a.type_label && a.type_class ? <TypePill type={a.type_label} typeClass={a.type_class} /> : null}</td>
+                      <td className="px-4 py-3 text-right tabular-nums text-[13px]">{a.invested_value != null ? fmt(a.invested_value) : '—'}</td>
+                      <td className={`px-4 py-3 text-right tabular-nums text-[13px] font-semibold ${val > 0 ? 'text-red-500' : 'text-foreground'}`}>
+                        {val > 0 ? '−' : ''}{fmt(val)}
+                      </td>
+                      <td className="px-4 py-3 text-right">
+                        {!isHistoricalView && (
+                          <button onClick={() => deleteItem(a.id)} className="opacity-0 group-hover:opacity-100 p-1 rounded text-muted-foreground hover:text-red-500 transition-all">
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
               </LedgerSection>
             </div>
           </>
@@ -1143,6 +1342,17 @@ export function Portfolio() {
           onSave={saveSnapshot}
           fmt={fmt}
         />
+
+        {selectedSnapshot && backfillOpen && (
+          <BackfillSlideover
+            open={backfillOpen}
+            onClose={() => setBackfillOpen(false)}
+            snapshot={selectedSnapshot}
+            items={items}
+            onSave={backfillSnapshotItems}
+            fmt={fmt}
+          />
+        )}
 
         {addOpen && (
           <AddItemModal

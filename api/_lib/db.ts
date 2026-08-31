@@ -490,6 +490,7 @@ export type PortfolioSnapshot = {
   id: string;
   snapshot_month: string;
   net_worth: number;
+  has_item_data: boolean;
 };
 
 export async function listPortfolioItems(userId: string): Promise<PortfolioItem[]> {
@@ -584,10 +585,27 @@ export async function listPortfolioSnapshots(userId: string): Promise<PortfolioS
     .order('snapshot_month', { ascending: true })
     .limit(24);
   if (error) throw error;
-  return ((data ?? []) as Array<Record<string, unknown>>).map((r) => ({
-    id: r.id as string,
-    snapshot_month: r.snapshot_month as string,
+
+  const rows = (data ?? []) as Array<{ id: string; snapshot_month: string; net_worth: number }>;
+  const snapshotIds = rows.map(r => r.id);
+
+  const withItems = new Set<string>();
+  if (snapshotIds.length > 0) {
+    const { data: itemRows } = await supabase
+      .from('portfolio_snapshot_items')
+      .select('snapshot_id')
+      .in('snapshot_id', snapshotIds)
+      .eq('user_id', userId);
+    for (const r of (itemRows ?? []) as Array<{ snapshot_id: string }>) {
+      withItems.add(r.snapshot_id);
+    }
+  }
+
+  return rows.map(r => ({
+    id: r.id,
+    snapshot_month: r.snapshot_month,
     net_worth: Number(r.net_worth),
+    has_item_data: withItems.has(r.id),
   }));
 }
 
@@ -595,13 +613,67 @@ export async function upsertPortfolioSnapshot(params: {
   userId: string;
   snapshotMonth: string;
   netWorth: number;
-}): Promise<void> {
+}): Promise<string> {
   const supabase = getSupabaseAdmin();
-  const { error } = await supabase
+  const { data, error } = await supabase
     .from('portfolio_snapshots')
     .upsert(
       { user_id: params.userId, snapshot_month: params.snapshotMonth, net_worth: params.netWorth },
       { onConflict: 'user_id,snapshot_month' },
-    );
+    )
+    .select('id')
+    .single();
+  if (error) throw error;
+  return (data as { id: string }).id;
+}
+
+export async function upsertSnapshotItems(params: {
+  userId: string;
+  snapshotId: string;
+  items: Record<string, number>;
+}): Promise<void> {
+  const supabase = getSupabaseAdmin();
+  const rows = Object.entries(params.items).map(([item_id, value]) => ({
+    user_id: params.userId,
+    snapshot_id: params.snapshotId,
+    item_id,
+    value,
+  }));
+  if (rows.length === 0) return;
+  const { error } = await supabase
+    .from('portfolio_snapshot_items')
+    .upsert(rows, { onConflict: 'snapshot_id,item_id' });
+  if (error) throw error;
+}
+
+export async function getSnapshotItems(params: {
+  userId: string;
+  snapshotId: string;
+}): Promise<Record<string, number>> {
+  const supabase = getSupabaseAdmin();
+  const { data, error } = await supabase
+    .from('portfolio_snapshot_items')
+    .select('item_id, value')
+    .eq('snapshot_id', params.snapshotId)
+    .eq('user_id', params.userId);
+  if (error) throw error;
+  const result: Record<string, number> = {};
+  for (const r of (data ?? []) as Array<{ item_id: string; value: number }>) {
+    result[r.item_id] = Number(r.value);
+  }
+  return result;
+}
+
+export async function updateSnapshotNetWorth(params: {
+  userId: string;
+  snapshotId: string;
+  netWorth: number;
+}): Promise<void> {
+  const supabase = getSupabaseAdmin();
+  const { error } = await supabase
+    .from('portfolio_snapshots')
+    .update({ net_worth: params.netWorth })
+    .eq('id', params.snapshotId)
+    .eq('user_id', params.userId);
   if (error) throw error;
 }

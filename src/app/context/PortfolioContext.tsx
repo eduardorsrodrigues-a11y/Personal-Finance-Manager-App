@@ -21,6 +21,7 @@ export interface PortfolioSnapshot {
   id: string;
   snapshot_month: string;
   net_worth: number;
+  has_item_data: boolean;
 }
 
 interface PortfolioContextType {
@@ -33,6 +34,12 @@ interface PortfolioContextType {
     itemValues: Record<string, number>;
     netWorth: number;
     snapshotMonth: string;
+  }) => Promise<void>;
+  fetchSnapshotItems: (snapshotId: string) => Promise<Record<string, number>>;
+  backfillSnapshotItems: (params: {
+    snapshotId: string;
+    itemValues: Record<string, number>;
+    netWorth: number;
   }) => Promise<void>;
   refresh: () => Promise<void>;
 }
@@ -118,8 +125,36 @@ export function PortfolioProvider({ children }: { children: ReactNode }) {
     await refresh();
   };
 
+  const fetchSnapshotItems = async (snapshotId: string): Promise<Record<string, number>> => {
+    const res = await fetch(
+      `/api/portfolio/snapshot-items?snapshot_id=${encodeURIComponent(snapshotId)}`,
+      { credentials: 'include' },
+    );
+    if (!res.ok) return {};
+    const json = await res.json();
+    return (json.items ?? {}) as Record<string, number>;
+  };
+
+  const backfillSnapshotItems = async (params: {
+    snapshotId: string;
+    itemValues: Record<string, number>;
+    netWorth: number;
+  }) => {
+    await fetch('/api/portfolio/snapshot-items', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({
+        snapshot_id: params.snapshotId,
+        net_worth: params.netWorth,
+        item_values: params.itemValues,
+      }),
+    });
+    await refresh();
+  };
+
   return (
-    <PortfolioContext.Provider value={{ items, snapshots, isLoading, addItem, deleteItem, saveSnapshot, refresh }}>
+    <PortfolioContext.Provider value={{ items, snapshots, isLoading, addItem, deleteItem, saveSnapshot, fetchSnapshotItems, backfillSnapshotItems, refresh }}>
       {children}
     </PortfolioContext.Provider>
   );
