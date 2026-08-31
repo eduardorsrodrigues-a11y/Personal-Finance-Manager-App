@@ -947,14 +947,22 @@ export function Portfolio() {
 
   // Ledger section totals — use historical item values when available, else live totals
   const hasHistItems = isHistoricalView && snapshotItemValues !== null;
-  const ledgerCash  = hasHistItems ? cash.reduce((s, i) => s + dv(i), 0)        : totalCash;
-  const ledgerSav   = hasHistItems ? savings.reduce((s, i) => s + dv(i), 0)     : totalSavCur;
-  const ledgerSavInv = totalSavInv; // invested amounts never change historically
-  const ledgerInv   = hasHistItems ? investments.reduce((s, i) => s + dv(i), 0) : totalInvCur;
-  const ledgerInvInv = totalInvInv;
-  const ledgerPhys  = hasHistItems ? physical.reduce((s, i) => s + dv(i), 0)    : totalPhysCur;
-  const ledgerPhysInv = totalPhysInv;
-  const ledgerLiabs = hasHistItems ? liabilities.reduce((s, i) => s + dv(i), 0) : totalLiabs;
+  const ledgerCash   = hasHistItems ? cash.reduce((s, i) => s + dv(i), 0)    : totalCash;
+  const ledgerSav    = hasHistItems ? savings.reduce((s, i) => s + dv(i), 0) : totalSavCur;
+  const ledgerSavInv = totalSavInv;
+
+  // Investments, physical assets and liabilities: hide rows with a displayed value of 0
+  // (items the user has cleared out but not yet deleted). Totals and invested amounts
+  // are derived from the visible subset so profit figures in section headers stay clean.
+  const visibleInvestments = investments.filter(a => dv(a) > 0);
+  const visiblePhysical    = physical.filter(a => dv(a) > 0);
+  const visibleLiabilities = liabilities.filter(a => dv(a) > 0);
+
+  const ledgerInv    = visibleInvestments.reduce((s, a) => s + dv(a), 0);
+  const ledgerInvInv = visibleInvestments.reduce((s, a) => s + (a.invested_value ?? 0), 0);
+  const ledgerPhys   = visiblePhysical.reduce((s, a) => s + dv(a), 0);
+  const ledgerPhysInv = visiblePhysical.reduce((s, a) => s + (a.invested_value ?? 0), 0);
+  const ledgerLiabs  = visibleLiabilities.reduce((s, a) => s + dv(a), 0);
 
   const distribution: DistEntry[] = [
     { id: 'cash',       name: 'Cash',           value: totalCash,    color: '#14b8a6', isNeg: false },
@@ -1210,15 +1218,15 @@ export function Portfolio() {
 
               <LedgerSection
                 name="Investments" icon={<TrendingUp className="w-4 h-4 text-white" />} iconBg="#7c3aed"
-                total={ledgerInv} totalLabel={`Profit ${fmt(ledgerInv - ledgerInvInv)}`} count={investments.length} fmt={fmt}
+                total={ledgerInv} totalLabel={`Profit ${fmt(ledgerInv - ledgerInvInv)}`} count={visibleInvestments.length} fmt={fmt}
                 columns={[
                   { label: 'Name' }, { label: 'Type' }, { label: 'Invested', num: true },
                   { label: hasHistItems ? 'Value on Date' : 'Actual', num: true }, { label: 'Profit %', num: true }, { label: 'Profit', num: true }, { label: '', width: '40px' },
                 ]}
               >
-                {investments.length === 0 ? (
+                {visibleInvestments.length === 0 ? (
                   <tr><td colSpan={7} className="px-4 py-4 text-xs text-muted-foreground text-center">No investments yet</td></tr>
-                ) : investments.map(a => {
+                ) : visibleInvestments.map(a => {
                   const val = dv(a);
                   const invested = a.invested_value ?? a.current_value;
                   const profit = val - invested;
@@ -1254,15 +1262,15 @@ export function Portfolio() {
 
               <LedgerSection
                 name="Physical Assets" icon={<Home className="w-4 h-4 text-white" />} iconBg="#f59e0b"
-                total={ledgerPhys} totalLabel={`Profit ${fmt(ledgerPhys - ledgerPhysInv)}`} count={physical.length} fmt={fmt}
+                total={ledgerPhys} totalLabel={`Profit ${fmt(ledgerPhys - ledgerPhysInv)}`} count={visiblePhysical.length} fmt={fmt}
                 columns={[
                   { label: 'Name' }, { label: 'Purchased', num: true }, { label: hasHistItems ? 'Value on Date' : 'Actual', num: true },
                   { label: 'Profit %', num: true }, { label: 'Profit', num: true }, { label: '', width: '40px' },
                 ]}
               >
-                {physical.length === 0 ? (
+                {visiblePhysical.length === 0 ? (
                   <tr><td colSpan={6} className="px-4 py-4 text-xs text-muted-foreground text-center">No physical assets yet</td></tr>
-                ) : physical.map(a => {
+                ) : visiblePhysical.map(a => {
                   const val = dv(a);
                   const invested = a.invested_value ?? a.current_value;
                   const profit = val - invested;
@@ -1300,12 +1308,12 @@ export function Portfolio() {
 
               <LedgerSection
                 name="Liabilities" icon={<TrendingDown className="w-4 h-4 text-white" />} iconBg="#ef4444" isLiability
-                total={ledgerLiabs} totalLabel="Total outstanding" count={liabilities.length} fmt={fmt}
+                total={ledgerLiabs} totalLabel="Total outstanding" count={visibleLiabilities.length} fmt={fmt}
                 columns={[{ label: 'Name' }, { label: 'Type' }, { label: 'Original', num: true }, { label: hasHistItems ? 'Balance on Date' : 'Remaining', num: true }, { label: '', width: '40px' }]}
               >
-                {liabilities.length === 0 ? (
+                {visibleLiabilities.length === 0 ? (
                   <tr><td colSpan={5} className="px-4 py-4 text-xs text-muted-foreground text-center">No liabilities yet</td></tr>
-                ) : liabilities.map(a => {
+                ) : visibleLiabilities.map(a => {
                   const val = dv(a);
                   return (
                     <tr key={a.id} className="group hover:bg-teal-500/[0.04] transition-colors">
