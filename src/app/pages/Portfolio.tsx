@@ -1,5 +1,5 @@
 import { useState, useEffect, type ReactNode } from 'react';
-import { ChevronDown, X, Clock, Wallet, Landmark, TrendingUp, TrendingDown, Home, Plus, Trash2 } from 'lucide-react';
+import { ChevronDown, X, Clock, Wallet, Landmark, TrendingUp, TrendingDown, Home, Plus, Trash2, Calendar } from 'lucide-react';
 import { useCurrency } from '../context/CurrencyContext';
 import { usePortfolio, type PortfolioItem, type PortfolioSection } from '../context/PortfolioContext';
 
@@ -702,6 +702,7 @@ export function Portfolio() {
   const [soOpen, setSoOpen] = useState(false);
   const [addOpen, setAddOpen] = useState(false);
   const [hiddenCategories, setHiddenCategories] = useState<Set<string>>(new Set());
+  const [snapshotDate, setSnapshotDate] = useState<string | null>(null);
 
   const toggleCategory = (id: string) => setHiddenCategories(prev => {
     const next = new Set(prev);
@@ -734,6 +735,24 @@ export function Portfolio() {
     v: s.net_worth,
   }));
 
+  // Snapshot date filter — historical view
+  const selectedSnapshot = snapshotDate
+    ? snapshots.find(s => s.snapshot_month === snapshotDate) ?? null
+    : null;
+  const isHistoricalView = selectedSnapshot !== null;
+
+  // Chart data clipped to the selected snapshot date
+  const chartHistPoints = snapshotDate
+    ? histPoints.filter(p => p.date <= snapshotDate)
+    : histPoints;
+
+  // Change from the selected snapshot to current net worth
+  const histNwChange = isHistoricalView ? netWorth - selectedSnapshot!.net_worth : 0;
+  const histNwChangePct =
+    isHistoricalView && selectedSnapshot!.net_worth !== 0
+      ? (histNwChange / selectedSnapshot!.net_worth) * 100
+      : 0;
+
   // Hero number = live sum from items, filtered to visible categories when toggled.
   const isFiltered = hiddenCategories.size > 0;
   const visibleNW =
@@ -743,6 +762,8 @@ export function Portfolio() {
     (!hiddenCategories.has('physical')   ? totalPhysCur : 0) -
     (!hiddenCategories.has('liability')  ? totalLiabs   : 0);
   const displayNW = isFiltered ? visibleNW : netWorth;
+  // In historical view the hero shows the snapshot's net worth, not the live value
+  const heroNW = isHistoricalView ? selectedSnapshot!.net_worth : displayNW;
 
   // Comparison baseline = a historical snapshot chosen by range.
   // "most recent snapshot at-or-before a cutoff date" gives the cleanest UX:
@@ -765,7 +786,7 @@ export function Portfolio() {
 
   const nwChange      = baselinePoint ? displayNW - baselinePoint.v : 0;
   const nwChangePct   = baselinePoint && baselinePoint.v !== 0 ? (nwChange / baselinePoint.v) * 100 : 0;
-  const showComparison = baselinePoint !== null && !isFiltered;
+  const showComparison = baselinePoint !== null && !isFiltered && !isHistoricalView;
   const rangeLabel =
     range === '1M'  ? 'vs 1 month ago'
     : range === '6M'  ? 'vs 6 months ago'
@@ -816,14 +837,62 @@ export function Portfolio() {
           <div className="flex items-center justify-center py-24 text-muted-foreground text-sm">Loading…</div>
         ) : (
           <>
+            {/* Snapshot date filter */}
+            {snapshots.length > 0 && (
+              <div className="flex items-center gap-2.5 mb-3.5 px-4 py-2.5 bg-card border border-border rounded-xl">
+                <Calendar className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+                <span className="text-xs font-medium text-muted-foreground whitespace-nowrap">View as of</span>
+                <select
+                  value={snapshotDate ?? ''}
+                  onChange={e => setSnapshotDate(e.target.value || null)}
+                  className="flex-1 sm:flex-none min-w-0 text-xs border border-border rounded-lg px-2.5 py-1.5 bg-input-background text-foreground outline-none focus:border-teal-500 cursor-pointer transition-colors"
+                >
+                  <option value="">Current (Live)</option>
+                  {[...snapshots].reverse().map(s => (
+                    <option key={s.snapshot_month} value={s.snapshot_month}>
+                      {new Date(s.snapshot_month + 'T12:00:00').toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
+                    </option>
+                  ))}
+                </select>
+                {isHistoricalView && (
+                  <span className="hidden sm:inline text-[10px] px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 font-semibold whitespace-nowrap shrink-0">
+                    Historical view
+                  </span>
+                )}
+                {isHistoricalView && (
+                  <button
+                    onClick={() => setSnapshotDate(null)}
+                    className="text-xs text-teal-600 hover:text-teal-700 font-semibold shrink-0"
+                  >
+                    Reset
+                  </button>
+                )}
+              </div>
+            )}
+
             {/* Overview grid */}
             <div className="grid grid-cols-1 lg:grid-cols-[2fr_1fr] gap-3.5 mb-3.5">
               {/* Net worth card */}
               <div className="bg-card border border-border rounded-xl p-5 flex flex-col">
                 <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
                   <div>
-                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-[0.06em]">Total Net Worth</p>
-                    <p className="text-[32px] sm:text-[42px] font-bold tracking-[-1.5px] text-foreground mt-1 leading-none">{fmt(displayNW)}</p>
+                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-[0.06em]">
+                      {isHistoricalView
+                        ? `Net Worth — ${new Date(snapshotDate! + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`
+                        : 'Total Net Worth'}
+                    </p>
+                    <p className="text-[32px] sm:text-[42px] font-bold tracking-[-1.5px] text-foreground mt-1 leading-none">{fmt(heroNW)}</p>
+                    {isHistoricalView && (
+                      <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 mt-2 text-xs">
+                        <span className="text-muted-foreground">Today:</span>
+                        <span className="font-semibold text-foreground">{fmt(netWorth)}</span>
+                        <span className={`font-semibold flex items-center gap-1 ${histNwChange >= 0 ? 'text-emerald-600' : 'text-red-500'}`}>
+                          {histNwChange >= 0 ? '↑' : '↓'} {fmt(Math.abs(histNwChange))}
+                          <span className="font-medium opacity-80 ml-0.5">({fmtPct(histNwChangePct)})</span>
+                        </span>
+                        <span className="text-muted-foreground">since snapshot</span>
+                      </div>
+                    )}
                     {showComparison && (
                       <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 mt-2 text-xs">
                         <span className={`font-semibold flex items-center gap-1 ${nwChange >= 0 ? 'text-emerald-600' : 'text-red-500'}`}>
@@ -833,7 +902,7 @@ export function Portfolio() {
                         <span className="text-muted-foreground">{rangeLabel}</span>
                       </div>
                     )}
-                    {isFiltered && (
+                    {isFiltered && !isHistoricalView && (
                       <div className="flex items-center gap-2 mt-2 text-xs">
                         <span className="text-muted-foreground">Filtered view</span>
                         <button
@@ -857,7 +926,7 @@ export function Portfolio() {
                     ))}
                   </div>
                 </div>
-                <NetWorthChart data={histPoints} range={range} fmt={fmt} />
+                <NetWorthChart data={chartHistPoints} range={range} fmt={fmt} />
               </div>
 
               {/* Wealth distribution card */}
@@ -872,6 +941,13 @@ export function Portfolio() {
               <p className="text-sm font-semibold text-foreground">Current Portfolio</p>
               <p className="text-xs text-muted-foreground">Last snapshot: {lastUpdated}</p>
             </div>
+            {isHistoricalView && (
+              <div className="mb-3 px-4 py-2.5 bg-muted/60 border border-border rounded-xl">
+                <p className="text-xs text-muted-foreground">
+                  Item-level values reflect the current state — individual balances per snapshot are not stored.
+                </p>
+              </div>
+            )}
             <div className="space-y-3">
               <LedgerSection
                 name="Cash" icon={<Wallet className="w-4 h-4 text-white" />} iconBg="#14b8a6"
