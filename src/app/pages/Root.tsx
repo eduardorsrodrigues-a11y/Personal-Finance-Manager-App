@@ -9,7 +9,6 @@ import { BudgetProvider } from '../context/BudgetContext';
 import { LanguageProvider } from '../context/LanguageContext';
 import { ToastProvider } from '../context/ToastContext';
 import { UserSettingsProvider } from '../context/UserSettingsContext';
-import { PlaidProvider } from '../context/PlaidContext';
 import { PortfolioProvider } from '../context/PortfolioContext';
 import { PWAProvider } from '../context/PWAContext';
 import { InstallPrompt } from '../components/InstallPrompt';
@@ -27,7 +26,6 @@ export function Root() {
           <BudgetProvider>
           <ToastProvider>
             <UserSettingsProvider>
-            <PlaidProvider>
             <PortfolioProvider>
             <div className="flex min-h-screen bg-background">
               <Sidebar />
@@ -46,7 +44,6 @@ export function Root() {
               </div>
             </div>
             </PortfolioProvider>
-            </PlaidProvider>
             </UserSettingsProvider>
           </ToastProvider>
           </BudgetProvider>

@@ -1,4 +1,4 @@
-import{c as e,T as d}from"./index-CdaOxIL3.js";import{H as b}from"./house-Daegsl30.js";/**
+import{c as e}from"./index-BVNV3Lr7.js";import{T as d,H as b}from"./trending-up-y62IqI3u.js";/**
  * @license lucide-react v0.487.0 - ISC
  *
  * This source code is licensed under the ISC license.

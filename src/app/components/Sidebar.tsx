@@ -1,5 +1,5 @@
 import React from 'react';
-import { LayoutDashboard, List, PiggyBank, TrendingUp, Globe, ChevronDown, LogOut, LogIn, Languages, Settings, PiggyBank as SavingsIcon, Building2, Briefcase } from 'lucide-react';
+import { LayoutDashboard, List, PiggyBank, Globe, ChevronDown, LogOut, LogIn, Languages, Settings, Briefcase } from 'lucide-react';
 import { Link, useLocation } from 'react-router';
 import { useCurrency, currencies } from '../context/CurrencyContext';
 import { useAuth } from '../context/AuthContext';
@@ -16,8 +16,7 @@ const mainNav = [
 const planningNav: { path: string; label: string; icon: React.ComponentType<{ className?: string }>; badge?: string }[] = [];
 
 const accountNav = [
-  { path: '/settings',      label: 'Settings',      icon: Settings  },
-  { path: '/bank-accounts', label: 'Bank Accounts',  icon: Building2 },
+  { path: '/settings', label: 'Settings', icon: Settings },
 ];
 
 export function Sidebar() {
@@ -97,20 +96,6 @@ export function Sidebar() {
               </li>
             );
           })}
-          <li>
-            <div className="flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-sidebar-foreground/40 cursor-default select-none">
-              <TrendingUp className="w-5 h-5 shrink-0" />
-              <span>Invest</span>
-              <span className="ml-auto text-[9px] font-bold bg-sidebar-foreground/20 text-sidebar-foreground/50 px-1.5 py-0.5 rounded-full tracking-wide">SOON</span>
-            </div>
-          </li>
-          <li>
-            <div className="flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-sidebar-foreground/40 cursor-default select-none">
-              <SavingsIcon className="w-5 h-5 shrink-0" />
-              <span>Savings Goals</span>
-              <span className="ml-auto text-[9px] font-bold bg-sidebar-foreground/20 text-sidebar-foreground/50 px-1.5 py-0.5 rounded-full tracking-wide">SOON</span>
-            </div>
-          </li>
         </ul>
 
         {sectionLabel('Account')}
