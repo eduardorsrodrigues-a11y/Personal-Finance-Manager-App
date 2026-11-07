@@ -1,6 +1,6 @@
 # MyMoneyMate
 
-A full-stack personal finance app for tracking income and expenses, managing budgets, and simulating investments. Built with React 19 + TypeScript on the frontend and Vercel serverless functions + Supabase on the backend.
+A full-stack personal finance app for tracking income and expenses, managing budgets, and tracking net worth. Built with React 19 + TypeScript on the frontend and Vercel serverless functions + Supabase on the backend.
 
 ---
 
@@ -9,12 +9,11 @@ A full-stack personal finance app for tracking income and expenses, managing bud
 - **Authentication** — Google OAuth 2.0 and email/password sign-in; sessions via HTTP-only cookies
 - **Transaction management** — create, edit, and delete income and expense transactions with categories, dates, and descriptions
 - **Budget tracking** — set monthly budgets per category with smart auto-allocation (50/30/20 rule)
-- **Investment simulator** — project future portfolio value across savings accounts, ETFs, bonds, and PPRs based on a configurable risk profile
-- **Bank account sync** — connect bank accounts via Plaid; review and import transactions automatically
+- **Portfolio Manager** — track net worth across investments, physical assets, and liabilities with monthly snapshots
 - **Dashboard analytics** — income/expense summary cards, monthly trend chart, category breakdown
 - **Multi-currency support** — 12+ currencies, saved per user
 - **Multi-language support** — UI translations via a language context
-- **User settings** — profile (name, birthday), default currency, investment risk preference
+- **User settings** — profile (name, birthday), default currency
 - **Responsive design** — desktop sidebar + mobile header/bottom nav
 
 ---
@@ -30,7 +29,6 @@ A full-stack personal finance app for tracking income and expenses, managing bud
 | Backend | Vercel Serverless Functions (Node.js) |
 | Database | Supabase (PostgreSQL) |
 | Auth | Google OAuth 2.0 + email/password (bcrypt) + JWT (jose) |
-| Bank sync | Plaid |
 | Analytics | PostHog |
 | Testing | Vitest + Testing Library |
 | Deployment | Vercel |
@@ -45,7 +43,6 @@ A full-stack personal finance app for tracking income and expenses, managing bud
 │   │   ├── db.ts                 # All Supabase queries
 │   │   ├── session.ts            # JWT session helpers
 │   │   ├── cookies.ts            # Cookie serialization
-│   │   ├── crypto.ts             # AES-256-GCM encryption (Plaid tokens)
 │   │   ├── request.ts            # Shared readJsonBody + withErrorHandler
 │   │   ├── validate.ts           # Centralised input validators
 │   │   ├── categories.ts         # VALID_CATEGORIES allowlist
@@ -58,8 +55,7 @@ A full-stack personal finance app for tracking income and expenses, managing bud
 │   │   └── logout/               # Clear session cookie
 │   ├── transactions/             # GET / POST / PUT / DELETE
 │   ├── budgets/                  # GET / PUT budgets
-│   ├── me/                       # GET + PATCH authenticated user
-│   └── plaid/                    # Link token, exchange, webhook, sync
+│   └── me/                       # GET + PATCH authenticated user
 │
 ├── src/
 │   ├── app/
@@ -76,15 +72,13 @@ A full-stack personal finance app for tracking income and expenses, managing bud
 │   │   │   ├── BudgetContext.tsx
 │   │   │   ├── CurrencyContext.tsx
 │   │   │   ├── LanguageContext.tsx
-│   │   │   ├── PlaidContext.tsx
 │   │   │   ├── UserSettingsContext.tsx
 │   │   │   └── ToastContext.tsx
 │   │   ├── pages/
 │   │   │   ├── Dashboard.tsx
 │   │   │   ├── TransactionHistory.tsx
 │   │   │   ├── Budgets.tsx
-│   │   │   ├── Invest.tsx
-│   │   │   ├── BankAccounts.tsx
+│   │   │   ├── Portfolio.tsx
 │   │   │   ├── Settings.tsx
 │   │   │   └── Login.tsx
 │   │   ├── utils/
@@ -118,8 +112,8 @@ A full-stack personal finance app for tracking income and expenses, managing bud
 | `users` | Accounts (Google OAuth or email/password) |
 | `user_settings` | Currency, risk profile, budgets (JSONB) |
 | `transactions` | Income and expense records |
-| `plaid_connections` | Linked bank accounts (encrypted access tokens) |
-| `pending_transactions` | Plaid transactions awaiting user review |
+| `portfolio_items` | Investments, physical assets, and liabilities (Portfolio Manager) |
+| `portfolio_snapshots` / `portfolio_snapshot_items` | Monthly net worth snapshots |
 | `rate_limits` | IP-based request throttling for auth endpoints |
 
 Full schema in `migrations/schema.sql`.
@@ -145,10 +139,6 @@ SUPABASE_SERVICE_ROLE_KEY=<service-role-key>
 AUTH_SECRET=<random-hex-32-bytes>
 GOOGLE_CLIENT_ID=<google-client-id>
 GOOGLE_CLIENT_SECRET=<google-client-secret>
-PLAID_CLIENT_ID=<plaid-client-id>
-PLAID_SECRET=<plaid-secret>
-PLAID_ENV=sandbox
-ENCRYPTION_KEY=<random-hex-32-bytes>
 VITE_POSTHOG_KEY=<posthog-key>
 VITE_POSTHOG_HOST=https://app.posthog.com
 ```
@@ -187,7 +177,6 @@ Run `migrations/schema.sql` in your Supabase SQL editor to create all tables.
 | DELETE | `/api/transactions` | Delete transaction |
 | GET | `/api/budgets` | Get budgets |
 | PUT | `/api/budgets` | Update budgets |
-| POST | `/api/plaid` | Plaid actions (link, exchange, sync, webhook) |
 
 ---
 
@@ -198,7 +187,7 @@ npm test          # Run all tests (53)
 npm run typecheck # TypeScript type check
 ```
 
-Tests cover: date utilities, category config, AES-256-GCM crypto, input validators, and the email auth API handler.
+Tests cover: date utilities, category config, input validators, and the email auth API handler.
 
 ---
 
@@ -213,7 +202,7 @@ Tests cover: date utilities, category config, AES-256-GCM crypto, input validato
 ### Staging (Preview)
 
 1. Push to the `staging` branch — Vercel deploys a preview URL
-2. Set env vars for **Preview** in Vercel (point to a separate dev Supabase project, use `PLAID_ENV=sandbox`)
+2. Set env vars for **Preview** in Vercel (point to a separate dev Supabase project)
 3. Add the staging Vercel URL as an authorised redirect URI in Google Cloud Console
 
 ### CI
@@ -226,8 +215,6 @@ GitHub Actions runs `npm run typecheck` and `npm test` on every pull request to 
 
 - All API routes validate and sanitise input server-side (`api/_lib/validate.ts`)
 - Transaction categories checked against a strict allowlist
-- Plaid access tokens encrypted at rest with AES-256-GCM
-- Plaid webhooks verified via JWT signature (JWKS)
 - Auth endpoints rate-limited by IP (10 requests / 15 min)
 - HTTP security headers set in `vercel.json` (CSP, X-Frame-Options, etc.)
 - Sessions use HTTP-only, Secure, SameSite=Lax cookies

@@ -7,9 +7,7 @@ import { RequireAccess } from "./context/AuthContext";
 const Dashboard         = lazy(() => import('./pages/Dashboard').then(m => ({ default: m.Dashboard })));
 const TransactionHistory = lazy(() => import('./pages/TransactionHistory').then(m => ({ default: m.TransactionHistory })));
 const Budgets           = lazy(() => import('./pages/Budgets').then(m => ({ default: m.Budgets })));
-const Invest            = lazy(() => import('./pages/Invest').then(m => ({ default: m.Invest })));
 const Settings          = lazy(() => import('./pages/Settings').then(m => ({ default: m.Settings })));
-const BankAccounts      = lazy(() => import('./pages/BankAccounts').then(m => ({ default: m.BankAccounts })));
 const Portfolio         = lazy(() => import('./pages/Portfolio').then(m => ({ default: m.Portfolio })));
 const Login             = lazy(() => import('./pages/Login').then(m => ({ default: m.Login })));
 
@@ -33,9 +31,7 @@ export const router = createBrowserRouter([
       { index: true,              Component: withAccess(Dashboard) },
       { path: "transactions",     Component: withAccess(TransactionHistory) },
       { path: "budgets",          Component: withAccess(Budgets) },
-      { path: "invest",           Component: withAccess(Invest) },
       { path: "settings",         Component: withAccess(Settings) },
-      { path: "bank-accounts",    Component: withAccess(BankAccounts) },
       { path: "portfolio",        Component: withAccess(Portfolio) },
       { path: "login",            Component: withSuspense(Login) },
     ],
