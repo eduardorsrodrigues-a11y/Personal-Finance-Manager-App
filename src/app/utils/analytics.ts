@@ -46,4 +46,20 @@ export const track = {
 
   annualGridDrilldown: (props: { category: string; month: string }) =>
     posthog.capture('annual_grid_drilldown', props),
+
+  // ── Shared Expenses ─────────────────────────────────────
+  sharedGroupCreated: (props: { members: number }) =>
+    posthog.capture('shared_group_created', props),
+
+  sharedExpenseAdded: (props: { category: string; amount: number; splitMode: 'equal' | 'custom'; participants: number }) =>
+    posthog.capture('shared_expense_added', props),
+
+  sharedExpenseEdited: (props: { category: string; amount: number; splitMode: 'equal' | 'custom' }) =>
+    posthog.capture('shared_expense_edited', props),
+
+  sharedExpenseDeleted: (props: { category: string }) =>
+    posthog.capture('shared_expense_deleted', props),
+
+  sharedSettlementRecorded: (props: { amount: number }) =>
+    posthog.capture('shared_settlement_recorded', props),
 };

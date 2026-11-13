@@ -1,5 +1,5 @@
 import React from 'react';
-import { LayoutDashboard, List, PiggyBank, Globe, ChevronDown, LogOut, LogIn, Languages, Settings, Briefcase } from 'lucide-react';
+import { LayoutDashboard, List, PiggyBank, Globe, ChevronDown, LogOut, LogIn, Languages, Settings, Briefcase, Users } from 'lucide-react';
 import { Link, useLocation } from 'react-router';
 import { useCurrency, currencies } from '../context/CurrencyContext';
 import { useAuth } from '../context/AuthContext';
@@ -27,7 +27,8 @@ export function Sidebar() {
   const [isCurrencyMenuOpen, setIsCurrencyMenuOpen] = useState(false);
   const [isLanguageMenuOpen, setIsLanguageMenuOpen] = useState(false);
 
-  const isActive = (path: string) => location.pathname === path;
+  const isActive = (path: string) =>
+    location.pathname === path || (path !== '/' && location.pathname.startsWith(`${path}/`));
 
   const linkClass = (path: string) =>
     `flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-colors ${
@@ -77,6 +78,13 @@ export function Sidebar() {
             <Link to="/portfolio" className={linkClass('/portfolio')}>
               <Briefcase className="w-5 h-5 shrink-0" />
               <span>Portfolio Manager</span>
+              <span className="ml-auto text-[9px] font-bold bg-teal-500 text-white px-1.5 py-0.5 rounded-full tracking-wide">NEW</span>
+            </Link>
+          </li>
+          <li>
+            <Link to="/shared-expenses" className={linkClass('/shared-expenses')}>
+              <Users className="w-5 h-5 shrink-0" />
+              <span>Shared Expenses</span>
               <span className="ml-auto text-[9px] font-bold bg-teal-500 text-white px-1.5 py-0.5 rounded-full tracking-wide">NEW</span>
             </Link>
           </li>

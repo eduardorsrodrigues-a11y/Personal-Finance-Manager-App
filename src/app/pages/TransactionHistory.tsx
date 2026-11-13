@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect, useRef, useCallback } from 'react';
-import { Plus, Search, Trash2, ShoppingCart } from 'lucide-react';
+import { Plus, Search, Trash2, ShoppingCart, Users } from 'lucide-react';
 import { useSearchParams } from 'react-router';
 import { Transaction, useTransactions } from '../context/TransactionContext';
 import { AddTransactionModal } from '../components/AddTransactionModal';
@@ -241,7 +241,14 @@ export function TransactionHistory() {
                         </div>
                         <div className="flex-1 min-w-0">
                           <p className="font-medium text-sm truncate">{transaction.description}</p>
-                          <p className="text-xs text-muted-foreground">{tCategory(transaction.category)}</p>
+                          <p className="text-xs text-muted-foreground flex items-center gap-1.5">
+                            {tCategory(transaction.category)}
+                            {transaction.sharedExpenseId && (
+                              <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-teal-600 dark:text-teal-400 bg-teal-50 dark:bg-teal-900/20 px-1.5 py-0.5 rounded-full">
+                                <Users className="w-3 h-3" /> Shared
+                              </span>
+                            )}
+                          </p>
                         </div>
                         <div className="flex items-center gap-2 shrink-0">
                           <p className={`font-semibold text-sm ${
@@ -249,15 +256,19 @@ export function TransactionHistory() {
                           }`}>
                             {transaction.type === 'income' ? '+' : '-'}{formatAmount(transaction.amount)}
                           </p>
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setPendingDelete(transaction);
-                            }}
-                            className="text-muted-foreground hover:text-destructive transition-colors p-1.5 rounded"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </button>
+                          {transaction.sharedExpenseId ? (
+                            <span className="w-[26px]" aria-hidden="true" />
+                          ) : (
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setPendingDelete(transaction);
+                              }}
+                              className="text-muted-foreground hover:text-destructive transition-colors p-1.5 rounded"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          )}
                         </div>
                       </div>
                     );

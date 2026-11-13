@@ -6,7 +6,9 @@
     { "source": "/transactions", "destination": "/index.html" },
     { "source": "/budgets", "destination": "/index.html" },
     { "source": "/settings", "destination": "/index.html" },
-    { "source": "/portfolio", "destination": "/index.html" }
+    { "source": "/portfolio", "destination": "/index.html" },
+    { "source": "/shared-expenses", "destination": "/index.html" },
+    { "source": "/shared-expenses/(.*)", "destination": "/index.html" }
   ],
   "headers": [
     {

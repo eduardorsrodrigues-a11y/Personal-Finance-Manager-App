@@ -1,5 +1,6 @@
 import { getAuthenticatedUserId } from '../_lib/session.js';
-import { createTransaction, deleteTransaction, listTransactions, updateTransaction } from '../_lib/db.js';
+import { createTransaction, deleteTransaction, isSharedTransaction, listTransactions, updateTransaction } from '../_lib/db.js';
+import { linkPendingMemberships } from '../_lib/sharedExpenses.js';
 import { readJsonBody, withErrorHandler, type ApiRequest, type ApiResponse } from '../_lib/request.js';
 import { ValidationError, requireString, requireAmount, requireTransactionType, requireDate, requireCategory } from '../_lib/validate.js';
 
@@ -11,6 +12,9 @@ export default withErrorHandler(async function handler(req: ApiRequest, res: Api
   }
 
   if (req.method === 'GET') {
+    // Pick up shared-expense groups this user was added to by email, so their
+    // shares appear here even before they open the Shared Expenses page.
+    try { await linkPendingMemberships(userId); } catch (err) { console.error('[transactions] link memberships failed:', err); }
     const transactions = await listTransactions(userId);
     res.status(200).json({ transactions });
     return;
@@ -36,6 +40,10 @@ export default withErrorHandler(async function handler(req: ApiRequest, res: Api
   if (req.method === 'PUT') {
     const id = (req.query?.id as string | undefined);
     if (!id) { res.status(400).json({ error: 'Missing id' }); return; }
+    if (await isSharedTransaction({ userId, id })) {
+      res.status(409).json({ error: 'This transaction comes from a shared expense. Edit it in Shared Expenses.' });
+      return;
+    }
     const body = (await readJsonBody(req)) as Record<string, unknown>;
     try {
       const type = requireTransactionType(body.type);
@@ -55,6 +63,10 @@ export default withErrorHandler(async function handler(req: ApiRequest, res: Api
   if (req.method === 'DELETE') {
     const id = (req.query?.id as string | undefined) ?? ((await readJsonBody(req)) as Record<string, unknown>)?.id as string | undefined;
     if (!id) { res.status(400).json({ error: 'Missing id' }); return; }
+    if (await isSharedTransaction({ userId, id })) {
+      res.status(409).json({ error: 'This transaction comes from a shared expense. Edit it in Shared Expenses.' });
+      return;
+    }
     await deleteTransaction({ userId, id });
     res.status(204).end();
     return;
