@@ -1,5 +1,5 @@
-import { useMemo, useState } from 'react';
-import { Trash2 } from 'lucide-react';
+import { useState } from 'react';
+import { Trash2, RotateCcw } from 'lucide-react';
 import { useCurrency } from '../../context/CurrencyContext';
 import { useLanguage } from '../../context/LanguageContext';
 import { useToast } from '../../context/ToastContext';
@@ -8,7 +8,7 @@ import {
   type SharedExpense,
   type SharedGroupDetail,
 } from '../../context/SharedExpensesContext';
-import { equalSplit, toCents, fromCents } from '../../../../api/_lib/sharedExpenseMath';
+import { equalSplit, allocateCustomSplit, toCents, fromCents } from '../../../../api/_lib/sharedExpenseMath';
 import { track } from '../../utils/analytics';
 import { ModalShell, Spinner, inputClass, labelClass, parseMoney, todayIso } from './ModalShell';
 
@@ -47,11 +47,15 @@ export function SharedExpenseModal({ group, expense, onClose, onSaved }: Props) 
   const [paidBy, setPaidBy] = useState(expense?.paidBy ?? group.myMemberId);
   const [mode, setMode] = useState<SplitMode>(expense ? inferMode(expense) : 'equal');
   const [included, setIncluded] = useState<Set<string>>(
-    () => new Set(expense ? expense.splits.filter((s) => s.amount > 0 || mode === 'equal').map((s) => s.memberId) : group.members.map((m) => m.id)),
+    () => new Set(expense ? expense.splits.filter((s) => s.amount > 0).map((s) => s.memberId) : group.members.map((m) => m.id)),
   );
-  const [custom, setCustom] = useState<Record<string, string>>(() => {
+  // Custom mode: shares typed by hand (raw input). Everyone else included is filled in automatically.
+  // When editing a custom expense, its saved amounts start out as typed-by-hand.
+  const [locked, setLocked] = useState<Record<string, string>>(() => {
     const init: Record<string, string> = {};
-    for (const s of expense?.splits ?? []) init[s.memberId] = String(s.amount);
+    if (expense && mode === 'custom') {
+      for (const s of expense.splits) if (s.amount > 0) init[s.memberId] = s.amount.toFixed(2);
+    }
     return init;
   });
   const [error, setError] = useState<string | null>(null);
@@ -63,43 +67,49 @@ export function SharedExpenseModal({ group, expense, onClose, onSaved }: Props) 
 
   // Order participants as they appear in the member list for stable rounding.
   const includedIds = group.members.filter((m) => included.has(m.id)).map((m) => m.id);
-  const equalShares = useMemo(
-    () => (totalValid ? equalSplit(total, includedIds) : {}),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [total, totalValid, includedIds.join(',')],
-  );
+  const lockedValues: Record<string, number> = {};
+  for (const [id, raw] of Object.entries(locked)) {
+    if (!included.has(id)) continue;
+    const v = parseMoney(raw);
+    lockedValues[id] = Number.isFinite(v) ? v : 0;
+  }
+  const { shares, remainingCents } = mode === 'equal'
+    ? { shares: totalValid ? equalSplit(total, includedIds) : {}, remainingCents: 0 }
+    : allocateCustomSplit(totalValid ? total : 0, includedIds, lockedValues);
 
-  const customCents = group.members.reduce((sum, m) => {
-    const v = parseMoney(custom[m.id] ?? '');
-    return sum + (Number.isFinite(v) ? toCents(v) : 0);
-  }, 0);
-  const remainingCents = totalValid ? toCents(total) - customCents : 0;
-
-  const myShare = mode === 'equal'
-    ? (equalShares[group.myMemberId] ?? 0)
-    : (Number.isFinite(parseMoney(custom[group.myMemberId] ?? '')) ? parseMoney(custom[group.myMemberId] ?? '') : 0);
+  const myShare = shares[group.myMemberId] ?? 0;
+  const autoCount = includedIds.filter((id) => !(id in locked)).length;
 
   const toggleMember = (id: string) => {
+    const removing = included.has(id);
     setIncluded((prev) => {
       const next = new Set(prev);
-      if (next.has(id)) next.delete(id); else next.add(id);
+      if (removing) next.delete(id); else next.add(id);
       return next;
     });
+    if (removing) unlock(id);
   };
 
-  /** Switching to custom pre-fills the inputs with the current equal split. */
+  const unlock = (id: string) =>
+    setLocked((prev) => {
+      const { [id]: _removed, ...rest } = prev;
+      return rest;
+    });
+
+  /** Typing a share fixes it; the rest of the total is re-split among untouched people. */
+  const typeShare = (id: string, value: string) => {
+    if (!/^[0-9.,]*$/.test(value)) return;
+    setLocked((prev) => ({ ...prev, [id]: value }));
+    if (!included.has(id)) setIncluded((prev) => new Set(prev).add(id));
+  };
+
   const switchMode = (next: SplitMode) => {
     if (next === mode) return;
-    if (next === 'custom') {
-      const filled: Record<string, string> = {};
-      for (const m of group.members) {
-        const share = equalShares[m.id];
-        filled[m.id] = share ? share.toFixed(2) : '';
-      }
-      setCustom(filled);
-    } else {
-      setIncluded(new Set(group.members.filter((m) => toCents(parseMoney(custom[m.id] ?? '0') || 0) > 0).map((m) => m.id)));
+    if (next === 'equal') {
+      // Keep the people who currently have a share.
+      setIncluded(new Set(includedIds.filter((id) => (shares[id] ?? 0) > 0 || !totalValid)));
     }
+    setLocked({});
     setMode(next);
   };
 
@@ -112,15 +122,15 @@ export function SharedExpenseModal({ group, expense, onClose, onSaved }: Props) 
     let splits: Array<{ memberId: string; amount: number }>;
     if (mode === 'equal') {
       if (includedIds.length === 0) return setError('Select at least one person to split with.');
-      splits = includedIds.map((id) => ({ memberId: id, amount: equalShares[id] }));
+      splits = includedIds.map((id) => ({ memberId: id, amount: shares[id] }));
     } else {
       if (remainingCents !== 0) {
         return setError(remainingCents > 0
           ? `${formatAmount(fromCents(remainingCents))} still needs to be assigned.`
           : `Shares exceed the total by ${formatAmount(fromCents(-remainingCents))}.`);
       }
-      splits = group.members
-        .map((m) => ({ memberId: m.id, amount: fromCents(toCents(parseMoney(custom[m.id] ?? '') || 0)) }))
+      splits = includedIds
+        .map((id) => ({ memberId: id, amount: shares[id] ?? 0 }))
         .filter((s) => s.amount > 0);
       if (splits.length === 0) return setError('Assign the amount to at least one person.');
     }
@@ -277,53 +287,75 @@ export function SharedExpenseModal({ group, expense, onClose, onSaved }: Props) 
             </div>
 
             <div className="border border-border rounded-xl divide-y divide-border">
-              {group.members.map((m) => (
-                <div key={m.id} className="flex items-center gap-3 px-3 py-2.5">
-                  {mode === 'equal' ? (
+              {group.members.map((m) => {
+                const isIncluded = included.has(m.id);
+                const isLocked = m.id in locked && isIncluded;
+                const display = isLocked ? locked[m.id] : isIncluded && totalValid ? (shares[m.id] ?? 0).toFixed(2) : '';
+                return (
+                  <div key={m.id} className="flex items-center gap-3 px-3 py-2.5">
                     <label className="flex items-center gap-3 flex-1 min-w-0 cursor-pointer">
                       <input
                         type="checkbox"
-                        checked={included.has(m.id)}
+                        checked={isIncluded}
                         onChange={() => toggleMember(m.id)}
                         className="w-4 h-4 accent-teal-500 shrink-0"
                       />
-                      <span className="text-sm truncate">{m.isMe ? `${m.name} (you)` : m.name}</span>
+                      <span className={`text-sm truncate ${isIncluded ? '' : 'text-muted-foreground'}`}>
+                        {m.isMe ? `${m.name} (you)` : m.name}
+                      </span>
                     </label>
-                  ) : (
-                    <span className="text-sm truncate flex-1 min-w-0">{m.isMe ? `${m.name} (you)` : m.name}</span>
-                  )}
-                  {mode === 'equal' ? (
-                    <span className={`text-sm font-medium tabular-nums ${included.has(m.id) ? '' : 'text-muted-foreground'}`}>
-                      {formatAmount(equalShares[m.id] ?? 0)}
-                    </span>
-                  ) : (
-                    <div className="relative w-28 shrink-0">
-                      <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">{currency.symbol}</span>
-                      <input
-                        type="text"
-                        inputMode="decimal"
-                        aria-label={`${m.name}'s share`}
-                        value={custom[m.id] ?? ''}
-                        onChange={(e) => {
-                          const v = e.target.value;
-                          if (/^[0-9.,]*$/.test(v)) setCustom((prev) => ({ ...prev, [m.id]: v }));
-                        }}
-                        placeholder="0.00"
-                        className="w-full pl-6 pr-2 py-1.5 text-sm text-right tabular-nums bg-input-background rounded-lg border border-border focus:outline-none focus:ring-2 focus:ring-ring"
-                      />
-                    </div>
-                  )}
-                </div>
-              ))}
+                    {mode === 'equal' ? (
+                      <span className={`text-sm font-medium tabular-nums ${isIncluded ? '' : 'text-muted-foreground'}`}>
+                        {formatAmount(shares[m.id] ?? 0)}
+                      </span>
+                    ) : (
+                      <div className="flex items-center gap-1 shrink-0">
+                        {isLocked ? (
+                          <button
+                            type="button"
+                            onClick={() => unlock(m.id)}
+                            title="Reset to automatic"
+                            aria-label={`Reset ${m.name}'s share to automatic`}
+                            className="p-1 rounded-md text-muted-foreground hover:text-teal-600 hover:bg-muted transition-colors"
+                          >
+                            <RotateCcw className="w-3.5 h-3.5" />
+                          </button>
+                        ) : (
+                          <span className="w-[22px]" aria-hidden="true" />
+                        )}
+                        <div className="relative w-28">
+                          <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">{currency.symbol}</span>
+                          <input
+                            type="text"
+                            inputMode="decimal"
+                            aria-label={`${m.name}'s share`}
+                            value={display}
+                            onChange={(e) => typeShare(m.id, e.target.value)}
+                            onFocus={(e) => e.target.select()}
+                            placeholder="0.00"
+                            className={`w-full pl-6 pr-2 py-1.5 text-sm text-right tabular-nums rounded-lg border focus:outline-none focus:ring-2 focus:ring-ring ${
+                              isLocked
+                                ? 'bg-input-background border-teal-300 dark:border-teal-700 font-semibold'
+                                : 'bg-input-background border-border text-muted-foreground'
+                            }`}
+                          />
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
             </div>
 
             {mode === 'custom' && totalValid && (
-              <p className={`text-xs mt-2 ${remainingCents === 0 ? 'text-emerald-600' : 'text-amber-600'}`}>
-                {remainingCents === 0
-                  ? 'All assigned ✓'
-                  : remainingCents > 0
-                    ? `${formatAmount(fromCents(remainingCents))} left to assign`
-                    : `${formatAmount(fromCents(-remainingCents))} over the total`}
+              <p className={`text-xs mt-2 ${remainingCents === 0 ? 'text-muted-foreground' : 'text-amber-600'}`}>
+                {remainingCents > 0
+                  ? `${formatAmount(fromCents(remainingCents))} left to assign — everyone's amount is set by hand. Reset one to fill it in automatically.`
+                  : remainingCents < 0
+                    ? `${formatAmount(fromCents(-remainingCents))} over the total`
+                    : autoCount > 0 && Object.keys(lockedValues).length > 0
+                      ? 'Amounts you typed stay fixed. The rest is split equally between the others.'
+                      : 'Type an amount for anyone. The rest is split equally between the others.'}
               </p>
             )}
             {totalValid && myShare > 0 && (

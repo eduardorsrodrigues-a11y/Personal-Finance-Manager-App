@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { equalSplit, computeBalances, simplifyDebts, splitsMatchTotal } from '../../api/_lib/sharedExpenseMath.js';
+import { equalSplit, computeBalances, simplifyDebts, splitsMatchTotal, allocateCustomSplit } from '../../api/_lib/sharedExpenseMath.js';
 
 describe('equalSplit', () => {
   it('splits evenly when divisible', () => {
@@ -44,6 +44,35 @@ describe('computeBalances', () => {
       { amount: 100, paidBy: 'b', splits: [{ memberId: 'a', amount: 70 }, { memberId: 'b', amount: 30 }] },
     ]);
     expect(b).toEqual({ a: -70, b: 70 });
+  });
+});
+
+describe('allocateCustomSplit', () => {
+  it('splits equally when nothing is locked', () => {
+    expect(allocateCustomSplit(90, ['a', 'b', 'c'], {})).toEqual({ shares: { a: 30, b: 30, c: 30 }, remainingCents: 0 });
+  });
+
+  it('spreads what is left over the untouched participants', () => {
+    const r = allocateCustomSplit(100, ['a', 'b', 'c'], { a: 50 });
+    expect(r).toEqual({ shares: { a: 50, b: 25, c: 25 }, remainingCents: 0 });
+  });
+
+  it('keeps the total exact with leftover cents', () => {
+    const r = allocateCustomSplit(100, ['a', 'b', 'c', 'd'], { a: 0.01 });
+    expect(r.remainingCents).toBe(0);
+    expect(splitsMatchTotal(100, Object.values(r.shares))).toBe(true);
+  });
+
+  it('reports unassigned cents when everyone is locked', () => {
+    expect(allocateCustomSplit(100, ['a', 'b'], { a: 30, b: 40 }).remainingCents).toBe(3000);
+  });
+
+  it('reports overflow and zeroes auto participants when locked exceed total', () => {
+    expect(allocateCustomSplit(50, ['a', 'b'], { a: 60 })).toEqual({ shares: { a: 60, b: 0 }, remainingCents: -1000 });
+  });
+
+  it('gives auto participants 0 when locked shares use up the total', () => {
+    expect(allocateCustomSplit(50, ['a', 'b'], { a: 50 })).toEqual({ shares: { a: 50, b: 0 }, remainingCents: 0 });
   });
 });
 
