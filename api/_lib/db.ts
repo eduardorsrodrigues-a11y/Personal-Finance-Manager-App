@@ -65,13 +65,15 @@ export type DbTransaction = {
   description: string;
   date: string;
   category: string;
+  sharedExpenseId: string | null;
+  sharedGroupId: string | null;
 };
 
 export async function listTransactions(userId: string): Promise<DbTransaction[]> {
   const supabase = getSupabaseAdmin();
   const { data, error } = await supabase
     .from('transactions')
-    .select('id, type, amount, description, transaction_date, category')
+    .select('id, type, amount, description, transaction_date, category, shared_expense_id, shared_expenses(group_id)')
     .eq('user_id', userId)
     .order('transaction_date', { ascending: false })
     .order('created_at', { ascending: false })
@@ -85,16 +87,23 @@ export async function listTransactions(userId: string): Promise<DbTransaction[]>
     description: string;
     transaction_date: string;
     category: string;
+    shared_expense_id: string | null;
+    shared_expenses: { group_id: string } | Array<{ group_id: string }> | null;
   }>;
 
-  return rows.map((r) => ({
-    id: r.id,
-    type: r.type as 'income' | 'expense',
-    amount: Number(r.amount),
-    description: r.description,
-    date: r.transaction_date,
-    category: r.category,
-  }));
+  return rows.map((r) => {
+    const shared = Array.isArray(r.shared_expenses) ? r.shared_expenses[0] : r.shared_expenses;
+    return {
+      id: r.id,
+      type: r.type as 'income' | 'expense',
+      amount: Number(r.amount),
+      description: r.description,
+      date: r.transaction_date,
+      category: r.category,
+      sharedExpenseId: r.shared_expense_id ?? null,
+      sharedGroupId: shared?.group_id ?? null,
+    };
+  });
 }
 
 export async function getUserByEmail(email: string) {
@@ -182,6 +191,19 @@ export async function createTransaction(params: {
 
   if (error) throw error;
   return data as { id: string };
+}
+
+/** True when the transaction mirrors a shared expense share (managed from Shared Expenses). */
+export async function isSharedTransaction(params: { userId: string; id: string }): Promise<boolean> {
+  const supabase = getSupabaseAdmin();
+  const { data, error } = await supabase
+    .from('transactions')
+    .select('shared_expense_id')
+    .eq('id', params.id)
+    .eq('user_id', params.userId)
+    .maybeSingle();
+  if (error) throw error;
+  return Boolean((data as { shared_expense_id: string | null } | null)?.shared_expense_id);
 }
 
 export async function updateTransaction(params: {

@@ -8,6 +8,9 @@ export interface Transaction {
   description: string;
   date: string;
   category: string;
+  /** Set when this transaction is the user's share of a shared expense (read-only here). */
+  sharedExpenseId?: string | null;
+  sharedGroupId?: string | null;
 }
 
 interface TransactionContextType {

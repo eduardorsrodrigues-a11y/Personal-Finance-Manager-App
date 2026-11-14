@@ -10,6 +10,7 @@ import { LanguageProvider } from '../context/LanguageContext';
 import { ToastProvider } from '../context/ToastContext';
 import { UserSettingsProvider } from '../context/UserSettingsContext';
 import { PortfolioProvider } from '../context/PortfolioContext';
+import { SharedExpensesProvider } from '../context/SharedExpensesContext';
 import { PWAProvider } from '../context/PWAContext';
 import { InstallPrompt } from '../components/InstallPrompt';
 import { SyncIndicator } from '../components/SyncIndicator';
@@ -27,6 +28,7 @@ export function Root() {
           <ToastProvider>
             <UserSettingsProvider>
             <PortfolioProvider>
+            <SharedExpensesProvider>
             <div className="flex min-h-screen bg-background">
               <Sidebar />
               <MobileHeader />
@@ -43,6 +45,7 @@ export function Root() {
                 </div>
               </div>
             </div>
+            </SharedExpensesProvider>
             </PortfolioProvider>
             </UserSettingsProvider>
           </ToastProvider>

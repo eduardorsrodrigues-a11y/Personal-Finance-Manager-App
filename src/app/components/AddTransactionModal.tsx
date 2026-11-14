@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { X, Trash2 } from 'lucide-react';
+import { X, Trash2, Users } from 'lucide-react';
+import { useNavigate } from 'react-router';
 import { Transaction, useTransactions } from '../context/TransactionContext';
 import { useCurrency } from '../context/CurrencyContext';
 import { useLanguage } from '../context/LanguageContext';
@@ -28,9 +29,10 @@ export function AddTransactionModal({
   zIndex,
 }: AddTransactionModalProps) {
   const { addTransaction, updateTransaction, deleteTransaction } = useTransactions();
-  const { currency } = useCurrency();
+  const { currency, formatAmount } = useCurrency();
   const { t, tCategory } = useLanguage();
   const { showToast } = useToast();
+  const navigate = useNavigate();
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [type, setType] = useState<'expense' | 'income'>('expense');
@@ -90,6 +92,45 @@ export function AddTransactionModal({
   };
 
   if (!isOpen) return null;
+
+  // Shares of shared expenses are managed from their group, not edited here.
+  if (mode === 'edit' && initialTransaction?.sharedExpenseId) {
+    const groupId = initialTransaction.sharedGroupId;
+    return (
+      <div className="fixed inset-0 bg-black/50 overflow-y-auto" style={{ zIndex: zIndex ?? 50 }} onClick={onClose}>
+        <div className="flex min-h-full items-center justify-center p-4">
+          <div className="bg-card rounded-xl shadow-lg w-full max-w-sm" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between px-5 py-4 border-b border-border">
+              <p className="font-semibold text-sm">Shared expense</p>
+              <button onClick={onClose} className="p-1.5 rounded-lg text-muted-foreground hover:bg-muted transition-colors" aria-label="Close">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            <div className="px-5 py-5 flex gap-3">
+              <div className="w-9 h-9 rounded-lg bg-teal-50 dark:bg-teal-900/20 flex items-center justify-center shrink-0">
+                <Users className="w-4 h-4 text-teal-600" />
+              </div>
+              <div className="min-w-0">
+                <p className="text-sm font-medium truncate">{initialTransaction.description}</p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  This is your share of a shared expense ({formatAmount(initialTransaction.amount)}).
+                  It updates automatically when the expense changes. To edit or delete it, open the group.
+                </p>
+              </div>
+            </div>
+            <div className="flex gap-3 px-5 pb-5">
+              <button
+                onClick={() => { onClose(); if (groupId) navigate(`/shared-expenses/${groupId}`); }}
+                className="flex-1 py-2.5 rounded-xl bg-teal-500 hover:bg-teal-600 text-white text-sm font-semibold transition-colors"
+              >
+                Open group
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <>

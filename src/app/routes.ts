@@ -9,6 +9,7 @@ const TransactionHistory = lazy(() => import('./pages/TransactionHistory').then(
 const Budgets           = lazy(() => import('./pages/Budgets').then(m => ({ default: m.Budgets })));
 const Settings          = lazy(() => import('./pages/Settings').then(m => ({ default: m.Settings })));
 const Portfolio         = lazy(() => import('./pages/Portfolio').then(m => ({ default: m.Portfolio })));
+const SharedExpenses    = lazy(() => import('./pages/SharedExpenses').then(m => ({ default: m.SharedExpenses })));
 const Login             = lazy(() => import('./pages/Login').then(m => ({ default: m.Login })));
 
 function withSuspense(Component: React.ComponentType) {
@@ -33,6 +34,8 @@ export const router = createBrowserRouter([
       { path: "budgets",          Component: withAccess(Budgets) },
       { path: "settings",         Component: withAccess(Settings) },
       { path: "portfolio",        Component: withAccess(Portfolio) },
+      { path: "shared-expenses",  Component: withAccess(SharedExpenses) },
+      { path: "shared-expenses/:groupId", Component: withAccess(SharedExpenses) },
       { path: "login",            Component: withSuspense(Login) },
     ],
   },
