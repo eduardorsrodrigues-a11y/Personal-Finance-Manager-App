@@ -83,6 +83,42 @@ export function simplifyDebts(balances: Record<string, number>): Debt[] {
   return debts;
 }
 
+/**
+ * Custom split where some shares were typed by hand ("locked") and the rest
+ * fill in automatically: whatever the locked shares leave of the total is split
+ * equally between the remaining participants. `participantIds` sets the order
+ * (leftover cents go to the first auto participants).
+ *
+ * Returns every participant's share plus the cents still unassigned: positive
+ * when nobody is left to absorb the rest, negative when locked shares exceed
+ * the total (auto participants then get 0).
+ */
+export function allocateCustomSplit(
+  total: number,
+  participantIds: string[],
+  locked: Record<string, number>,
+): { shares: Record<string, number>; remainingCents: number } {
+  const shares: Record<string, number> = {};
+  let lockedCents = 0;
+  const autoIds: string[] = [];
+  for (const id of participantIds) {
+    if (id in locked) {
+      const c = Math.max(0, toCents(locked[id]));
+      shares[id] = fromCents(c);
+      lockedCents += c;
+    } else {
+      autoIds.push(id);
+    }
+  }
+  const leftCents = toCents(total) - lockedCents;
+  if (autoIds.length === 0 || leftCents <= 0) {
+    for (const id of autoIds) shares[id] = 0;
+    return { shares, remainingCents: leftCents };
+  }
+  Object.assign(shares, equalSplit(fromCents(leftCents), autoIds));
+  return { shares, remainingCents: 0 };
+}
+
 /** True when the split amounts add up exactly (to the cent) to the total. */
 export function splitsMatchTotal(total: number, splitAmounts: number[]): boolean {
   return splitAmounts.reduce((sum, a) => sum + toCents(a), 0) === toCents(total);
