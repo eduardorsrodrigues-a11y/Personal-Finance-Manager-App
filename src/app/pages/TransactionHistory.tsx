@@ -13,6 +13,8 @@ import { useToast } from '../context/ToastContext';
 
 type FilterType = 'all' | 'income' | 'expense';
 
+const PAGE_SIZE = 30;
+
 export function TransactionHistory() {
   const { transactions, deleteTransaction } = useTransactions();
   const { formatAmount } = useCurrency();
@@ -30,7 +32,7 @@ export function TransactionHistory() {
   const [selectedMonth, setSelectedMonth] = useState<string>(initialMonthParam || 'this-month');
   const [selectedCategory, setSelectedCategory] = useState<string>(initialCategoryParam || 'all');
   const [isHidden, setIsHidden] = useState(false);
-  const [visibleCount, setVisibleCount] = useState(20);
+  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
   const lastScrollY = useRef(0);
   const sentinelRef = useRef<HTMLDivElement>(null);
 
@@ -80,19 +82,8 @@ export function TransactionHistory() {
   }, [initialCategoryParam]);
 
   // Reset visible count when any filter changes
-  useEffect(() => { setVisibleCount(20); }, [filter, searchQuery, selectedMonth, selectedCategory]);
+  useEffect(() => { setVisibleCount(PAGE_SIZE); }, [filter, searchQuery, selectedMonth, selectedCategory]);
 
-  // Infinite scroll sentinel
-  useEffect(() => {
-    const el = sentinelRef.current;
-    if (!el) return;
-    const observer = new IntersectionObserver(
-      (entries) => { if (entries[0].isIntersecting) setVisibleCount(c => c + 20); },
-      { rootMargin: '200px' },
-    );
-    observer.observe(el);
-    return () => observer.disconnect();
-  }, []);
 
   const availableCategories = useMemo(() => {
     const source = filter === 'all' ? transactions : transactions.filter(tx => tx.type === filter);
@@ -122,6 +113,20 @@ export function TransactionHistory() {
 
   const visibleTransactions = filteredByMonthTransactions.slice(0, visibleCount);
   const hasMore = filteredByMonthTransactions.length > visibleCount;
+
+  // Infinite scroll sentinel. Re-attached whenever the sentinel appears or the
+  // page grows: the sentinel isn't rendered until transactions have loaded, and
+  // a fresh observe() fires immediately if it's still in view after a page load.
+  useEffect(() => {
+    const el = sentinelRef.current;
+    if (!el || !hasMore) return;
+    const observer = new IntersectionObserver(
+      (entries) => { if (entries[0].isIntersecting) setVisibleCount(c => c + PAGE_SIZE); },
+      { rootMargin: '400px' },
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [hasMore, visibleCount]);
 
   const handleSaved = useCallback((savedMode: 'add' | 'edit') => {
     if (savedMode === 'add') window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -276,7 +281,21 @@ export function TransactionHistory() {
                 </div>
               </div>
             ))}
-          {hasMore && <div ref={sentinelRef} className="h-10" />}
+          {hasMore && (
+            <div ref={sentinelRef} className="flex flex-col items-center gap-2 py-4">
+              <p className="text-xs text-muted-foreground">
+                {t('transactions.showingOf')
+                  .replace('{shown}', String(visibleTransactions.length))
+                  .replace('{total}', String(filteredByMonthTransactions.length))}
+              </p>
+              <button
+                onClick={() => setVisibleCount(c => c + PAGE_SIZE)}
+                className="px-3 py-1.5 rounded-lg text-xs font-semibold text-teal-600 dark:text-teal-400 hover:bg-teal-50 dark:hover:bg-teal-900/20 border border-teal-200 dark:border-teal-800 transition-colors"
+              >
+                {t('transactions.loadMore')}
+              </button>
+            </div>
+          )}
           </div>
         ) : (
           <div className="bg-card border border-border rounded-xl p-12 text-center">

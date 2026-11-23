@@ -16,7 +16,7 @@ export type TranslationSchema = {
   transactions: {
     title: string; subtitle: string; addTransaction: string;
     searchPlaceholder: string; noTransactions: string;
-    adjustFilters: string; startAdding: string;
+    adjustFilters: string; startAdding: string; loadMore: string; showingOf: string;
     filterByType: string; allTime: string; allCategories: string;
     timePeriod: string; category: string; all: string; income: string; expense: string;
   };
@@ -70,7 +70,7 @@ const en: TranslationSchema = {
   transactions: {
     title: 'Transaction History', subtitle: 'View and manage all your transactions',
     addTransaction: 'Add Transaction', searchPlaceholder: 'Search transactions...',
-    noTransactions: 'No transactions found', adjustFilters: 'Try adjusting your search or filters',
+    noTransactions: 'No transactions found', adjustFilters: 'Try adjusting your search or filters', loadMore: 'Load more', showingOf: 'Showing {shown} of {total}',
     startAdding: 'Start by adding your first transaction',
     filterByType: 'Filter by Type', allTime: 'All time', allCategories: 'All Categories',
     timePeriod: 'Time Period', category: 'Category', all: 'All', income: 'Income', expense: 'Expense',
@@ -130,7 +130,7 @@ const pt: TranslationSchema = {
   transactions: {
     title: 'Histórico de transações', subtitle: 'Ver e gerenciar todas as suas transações',
     addTransaction: 'Adicionar transação', searchPlaceholder: 'Buscar transações...',
-    noTransactions: 'Nenhuma transação encontrada', adjustFilters: 'Tente ajustar sua busca ou filtros',
+    noTransactions: 'Nenhuma transação encontrada', adjustFilters: 'Tente ajustar sua busca ou filtros', loadMore: 'Carregar mais', showingOf: 'A mostrar {shown} de {total}',
     startAdding: 'Comece adicionando sua primeira transação',
     filterByType: 'Filtrar por tipo', allTime: 'Todo o período', allCategories: 'Todas as categorias',
     timePeriod: 'Período', category: 'Categoria', all: 'Todos', income: 'Receita', expense: 'Despesa',
@@ -190,7 +190,7 @@ const es: TranslationSchema = {
   transactions: {
     title: 'Historial de transacciones', subtitle: 'Ver y gestionar todas tus transacciones',
     addTransaction: 'Añadir transacción', searchPlaceholder: 'Buscar transacciones...',
-    noTransactions: 'No se encontraron transacciones', adjustFilters: 'Intenta ajustar tu búsqueda o filtros',
+    noTransactions: 'No se encontraron transacciones', adjustFilters: 'Intenta ajustar tu búsqueda o filtros', loadMore: 'Cargar más', showingOf: 'Mostrando {shown} de {total}',
     startAdding: 'Comienza añadiendo tu primera transacción',
     filterByType: 'Filtrar por tipo', allTime: 'Todo el tiempo', allCategories: 'Todas las categorías',
     timePeriod: 'Período de tiempo', category: 'Categoría', all: 'Todos', income: 'Ingreso', expense: 'Gasto',
@@ -250,7 +250,7 @@ const fr: TranslationSchema = {
   transactions: {
     title: 'Historique des transactions', subtitle: 'Voir et gérer toutes vos transactions',
     addTransaction: 'Ajouter une transaction', searchPlaceholder: 'Rechercher des transactions...',
-    noTransactions: 'Aucune transaction trouvée', adjustFilters: 'Essayez de modifier votre recherche ou vos filtres',
+    noTransactions: 'Aucune transaction trouvée', adjustFilters: 'Essayez de modifier votre recherche ou vos filtres', loadMore: 'Charger plus', showingOf: '{shown} sur {total} affichées',
     startAdding: 'Commencez par ajouter votre première transaction',
     filterByType: 'Filtrer par type', allTime: 'Tout le temps', allCategories: 'Toutes les catégories',
     timePeriod: 'Période', category: 'Catégorie', all: 'Tout', income: 'Revenu', expense: 'Dépense',
@@ -310,7 +310,7 @@ const de: TranslationSchema = {
   transactions: {
     title: 'Transaktionsverlauf', subtitle: 'Alle Transaktionen ansehen und verwalten',
     addTransaction: 'Transaktion hinzufügen', searchPlaceholder: 'Transaktionen suchen...',
-    noTransactions: 'Keine Transaktionen gefunden', adjustFilters: 'Suche oder Filter anpassen',
+    noTransactions: 'Keine Transaktionen gefunden', adjustFilters: 'Suche oder Filter anpassen', loadMore: 'Mehr laden', showingOf: '{shown} von {total} angezeigt',
     startAdding: 'Füge deine erste Transaktion hinzu',
     filterByType: 'Nach Typ filtern', allTime: 'Gesamte Zeit', allCategories: 'Alle Kategorien',
     timePeriod: 'Zeitraum', category: 'Kategorie', all: 'Alle', income: 'Einnahme', expense: 'Ausgabe',
