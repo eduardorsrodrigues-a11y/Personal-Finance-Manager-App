@@ -71,23 +71,56 @@ export type DbTransaction = {
 
 export async function listTransactions(userId: string): Promise<DbTransaction[]> {
   const supabase = getSupabaseAdmin();
-  // Supabase caps each request at 1000 rows regardless of .limit(), so page
-  // through with .range() until a short page comes back.
+  // Supabase caps each request at 1000 rows regardless of .limit(). The first
+  // page also returns the total count, then the remaining pages are fetched in
+  // parallel, so a 10k-row history costs two round trips instead of ten.
   const CHUNK = 1000;
-  const data: unknown[] = [];
-  for (let from = 0; ; from += CHUNK) {
-    const { data: page, error } = await supabase
+  const fetchPage = (from: number, withCount = false) =>
+    supabase
       .from('transactions')
-      .select('id, type, amount, description, transaction_date, category, shared_expense_id, shared_expenses(group_id)')
+      .select(
+        'id, type, amount, description, transaction_date, category, shared_expense_id, shared_expenses(group_id)',
+        withCount ? { count: 'exact' } : undefined,
+      )
       .eq('user_id', userId)
       .order('transaction_date', { ascending: false })
       .order('created_at', { ascending: false })
       .order('id', { ascending: false })
       .range(from, from + CHUNK - 1);
-    if (error) throw error;
-    data.push(...(page ?? []));
-    if (!page || page.length < CHUNK) break;
+
+  const first = await fetchPage(0, true);
+  if (first.error) throw first.error;
+  const pages: unknown[][] = [first.data ?? []];
+  const total = first.count ?? 0;
+
+  if (total > CHUNK) {
+    const offsets: number[] = [];
+    for (let from = CHUNK; from < total; from += CHUNK) offsets.push(from);
+    const results = await Promise.all(offsets.map((from) => fetchPage(from)));
+    for (const r of results) {
+      if (r.error) throw r.error;
+      pages.push(r.data ?? []);
+    }
   }
+
+  // Rows added between the count and the page fetches can push the oldest
+  // ones past the last page; keep going sequentially until a short page.
+  let from = pages.length * CHUNK;
+  while (pages[pages.length - 1].length === CHUNK) {
+    const r = await fetchPage(from);
+    if (r.error) throw r.error;
+    pages.push(r.data ?? []);
+    from += CHUNK;
+  }
+
+  // Offsets can shift by a row if data changes mid-fetch; drop duplicates.
+  const seen = new Set<string>();
+  const data = pages.flat().filter((row) => {
+    const id = (row as { id: string }).id;
+    if (seen.has(id)) return false;
+    seen.add(id);
+    return true;
+  });
 
   const rows = data as Array<{
     id: string;
