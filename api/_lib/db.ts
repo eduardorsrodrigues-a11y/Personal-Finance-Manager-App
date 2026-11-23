@@ -71,16 +71,25 @@ export type DbTransaction = {
 
 export async function listTransactions(userId: string): Promise<DbTransaction[]> {
   const supabase = getSupabaseAdmin();
-  const { data, error } = await supabase
-    .from('transactions')
-    .select('id, type, amount, description, transaction_date, category, shared_expense_id, shared_expenses(group_id)')
-    .eq('user_id', userId)
-    .order('transaction_date', { ascending: false })
-    .order('created_at', { ascending: false })
-    .limit(10000);
+  // Supabase caps each request at 1000 rows regardless of .limit(), so page
+  // through with .range() until a short page comes back.
+  const CHUNK = 1000;
+  const data: unknown[] = [];
+  for (let from = 0; ; from += CHUNK) {
+    const { data: page, error } = await supabase
+      .from('transactions')
+      .select('id, type, amount, description, transaction_date, category, shared_expense_id, shared_expenses(group_id)')
+      .eq('user_id', userId)
+      .order('transaction_date', { ascending: false })
+      .order('created_at', { ascending: false })
+      .order('id', { ascending: false })
+      .range(from, from + CHUNK - 1);
+    if (error) throw error;
+    data.push(...(page ?? []));
+    if (!page || page.length < CHUNK) break;
+  }
 
-  if (error) throw error;
-  const rows = (data ?? []) as Array<{
+  const rows = data as Array<{
     id: string;
     type: string;
     amount: number;
